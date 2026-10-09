@@ -26,26 +26,8 @@ jobs:
       - run: npm run check
       - run: npm run test
 
-  e2e:
+  e2e-sqlite:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        db: [sqlite, postgres]
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: srep
-          POSTGRES_PASSWORD: srep-ci
-          POSTGRES_DB: srep
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -54,27 +36,76 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      - name: End-to-end tests
+        run: npm run test:e2e
+        env:
+          E2E_DATABASE_URL: sqlite:./data/e2e.db
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-sqlite
+          path: playwright-report/
+          if-no-files-found: ignore
+
+  e2e-postgres:
+    runs-on: ubuntu-latest
+    env:
+      # Secrets are not available to pull requests from forks. Login is skipped then.
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to Docker Hub
+        if: env.DOCKERHUB_USERNAME != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Start Postgres
+        run: |
+          docker run -d --name pg -p 5432:5432 \
+            -e POSTGRES_USER=srep -e POSTGRES_PASSWORD=srep-ci -e POSTGRES_DB=srep \
+            postgres:17
+          for i in $(seq 1 30); do
+            docker exec pg pg_isready -U srep -d srep && exit 0
+            sleep 1
+          done
+          docker logs pg
+          exit 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
       - name: Unit tests on Postgres
-        if: matrix.db == 'postgres'
         run: npm run test
         env:
           SREP_TEST_POSTGRES_URL: postgres://srep:srep-ci@localhost:5432/srep
       - name: End-to-end tests
         run: npm run test:e2e
         env:
-          E2E_DATABASE_URL: ${{ matrix.db == 'postgres' && 'postgres://srep:srep-ci@localhost:5432/srep' || 'sqlite:./data/e2e.db' }}
+          E2E_DATABASE_URL: postgres://srep:srep-ci@localhost:5432/srep
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ matrix.db }}
+          name: playwright-report-postgres
           path: playwright-report/
           if-no-files-found: ignore
 
   docker:
     runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     steps:
       - uses: actions/checkout@v4
+      - name: Log in to Docker Hub
+        if: env.DOCKERHUB_USERNAME != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - run: docker build -t srep:ci .
       - name: Run the image and check health
         run: |
