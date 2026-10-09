@@ -1,8 +1,7 @@
 import { spawnSync } from 'node:child_process';
-import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { makeTempDir, removeTempDirs } from '../src/lib/server/temp-dir.ts';
 
 const root = path.resolve(import.meta.dirname, '..');
 const tsx = path.join(root, 'node_modules', '.bin', 'tsx');
@@ -15,23 +14,19 @@ function runMigrate(databaseUrl: string) {
 }
 
 afterEach(() => {
-  for (const dir of dirs.splice(0)) {
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
+  removeTempDirs(dirs);
 });
 
 describe('db:migrate script', () => {
   it('applies migrations and exits with code 0', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'srep-'));
-    dirs.push(dir);
+    const dir = makeTempDir(dirs);
     const result = runMigrate(`sqlite:${path.join(dir, 'cli.db')}`);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('migrations applied');
   });
 
   it('logs a JSON error and exits with code 1 when the database cannot open', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'srep-'));
-    dirs.push(dir);
+    const dir = makeTempDir(dirs);
     // The path is a directory, so SQLite cannot open it as a file.
     const result = runMigrate(`sqlite:${dir}`);
     expect(result.status).toBe(1);

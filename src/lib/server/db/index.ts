@@ -1,11 +1,5 @@
 import { getConfig } from '#lib/server/config.js';
-import { createDb, type DbHandle } from '#lib/server/db/client.js';
+import { createDb } from '#lib/server/db/client.js';
+import { once } from '#lib/server/once.js';
 
-let cached: DbHandle | undefined;
-
-export function getDb(): DbHandle {
-  if (cached === undefined) {
-    cached = createDb(getConfig());
-  }
-  return cached;
-}
+export const getDb = once(() => createDb(getConfig()));

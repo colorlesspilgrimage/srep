@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { z } from 'zod';
+import { once } from '#lib/server/once.js';
 
 const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'] as const;
 
@@ -126,11 +127,4 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
   };
 }
 
-let cached: Config | undefined;
-
-export function getConfig(): Config {
-  if (cached === undefined) {
-    cached = parseConfig(process.env);
-  }
-  return cached;
-}
+export const getConfig = once(() => parseConfig(process.env));

@@ -1,15 +1,10 @@
-import pino from 'pino';
 import { getConfig } from '../src/lib/server/config.ts';
 import { createDb, type DbHandle } from '../src/lib/server/db/client.ts';
 import { runMigrations } from '../src/lib/server/db/migrate.ts';
-import { createLogger } from '../src/lib/server/logger.ts';
+import { createSyncLogger } from '../src/lib/server/logger.ts';
 
 function fatal(error: unknown): void {
-  const logger = createLogger({
-    level: 'info',
-    destination: pino.destination({ sync: true }),
-  });
-  logger.fatal({ err: error }, 'migration failed');
+  createSyncLogger('info').fatal({ err: error }, 'migration failed');
 }
 
 async function main(): Promise<void> {
@@ -21,10 +16,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const logger = createLogger({
-    level: config.logLevel,
-    destination: pino.destination({ sync: true }),
-  });
+  const logger = createSyncLogger(config.logLevel);
   let db: DbHandle | undefined;
   try {
     // createDb can throw, for example when the SQLite file cannot open.

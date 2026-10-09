@@ -2,6 +2,16 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ConfigError, parseConfig, redactDatabaseUrl } from '#lib/server/config.js';
 
+function configErrorMessage(env: Record<string, string | undefined>): string {
+  try {
+    parseConfig(env);
+  } catch (error: unknown) {
+    expect(error).toBeInstanceOf(ConfigError);
+    return error instanceof Error ? error.message : '';
+  }
+  return '';
+}
+
 describe('parseConfig', () => {
   it('uses defaults for an empty env', () => {
     const config = parseConfig({});
@@ -56,33 +66,21 @@ describe('parseConfig', () => {
   });
 
   it('lists every bad variable', () => {
-    let message = '';
-    try {
-      parseConfig({
-        SREP_DATABASE_URL: 'mysql://x',
-        SREP_LOG_LEVEL: 'loud',
-        SREP_MIGRATE_ON_START: 'yes',
-      });
-    } catch (error: unknown) {
-      expect(error).toBeInstanceOf(ConfigError);
-      message = error instanceof Error ? error.message : '';
-    }
+    const message = configErrorMessage({
+      SREP_DATABASE_URL: 'mysql://x',
+      SREP_LOG_LEVEL: 'loud',
+      SREP_MIGRATE_ON_START: 'yes',
+    });
     expect(message).toContain('SREP_DATABASE_URL');
     expect(message).toContain('SREP_LOG_LEVEL');
     expect(message).toContain('SREP_MIGRATE_ON_START');
   });
 
   it('does not put a password in the error', () => {
-    let message = '';
-    try {
-      parseConfig({
-        SREP_DATABASE_URL: 'postgres://u:secret@h/d',
-        SREP_LOG_LEVEL: 'loud',
-      });
-    } catch (error: unknown) {
-      expect(error).toBeInstanceOf(ConfigError);
-      message = error instanceof Error ? error.message : '';
-    }
+    const message = configErrorMessage({
+      SREP_DATABASE_URL: 'postgres://u:secret@h/d',
+      SREP_LOG_LEVEL: 'loud',
+    });
     expect(message).toContain('SREP_LOG_LEVEL');
     expect(message).not.toContain('secret');
   });
