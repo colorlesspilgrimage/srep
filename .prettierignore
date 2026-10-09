@@ -1,0 +1,9 @@
+build/
+.svelte-kit/
+node_modules/
+package-lock.json
+drizzle/
+playwright-report/
+test-results/
+ROADMAP.md
+LICENSE
