@@ -34,6 +34,29 @@ describe('sqlite database', () => {
     handle.close();
   });
 
+  it.skipIf(process.platform === 'win32')(
+    'keeps a new database file and new folders private to the owner',
+    async () => {
+      const dir = tempDir();
+      const folder = path.join(dir, 'private', 'store');
+      const filePath = path.join(folder, 'app.db');
+      const config = parseConfig({ SREP_DATABASE_URL: `sqlite:${filePath}` });
+      const previous = process.umask(0o022);
+      let handle: DbHandle;
+      try {
+        handle = createDb(config);
+      } finally {
+        process.umask(previous);
+      }
+      await runMigrations(handle, config, logger);
+      // Other users must not read or write the database, the WAL file, or new folders.
+      for (const target of [filePath, `${filePath}-wal`, folder, path.dirname(folder)]) {
+        expect(fs.statSync(target).mode & 0o077).toBe(0);
+      }
+      await handle.close();
+    },
+  );
+
   it('sets WAL mode for a file database', () => {
     const dir = tempDir();
     const filePath = path.join(dir, 'app.db');

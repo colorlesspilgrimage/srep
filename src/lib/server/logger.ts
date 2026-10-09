@@ -6,7 +6,14 @@ export function createLogger(opts: { level: string; destination?: DestinationStr
     level: opts.level,
     base: { service: 'srep' },
     timestamp: pino.stdTimeFunctions.isoTime,
-    redact: ['*.password', '*.token', 'req.headers.authorization', 'req.headers.cookie'],
+    redact: [
+      'password',
+      'token',
+      '*.password',
+      '*.token',
+      'req.headers.authorization',
+      'req.headers.cookie',
+    ],
   };
   if (opts.destination === undefined) {
     return pino(options);
