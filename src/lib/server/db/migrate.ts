@@ -25,6 +25,9 @@ export async function runMigrations(
   if (!fs.existsSync(folder)) {
     throw new Error(`migrations folder does not exist: ${folder}`);
   }
+  if (!fs.existsSync(path.join(folder, 'meta', '_journal.json'))) {
+    throw new Error(`migrations folder has no meta/_journal.json: ${folder}`);
+  }
   if (handle.dialect === 'sqlite') {
     migrateSqlite(handle.db, { migrationsFolder: folder });
   } else {

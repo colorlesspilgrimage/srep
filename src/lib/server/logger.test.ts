@@ -52,6 +52,15 @@ describe('createLogger', () => {
     expect(lines[0]).toContain('Redacted');
   });
 
+  it('redacts a top-level password and token', () => {
+    const { lines, stream } = capture();
+    const logger = createLogger({ level: 'info', destination: stream });
+    logger.info({ password: 'secret-pw', token: 'secret-token' }, 'login');
+    expect(lines[0]).not.toContain('secret-pw');
+    expect(lines[0]).not.toContain('secret-token');
+    expect(lines[0]).toContain('Redacted');
+  });
+
   it('escapes a newline in the message', () => {
     const { lines, stream } = capture();
     const logger = createLogger({ level: 'info', destination: stream });
