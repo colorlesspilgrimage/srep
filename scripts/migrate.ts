@@ -1,6 +1,6 @@
 import pino from 'pino';
 import { getConfig } from '../src/lib/server/config.ts';
-import { createDb } from '../src/lib/server/db/client.ts';
+import { createDb, type DbHandle } from '../src/lib/server/db/client.ts';
 import { runMigrations } from '../src/lib/server/db/migrate.ts';
 import { createLogger } from '../src/lib/server/logger.ts';
 
@@ -25,13 +25,15 @@ async function main(): Promise<void> {
     level: config.logLevel,
     destination: pino.destination({ sync: true }),
   });
-  const db = createDb(config);
+  let db: DbHandle | undefined;
   try {
+    // createDb can throw, for example when the SQLite file cannot open.
+    db = createDb(config);
     await runMigrations(db, config, logger);
     await db.close();
   } catch (error: unknown) {
     logger.error({ err: error }, 'migration failed');
-    await db.close().catch(() => undefined);
+    await db?.close().catch(() => undefined);
     process.exit(1);
   }
 }

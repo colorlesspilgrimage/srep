@@ -80,6 +80,17 @@ describe('sqlite database', () => {
     await handle.close();
   });
 
+  it('names a migrations folder that has no journal', async () => {
+    const empty = tempDir();
+    const config = parseConfig({
+      SREP_DATABASE_URL: 'sqlite::memory:',
+      SREP_MIGRATIONS_DIR: empty,
+    });
+    const handle = createDb(config);
+    await expect(runMigrations(handle, config, logger)).rejects.toThrow(empty);
+    await handle.close();
+  });
+
   it('resolves ping and rejects ping after close', async () => {
     const config = parseConfig({ SREP_DATABASE_URL: 'sqlite::memory:' });
     const handle: DbHandle = createDb(config);
