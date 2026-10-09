@@ -1,9 +1,8 @@
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
-import pino from 'pino';
 import { getConfig } from '#lib/server/config.js';
 import { getDb } from '#lib/server/db/index.js';
 import { runMigrations } from '#lib/server/db/migrate.js';
-import { createLogger, getLogger } from '#lib/server/logger.js';
+import { createSyncLogger, getLogger } from '#lib/server/logger.js';
 
 const shutdownFlag = '__srepShutdownRegistered';
 
@@ -29,11 +28,7 @@ function registerShutdown(): void {
 }
 
 function logFatal(error: unknown): void {
-  const logger = createLogger({
-    level: 'info',
-    destination: pino.destination({ sync: true }),
-  });
-  logger.fatal({ err: error }, 'startup failed');
+  createSyncLogger('info').fatal({ err: error }, 'startup failed');
 }
 
 export const init: ServerInit = async () => {

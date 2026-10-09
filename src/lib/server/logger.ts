@@ -1,5 +1,6 @@
 import pino, { type DestinationStream, type Logger } from 'pino';
 import { getConfig } from '#lib/server/config.js';
+import { once } from '#lib/server/once.js';
 
 export function createLogger(opts: { level: string; destination?: DestinationStream }): Logger {
   const options = {
@@ -21,11 +22,11 @@ export function createLogger(opts: { level: string; destination?: DestinationStr
   return pino(options, opts.destination);
 }
 
-let cached: Logger | undefined;
-
-export function getLogger(): Logger {
-  if (cached === undefined) {
-    cached = createLogger({ level: getConfig().logLevel });
-  }
-  return cached;
+export function createSyncLogger(level: string): Logger {
+  return createLogger({
+    level,
+    destination: pino.destination({ sync: true }),
+  });
 }
+
+export const getLogger = once(() => createLogger({ level: getConfig().logLevel }));

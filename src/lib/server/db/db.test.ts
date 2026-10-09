@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import Database from 'better-sqlite3';
 import { eq } from 'drizzle-orm';
@@ -8,25 +7,18 @@ import { parseConfig } from '#lib/server/config.js';
 import { createDb, type DbHandle } from '#lib/server/db/client.js';
 import { runMigrations } from '#lib/server/db/migrate.js';
 import { appSettings } from '#lib/server/db/schema/sqlite.js';
+import { makeTempDir, removeTempDirs } from '#lib/server/temp-dir.js';
 
 const logger = { info() {} };
 const dirs: string[] = [];
 
-function tempDir(): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'srep-'));
-  dirs.push(dir);
-  return dir;
-}
-
 afterEach(() => {
-  for (const dir of dirs.splice(0)) {
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
+  removeTempDirs(dirs);
 });
 
 describe('sqlite database', () => {
   it('creates the file and the parent directory', () => {
-    const dir = tempDir();
+    const dir = makeTempDir(dirs);
     const filePath = path.join(dir, 'nested', 'missing', 'app.db');
     const config = parseConfig({ SREP_DATABASE_URL: `sqlite:${filePath}` });
     const handle = createDb(config);
@@ -37,7 +29,7 @@ describe('sqlite database', () => {
   it.skipIf(process.platform === 'win32')(
     'keeps a new database file and new folders private to the owner',
     async () => {
-      const dir = tempDir();
+      const dir = makeTempDir(dirs);
       const folder = path.join(dir, 'private', 'store');
       const filePath = path.join(folder, 'app.db');
       const config = parseConfig({ SREP_DATABASE_URL: `sqlite:${filePath}` });
@@ -49,7 +41,7 @@ describe('sqlite database', () => {
         process.umask(previous);
       }
       await runMigrations(handle, config, logger);
-      // Other users must not read or write the database, the WAL file, or new folders.
+      // Bits 0o077 are group and other access.
       for (const target of [filePath, `${filePath}-wal`, folder, path.dirname(folder)]) {
         expect(fs.statSync(target).mode & 0o077).toBe(0);
       }
@@ -58,7 +50,7 @@ describe('sqlite database', () => {
   );
 
   it('sets WAL mode for a file database', () => {
-    const dir = tempDir();
+    const dir = makeTempDir(dirs);
     const filePath = path.join(dir, 'app.db');
     const config = parseConfig({ SREP_DATABASE_URL: `sqlite:${filePath}` });
     const handle = createDb(config);
@@ -70,7 +62,7 @@ describe('sqlite database', () => {
   });
 
   it('applies migrations and keeps data on a second run', async () => {
-    const dir = tempDir();
+    const dir = makeTempDir(dirs);
     const filePath = path.join(dir, 'app.db');
     const config = parseConfig({ SREP_DATABASE_URL: `sqlite:${filePath}` });
     const handle = createDb(config);
@@ -92,7 +84,7 @@ describe('sqlite database', () => {
   });
 
   it('names a missing migrations folder', async () => {
-    const dir = tempDir();
+    const dir = makeTempDir(dirs);
     const missing = path.join(dir, 'no-such-migrations');
     const config = parseConfig({
       SREP_DATABASE_URL: 'sqlite::memory:',
@@ -104,7 +96,7 @@ describe('sqlite database', () => {
   });
 
   it('names a migrations folder that has no journal', async () => {
-    const empty = tempDir();
+    const empty = makeTempDir(dirs);
     const config = parseConfig({
       SREP_DATABASE_URL: 'sqlite::memory:',
       SREP_MIGRATIONS_DIR: empty,
