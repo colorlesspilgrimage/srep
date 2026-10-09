@@ -55,8 +55,8 @@ describe('createLogger', () => {
   it('redacts a top-level password and token', () => {
     const { lines, stream } = capture();
     const logger = createLogger({ level: 'info', destination: stream });
-    logger.info({ password: 'secret-pw', token: 'secret-token' }, 'login');
-    expect(lines[0]).not.toContain('secret-pw');
+    logger.info({ password: 'secret-pass', token: 'secret-token' }, 'login');
+    expect(lines[0]).not.toContain('secret-pass');
     expect(lines[0]).not.toContain('secret-token');
     expect(lines[0]).toContain('Redacted');
   });

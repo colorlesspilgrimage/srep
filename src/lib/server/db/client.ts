@@ -24,7 +24,11 @@ export function createDb(config: Config): DbHandle {
   if (config.database.dialect === 'sqlite') {
     const filePath = config.database.path;
     if (filePath !== ':memory:') {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      // The database can hold private data. Other users must not read it.
+      // Mode 0o700 applies only to folders that this call creates.
+      fs.mkdirSync(path.dirname(filePath), { recursive: true, mode: 0o700 });
+      // Create a missing file with mode 0o600. SQLite gives the WAL and SHM files the same mode.
+      fs.closeSync(fs.openSync(filePath, 'a', 0o600));
     }
     const sqlite = new Database(filePath);
     if (filePath !== ':memory:') {
