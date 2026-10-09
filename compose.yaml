@@ -1,0 +1,46 @@
+services:
+  srep:
+    build: .
+    ports:
+      - '${SREP_PORT:-3000}:3000'
+    environment:
+      SREP_DATABASE_URL: ${SREP_DATABASE_URL:-sqlite:/data/srep.db}
+      ORIGIN: ${ORIGIN:-http://localhost:3000}
+    volumes:
+      - srep-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:' + (process.env.PORT || 3000) + '/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  postgres:
+    profiles: ['postgres']
+    image: postgres:17
+    environment:
+      POSTGRES_USER: srep
+      POSTGRES_DB: srep
+      # Set SREP_POSTGRES_PASSWORD before you use this profile.
+      # An empty value lets `docker compose up` run without the profile.
+      POSTGRES_PASSWORD: ${SREP_POSTGRES_PASSWORD:-}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    ports:
+      - '127.0.0.1:${SREP_POSTGRES_PORT:-5432}:5432'
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'srep', '-d', 'srep']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  srep-data: {}
+  pg-data: {}

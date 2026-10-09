@@ -1,0 +1,15 @@
+{
+  "extends": "$app/tsconfig",
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": false,
+    "allowJs": true,
+    "checkJs": true,
+    "moduleResolution": "bundler",
+    "types": ["$app/types", "node"]
+  },
+  "include": ["src", "test", "*"],
+  "exclude": ["src/service-worker"]
+}
