@@ -145,7 +145,12 @@ After setup, the setup page is locked for good. The token stops working.
 - Every mutating request needs the right `Origin` header. Requests with a session also need the `x-srep-csrf` header.
 - A mutating API call needs a `content-type` header. SvelteKit rejects a mutating call without one.
 - Every `/api` route needs a session, except the public auth routes.
+  The guard checks the decoded path, as SvelteKit does. A path that cannot be decoded gets 400.
+- SvelteKit remote functions (`/_app/remote/*`) get the same guard as `/api`. They need a session and the CSRF header.
 - Rate limits: 20 auth requests per address per 5 minutes. 5 bad setup tokens per 15 minutes. 5 bad recovery codes per 15 minutes.
+- A setup or recovery request takes one failure slot before the check runs. A good token or code gives the slot back.
+  Parallel requests therefore cannot pass the limit.
+- A login must raise the sign counter of the credential (both 0 is also accepted). Of two logins with the same counter, only one passes.
 - The limits live in memory. A restart clears them.
 
 ### Reverse proxy

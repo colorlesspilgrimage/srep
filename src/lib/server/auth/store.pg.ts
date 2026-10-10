@@ -1,4 +1,4 @@
-import { and, eq, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, eq, isNull, lt, lte, or, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import {
   SETTING_SETUP_COMPLETE,
@@ -140,10 +140,14 @@ export function createPgStore(db: PostgresJsDatabase): AuthStore {
     },
 
     async updateSignCount(id, signCount, lastUsedAt) {
-      await db
+      const advances =
+        signCount === 0 ? eq(authCredential.signCount, 0) : lt(authCredential.signCount, signCount);
+      const updated = await db
         .update(authCredential)
         .set({ signCount, lastUsedAt })
-        .where(eq(authCredential.id, id));
+        .where(and(eq(authCredential.id, id), advances))
+        .returning({ id: authCredential.id });
+      return updated.length > 0;
     },
 
     async insertChallenge(challenge) {

@@ -86,41 +86,22 @@ export function checkAttempts(event: RequestEvent, ctx: AuthContext): Response |
   return limitResponse(ctx.limiters.authAttempts.check(event.getClientAddress()));
 }
 
-// Reads a failure limiter. It counts nothing.
-export function checkBlocked(limiter: RateLimiter, key: string): Response | null {
-  return limitResponse(limiter.peek(key));
+// Counts one failure before the secret check runs. Parallel requests then cannot
+// all pass the limit before the first failure is counted (CWE-307, CWE-362).
+export function reserveFailure(limiter: RateLimiter, key: string): Response | null {
+  return limitResponse(limiter.check(key));
 }
 
-// One attempt at a time for each failure limiter. The next attempt starts only
-// after the previous failure is counted. So a parallel burst cannot pass the
-// limit before the first failures are counted (CWE-307, CWE-770).
-const failureQueues = new WeakMap<RateLimiter, Promise<unknown>>();
-
-// Runs the attempt when the limiter allows it. Counts a failure with the given code.
-// Returns a 429 response when the limiter blocks.
-export function runLimited<T extends { ok: true }>(
+// Gives the reserved failure back, unless the secret check failed with this code.
+export function settleFailure(
   limiter: RateLimiter,
   key: string,
+  result: { ok: true } | Failure,
   code: string,
-  attempt: () => Promise<T | Failure>,
-): Promise<T | Failure | Response> {
-  const previous = failureQueues.get(limiter) ?? Promise.resolve();
-  const next = previous.then(async () => {
-    const blocked = checkBlocked(limiter, key);
-    if (blocked !== null) {
-      return blocked;
-    }
-    const result = await attempt();
-    if (!result.ok && result.error === code) {
-      limiter.check(key);
-    }
-    return result;
-  });
-  failureQueues.set(
-    limiter,
-    next.catch(() => undefined),
-  );
-  return next;
+): void {
+  if (result.ok || result.error !== code) {
+    limiter.release(key);
+  }
 }
 
 export function setSessionCookie(

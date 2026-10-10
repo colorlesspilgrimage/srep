@@ -146,6 +146,41 @@ describe('POST /api/auth/setup/options', () => {
     }
     expect(last).toBe(429);
   });
+
+  // Parallel requests must not pass the global limit before one failure is counted (CWE-307).
+  it('lets at most 5 parallel bad tokens reach the token check', async () => {
+    ({ h } = await useRouteContext());
+    await open();
+    const requests = Array.from({ length: 12 }, (_, i) =>
+      optionsPost(
+        makeEvent('/api/auth/setup/options', {
+          body: { setupToken: 'bad', ...fields },
+          address: `198.51.100.${i}`,
+        }).event,
+      ),
+    );
+    const statuses = (await Promise.all(requests)).map((r) => r.status);
+    expect(statuses.filter((s) => s === 403)).toHaveLength(5);
+    expect(statuses.filter((s) => s === 429)).toHaveLength(7);
+  });
+
+  it('does not count a good token or a malformed body as a failure', async () => {
+    ({ h } = await useRouteContext());
+    const token = await open();
+    for (let i = 0; i < 6; i += 1) {
+      const malformed = makeEvent('/api/auth/setup/options', {
+        rawBody: '{',
+        headers: { 'content-type': 'application/json' },
+        address: `198.51.100.${i}`,
+      });
+      expect((await optionsPost(malformed.event)).status).toBe(400);
+      const good = makeEvent('/api/auth/setup/options', {
+        body: { setupToken: token, ...fields },
+        address: `198.51.100.${20 + i}`,
+      });
+      expect((await optionsPost(good.event)).status).toBe(200);
+    }
+  });
 });
 
 describe('POST /api/auth/setup/verify', () => {

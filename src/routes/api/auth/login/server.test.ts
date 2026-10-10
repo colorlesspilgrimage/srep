@@ -137,7 +137,7 @@ describe('POST /api/auth/recovery/login', { timeout: 30_000 }, () => {
     expect(good.cookiesSet).toHaveLength(1);
     for (let i = 0; i < 5; i += 1) {
       const bad = makeEvent('/api/auth/recovery/login', {
-        body: { code: '00000-00000' },
+        body: { code: 'x' },
         address: `198.51.100.${i}`,
       });
       expect((await recoveryPost(bad.event)).status).toBe(401);
@@ -171,5 +171,44 @@ describe('POST /api/auth/recovery/login', { timeout: 30_000 }, () => {
     ({ h } = await useRouteContext());
     const { event } = makeEvent('/api/auth/recovery/login', { body: { code: 'x', more: 1 } });
     expect((await recoveryPost(event)).status).toBe(400);
+  });
+
+  // Parallel requests must not pass the global limit before one failure is counted (CWE-307).
+  // A code with a bad format fails before scrypt runs. This keeps the tests fast.
+  it('lets at most 5 parallel bad codes reach the code check', async () => {
+    ({ h } = await useRouteContext());
+    await doSetup(h);
+    const requests = Array.from({ length: 12 }, (_, i) =>
+      recoveryPost(
+        makeEvent('/api/auth/recovery/login', {
+          body: { code: 'x' },
+          address: `198.51.100.${i}`,
+        }).event,
+      ),
+    );
+    const statuses = (await Promise.all(requests)).map((r) => r.status);
+    expect(statuses.filter((s) => s === 401)).toHaveLength(5);
+    expect(statuses.filter((s) => s === 429)).toHaveLength(7);
+  });
+
+  it('does not count a malformed body or a good code as a failure', async () => {
+    ({ h } = await useRouteContext());
+    const done = await doSetup(h);
+    const post = async (body: object, i: number) =>
+      (
+        await recoveryPost(
+          makeEvent('/api/auth/recovery/login', { body, address: `10.0.0.${i}` }).event,
+        )
+      ).status;
+    for (let i = 0; i < 6; i += 1) {
+      expect(await post({ code: 'x', more: 1 }, i)).toBe(400);
+    }
+    for (let i = 0; i < 4; i += 1) {
+      expect(await post({ code: 'x' }, 10 + i)).toBe(401);
+    }
+    expect(await post({ code: done.recoveryCodes[0] }, 20)).toBe(200);
+    expect(await post({ code: done.recoveryCodes[1] }, 21)).toBe(200);
+    expect(await post({ code: 'x' }, 30)).toBe(401);
+    expect(await post({ code: 'x' }, 31)).toBe(429);
   });
 });

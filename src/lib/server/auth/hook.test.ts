@@ -253,6 +253,83 @@ describe('origin and CSRF checks', () => {
   });
 });
 
+// Kit decodes the path before it finds the route. The guard must see the same path.
+describe('percent-encoded paths (CWE-863, CWE-352)', () => {
+  it('returns 401 for an encoded API path without a session', async () => {
+    h = await createHarness();
+    const { response, resolve } = await run('/%61pi/auth/credentials');
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: 'unauthenticated' });
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
+  it('checks the CSRF header on an encoded API path', async () => {
+    h = await createHarness();
+    const { cookie } = await signedIn();
+    const { response, resolve } = await run('/%61pi/auth/logout-all', {
+      method: 'POST',
+      headers: { origin: ORIGIN },
+      cookie,
+    });
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: 'bad_csrf' });
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
+  it('sets no-store on an encoded API path', async () => {
+    h = await createHarness();
+    const { cookie } = await signedIn();
+    const { response } = await run('/%61pi/auth/credentials', { cookie });
+    expect(response.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('keeps an encoded slash out of the public list', async () => {
+    h = await createHarness();
+    const { response } = await run('/api/auth/status%2f');
+    expect(response.status).toBe(401);
+  });
+
+  it('returns 400 for a path that cannot be decoded', async () => {
+    h = await createHarness();
+    const { response, resolve } = await run('/api/%E0%A4%A');
+    expect(response.status).toBe(400);
+    expect(resolve).not.toHaveBeenCalled();
+  });
+});
+
+// Kit runs remote functions at /_app/remote/<id>. They must not skip the guard.
+describe('remote function paths (CWE-863)', () => {
+  it('does not let an unauthenticated remote call reach the app', async () => {
+    h = await createHarness();
+    const { response, resolve } = await run('/_app/remote/abc123/getSecret');
+    expect(resolve).not.toHaveBeenCalled();
+    expect(response.status).toBe(401);
+  });
+
+  it('checks origin and CSRF on a signed-in remote call', async () => {
+    h = await createHarness();
+    const { cookie, csrf } = await signedIn();
+    const noCsrf = await run('/_app/remote/abc123/doIt', {
+      method: 'POST',
+      headers: { origin: ORIGIN },
+      cookie,
+    });
+    expect(noCsrf.response.status).toBe(403);
+    const good = await run('/_app/remote/abc123/doIt', {
+      method: 'POST',
+      headers: { origin: ORIGIN, 'x-srep-csrf': csrf },
+      cookie,
+    });
+    expect(good.resolve).toHaveBeenCalledOnce();
+  });
+
+  it('still serves static app files without a session', async () => {
+    h = await createHarness();
+    const { resolve } = await run('/_app/immutable/entry/start.js');
+    expect(resolve).toHaveBeenCalledOnce();
+  });
+});
+
 describe('response headers', () => {
   it('adds the security headers to every response', async () => {
     h = await createHarness();
