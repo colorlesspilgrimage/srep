@@ -58,7 +58,11 @@ export async function loginVerify(
     }
     return fail(401, 'login_failed');
   }
-  await deps.store.updateSignCount(credential.id, newSignCount, deps.now());
+  // A parallel login with the same counter loses here. It counts as a replay.
+  if (!(await deps.store.updateSignCount(credential.id, newSignCount, deps.now()))) {
+    deps.logger.warn({ credentialId: credential.id }, 'sign counter replay');
+    return fail(401, 'login_failed');
+  }
   const session = await createSession(deps, input.userAgent);
   return { ok: true, sessionToken: session.rawToken, maxAgeSec: session.maxAgeSec };
 }

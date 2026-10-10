@@ -2,6 +2,7 @@ import { json, type RequestEvent } from '@sveltejs/kit';
 import {
   checkCsrfHeader,
   checkOrigin,
+  decodeRoutePath,
   isApiPath,
   isMutating,
   isPublicApiRoute,
@@ -38,16 +39,17 @@ function checkMutation(
   return null;
 }
 
+// The path is the decoded path that SvelteKit uses to find the route.
 async function checkRoute(
   deps: AuthDeps,
   event: RequestEvent,
+  path: string,
   rawToken: string | undefined,
 ): Promise<Response | null> {
-  const { pathname } = event.url;
   const method = event.request.method;
   const signedIn = event.locals.session !== null;
-  if (isApiPath(pathname)) {
-    const isPublic = isPublicApiRoute(method, pathname);
+  if (isApiPath(path)) {
+    const isPublic = isPublicApiRoute(method, path);
     if (!isPublic && !signedIn) {
       return json({ error: 'unauthenticated' }, { status: 401 });
     }
@@ -62,7 +64,7 @@ async function checkRoute(
       return rejected;
     }
   }
-  const isGuestPage = GUEST_PAGES.includes(pathname);
+  const isGuestPage = GUEST_PAGES.includes(path);
   if (signedIn && isGuestPage) {
     return redirectTo('/');
   }
@@ -72,11 +74,11 @@ async function checkRoute(
   return null;
 }
 
-function finish(deps: AuthDeps, event: RequestEvent, response: Response, clear: boolean): Response {
+function finish(deps: AuthDeps, path: string, response: Response, clear: boolean): Response {
   for (const [name, value] of Object.entries(buildSecurityHeaders(deps.auth))) {
     response.headers.set(name, value);
   }
-  if (isApiPath(event.url.pathname)) {
+  if (isApiPath(path)) {
     response.headers.set('cache-control', 'no-store');
   }
   if (clear) {
@@ -91,10 +93,14 @@ export async function handleAuth(
   event: RequestEvent,
   resolve: Resolve,
 ): Promise<Response> {
-  const { pathname } = event.url;
   event.locals.session = null;
-  if (pathname === '/healthz' || pathname.startsWith('/_app/')) {
-    return finish(deps, event, await resolve(event), false);
+  const path = decodeRoutePath(event.url.pathname);
+  if (path === null) {
+    return finish(deps, event.url.pathname, json({ error: 'bad_request' }, { status: 400 }), false);
+  }
+  // Static app files and the health check need no session. Remote functions do.
+  if (path === '/healthz' || (path.startsWith('/_app/') && !isApiPath(path))) {
+    return finish(deps, path, await resolve(event), false);
   }
   const rawToken = event.cookies.get(sessionCookieName(deps.auth.secureCookies));
   const row = rawToken === undefined ? null : await resolveSession(deps, rawToken);
@@ -102,6 +108,6 @@ export async function handleAuth(
     event.locals.session = { id: row.id, csrfToken: csrfTokenFor(rawToken) };
   }
   const clear = rawToken !== undefined && row === null;
-  const rejected = await checkRoute(deps, event, rawToken);
-  return finish(deps, event, rejected ?? (await resolve(event)), clear);
+  const rejected = await checkRoute(deps, event, path, rawToken);
+  return finish(deps, path, rejected ?? (await resolve(event)), clear);
 }

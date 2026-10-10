@@ -42,14 +42,21 @@ describe('createRateLimiter', () => {
     expect(limiter.check('a').allowed).toBe(true);
   });
 
-  it('peek counts nothing', () => {
+  it('release gives back one call in the current window only', () => {
     const { limiter, clock } = make(1, 1000);
-    expect(limiter.peek('a').allowed).toBe(true);
-    expect(limiter.peek('a').allowed).toBe(true);
-    limiter.check('a');
-    expect(limiter.peek('a').allowed).toBe(false);
+    limiter.release('a');
+    expect(limiter.check('a').allowed).toBe(true);
+    expect(limiter.check('a').allowed).toBe(false);
+    limiter.release('a');
+    expect(limiter.check('a').allowed).toBe(true);
+    limiter.release('a');
+    limiter.release('a');
+    expect(limiter.check('a').allowed).toBe(true);
+    expect(limiter.check('a').allowed).toBe(false);
     clock.now += 1000;
-    expect(limiter.peek('a').allowed).toBe(true);
+    limiter.release('a');
+    expect(limiter.check('a').allowed).toBe(true);
+    expect(limiter.check('a').allowed).toBe(false);
   });
 
   it('prunes old keys and caps the map without an error', () => {

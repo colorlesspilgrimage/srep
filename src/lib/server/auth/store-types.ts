@@ -56,7 +56,11 @@ export interface AuthStore {
   insertCredential(credential: CredentialRow): Promise<void>;
   renameCredential(id: string, nickname: string): Promise<boolean>;
   deleteCredentialUnlessLast(id: string): Promise<DeleteCredentialResult>;
-  updateSignCount(id: string, signCount: number, lastUsedAt: number): Promise<void>;
+  /**
+   * Sets the counter only when it goes up, or when it stays 0. Returns false otherwise.
+   * One statement does the check, so two parallel logins cannot both pass (CWE-362).
+   */
+  updateSignCount(id: string, signCount: number, lastUsedAt: number): Promise<boolean>;
 
   insertChallenge(challenge: ChallengeRow): Promise<void>;
   consumeChallenge(id: string): Promise<ChallengeRow | undefined>;

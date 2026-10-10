@@ -86,19 +86,21 @@ export function checkAttempts(event: RequestEvent, ctx: AuthContext): Response |
   return limitResponse(ctx.limiters.authAttempts.check(event.getClientAddress()));
 }
 
-// Reads a failure limiter. It counts nothing.
-export function checkBlocked(limiter: RateLimiter, key: string): Response | null {
-  return limitResponse(limiter.peek(key));
+// Counts one failure before the secret check runs. Parallel requests then cannot
+// all pass the limit before the first failure is counted (CWE-307, CWE-362).
+export function reserveFailure(limiter: RateLimiter, key: string): Response | null {
+  return limitResponse(limiter.check(key));
 }
 
-export function recordFailure(
+// Gives the reserved failure back, unless the secret check failed with this code.
+export function settleFailure(
   limiter: RateLimiter,
   key: string,
-  failure: Failure,
+  result: { ok: true } | Failure,
   code: string,
 ): void {
-  if (failure.error === code) {
-    limiter.check(key);
+  if (result.ok || result.error !== code) {
+    limiter.release(key);
   }
 }
 

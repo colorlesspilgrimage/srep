@@ -107,6 +107,28 @@ describe('loginVerify', () => {
     expect(h.warnings.map((w) => w.msg)).toContain('sign counter replay');
   });
 
+  // Two parallel logins both read counter 0. Only one may raise it to 5 (CWE-362).
+  it('lets only one of two parallel logins with the same counter pass', async () => {
+    h = await createHarness();
+    await doSetup(h);
+    const first = await begin();
+    const second = await begin();
+    h.webauthn.authentication = { newSignCount: 5 };
+    const results = await Promise.all(
+      [first, second].map((options) =>
+        loginVerify(h.deps, {
+          challengeId: options.challengeId,
+          response: response('cred-default'),
+          userAgent: 'ua',
+        }),
+      ),
+    );
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(results.filter((r) => !r.ok)).toEqual([
+      { ok: false, status: 401, error: 'login_failed' },
+    ]);
+  });
+
   it('refuses an expired challenge and a reused challenge', async () => {
     h = await createHarness();
     await doSetup(h);

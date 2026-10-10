@@ -127,10 +127,32 @@ export function defineStoreSuite(make: () => Promise<Harness>): void {
       expect(await s.renameCredential('a', 'new')).toBe(true);
       expect(await s.renameCredential('nope', 'new')).toBe(false);
       expect((await s.getCredentialByCredentialId('cid-a'))?.nickname).toBe('new');
-      await s.updateSignCount('a', 7, 99);
+      expect(await s.updateSignCount('a', 7, 99)).toBe(true);
       const row = await s.getCredentialById('a');
       expect(row?.signCount).toBe(7);
       expect(row?.lastUsedAt).toBe(99);
+    });
+
+    // The update is the replay check. Two logins cannot both raise the counter to 7 (CWE-362).
+    it('refuses a counter that is not above the stored counter', async () => {
+      const s = await store();
+      await s.insertCredential(credential('a', { signCount: 5 }));
+      const results = await Promise.all([
+        s.updateSignCount('a', 7, 10),
+        s.updateSignCount('a', 7, 11),
+      ]);
+      expect(results.filter(Boolean)).toHaveLength(1);
+      expect(await s.updateSignCount('a', 6, 12)).toBe(false);
+      expect((await s.getCredentialById('a'))?.signCount).toBe(7);
+      expect(await s.updateSignCount('nope', 9, 12)).toBe(false);
+    });
+
+    it('accepts a counter of 0 again while the stored counter is 0', async () => {
+      const s = await store();
+      await s.insertCredential(credential('a'));
+      expect(await s.updateSignCount('a', 0, 10)).toBe(true);
+      expect(await s.updateSignCount('a', 0, 11)).toBe(true);
+      expect((await s.getCredentialById('a'))?.lastUsedAt).toBe(11);
     });
 
     it('stores an SQL injection string as plain text', async () => {

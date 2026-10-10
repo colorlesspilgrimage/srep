@@ -10,8 +10,23 @@ const PUBLIC_API_ROUTES: readonly (readonly [string, string])[] = [
   ['POST', '/api/auth/recovery/login'],
 ];
 
+// SvelteKit remote functions answer here. They return data, so they get the API guard.
+export const REMOTE_PREFIX = '/_app/remote/';
+
+// SvelteKit decodes the path in the same way before it finds the route.
+// The guard must check that decoded path, or "/%61pi" skips it (CWE-863).
+// "%25" stays encoded, so a decoded "%" cannot start a new escape. Returns null on bad input.
+export function decodeRoutePath(pathname: string): string | null {
+  try {
+    return pathname.split('%25').map(decodeURI).join('%25');
+  } catch {
+    return null;
+  }
+}
+
+// Paths that get the API guard: /api and its children, and remote functions.
 export function isApiPath(pathname: string): boolean {
-  return pathname === '/api' || pathname.startsWith('/api/');
+  return pathname === '/api' || pathname.startsWith('/api/') || pathname.startsWith(REMOTE_PREFIX);
 }
 
 export function isPublicApiRoute(method: string, pathname: string): boolean {

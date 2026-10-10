@@ -1,4 +1,4 @@
-import { and, eq, lte, or, sql, isNull } from 'drizzle-orm';
+import { and, eq, lt, lte, or, sql, isNull } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import {
   SETTING_SETUP_COMPLETE,
@@ -140,10 +140,14 @@ export function createSqliteStore(db: BetterSQLite3Database): AuthStore {
     },
 
     async updateSignCount(id, signCount, lastUsedAt) {
-      db.update(authCredential)
+      const advances =
+        signCount === 0 ? eq(authCredential.signCount, 0) : lt(authCredential.signCount, signCount);
+      const result = db
+        .update(authCredential)
         .set({ signCount, lastUsedAt })
-        .where(eq(authCredential.id, id))
+        .where(and(eq(authCredential.id, id), advances))
         .run();
+      return result.changes > 0;
     },
 
     async insertChallenge(challenge) {

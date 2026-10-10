@@ -3,8 +3,11 @@ export type RateLimitResult = { allowed: true } | { allowed: false; retryAfterSe
 export type RateLimiter = {
   /** Counts one call for the key. */
   check: (key: string) => RateLimitResult;
-  /** Reads the state for the key. It counts nothing. */
-  peek: (key: string) => RateLimitResult;
+  /**
+   * Gives back one counted call for the key, in the current window only.
+   * Count first and give back later. Then parallel calls cannot pass the limit (CWE-307).
+   */
+  release: (key: string) => void;
   reset: (key: string) => void;
 };
 
@@ -35,13 +38,11 @@ export function createRateLimiter(opts: {
   }
 
   return {
-    peek(key) {
-      const now = opts.now();
+    release(key) {
       const win = windows.get(key);
-      if (win === undefined || now - win.start >= opts.windowMs || win.count < opts.limit) {
-        return { allowed: true };
+      if (win !== undefined && opts.now() - win.start < opts.windowMs && win.count > 0) {
+        win.count -= 1;
       }
-      return blocked(win, now);
     },
     check(key) {
       const now = opts.now();
