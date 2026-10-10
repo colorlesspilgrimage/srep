@@ -3,6 +3,7 @@ import {
   checkCsrfHeader,
   checkOrigin,
   isApiPath,
+  isApiRequestPath,
   isMutating,
   isPublicApiRoute,
 } from '#lib/server/auth/api-guard.js';
@@ -48,6 +49,16 @@ describe('path and method helpers', () => {
     expect(isApiPath('/api/x')).toBe(true);
     expect(isApiPath('/apix')).toBe(false);
     expect(isApiPath('/login')).toBe(false);
+  });
+
+  // Regression: SvelteKit decodes the path before it picks a route.
+  it('finds percent-encoded API paths', () => {
+    expect(isApiRequestPath('/%61pi/decks')).toBe(true);
+    expect(isApiRequestPath('/%61%70%69')).toBe(true);
+    expect(isApiRequestPath('/api/x')).toBe(true);
+    expect(isApiRequestPath('/%2561pi/x')).toBe(false);
+    expect(isApiRequestPath('/%E0%A4%A')).toBe(false);
+    expect(isApiRequestPath('/login')).toBe(false);
   });
 
   it('finds mutating methods', () => {

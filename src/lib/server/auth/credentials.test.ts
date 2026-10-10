@@ -57,18 +57,24 @@ describe('rename', () => {
     expect((await listCredentials(h.deps))[0]?.nickname).toBe('New name');
   });
 
-  it.each([[''], ['   '], ['a'.repeat(65)], ['bad\u0007name'], ['line\nbreak']])(
-    'rejects %j',
-    async (nickname) => {
-      h = await createHarness();
-      await doSetup(h);
-      const [first] = await listCredentials(h.deps);
-      expect(await renameCredential(h.deps, first?.id ?? '', nickname)).toMatchObject({
-        status: 400,
-        error: 'invalid_nickname',
-      });
-    },
-  );
+  it.each([
+    [''],
+    ['   '],
+    ['a'.repeat(65)],
+    ['bad\u0007name'],
+    ['line\nbreak'],
+    // Regression: C1 control characters (U+0080 to U+009F) are control characters too.
+    ['next\u0085line'],
+    ['csi\u009bname'],
+  ])('rejects %j', async (nickname) => {
+    h = await createHarness();
+    await doSetup(h);
+    const [first] = await listCredentials(h.deps);
+    expect(await renameCredential(h.deps, first?.id ?? '', nickname)).toMatchObject({
+      status: 400,
+      error: 'invalid_nickname',
+    });
+  });
 
   it('accepts 64 characters and returns 404 for an unknown id', async () => {
     h = await createHarness();

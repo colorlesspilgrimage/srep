@@ -150,6 +150,22 @@ describe('POST /api/auth/recovery/login', () => {
     expect(last.headers.get('retry-after')).not.toBeNull();
   });
 
+  // Regression: a parallel burst must not pass the global failure limit (CWE-307, CWE-770).
+  it('stops a parallel burst of bad codes at the failure limit', async () => {
+    ({ h } = await useRouteContext());
+    await doSetup(h);
+    const burst = Array.from({ length: 10 }, (_, i) =>
+      recoveryPost(
+        makeEvent('/api/auth/recovery/login', {
+          body: { code: '00000-00000' },
+          address: `203.0.113.${i}`,
+        }).event,
+      ),
+    );
+    const statuses = (await Promise.all(burst)).map((r) => r.status).sort();
+    expect(statuses).toEqual([401, 401, 401, 401, 401, 429, 429, 429, 429, 429]);
+  });
+
   it('returns 400 for an unknown key', async () => {
     ({ h } = await useRouteContext());
     const { event } = makeEvent('/api/auth/recovery/login', { body: { code: 'x', more: 1 } });

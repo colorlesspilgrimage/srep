@@ -108,6 +108,8 @@ describe('parseRpConfig', () => {
     expect(ok({ SREP_RP_NAME: '  My srep  ' }).rpName).toBe('My srep');
     expect(errors({ SREP_RP_NAME: 'a'.repeat(65) })).toHaveLength(1);
     expect(errors({ SREP_RP_NAME: 'bad\nname' })).toHaveLength(1);
+    expect(errors({ SREP_RP_NAME: 'bad\u0085name' })).toHaveLength(1);
+    expect(ok({ SREP_RP_NAME: 'Café ✓' }).rpName).toBe('Café ✓');
     expect(ok({ SREP_RP_NAME: 'a'.repeat(64) }).rpName).toHaveLength(64);
   });
 
