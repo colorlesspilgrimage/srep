@@ -1,12 +1,20 @@
+import { randomInt } from 'node:crypto';
 import { defineConfig, devices } from '@playwright/test';
 
 const webEnv = { ...process.env };
 delete webEnv.NODE_ENV;
 
+// Every run gets its own client address, so the in-memory rate limit of a reused server
+// does not carry over. The server reads the address from this header (see ADDRESS_HEADER).
+const runAddress = `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 255)}`;
+
 export default defineConfig({
   testDir: 'e2e',
+  workers: 1,
+  fullyParallel: false,
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: 'http://localhost:4173',
+    extraHTTPHeaders: { 'x-forwarded-for': runAddress },
   },
   projects: [
     {
@@ -25,6 +33,9 @@ export default defineConfig({
       PORT: '4173',
       HOST: '127.0.0.1',
       ORIGIN: 'http://127.0.0.1:4173',
+      ADDRESS_HEADER: 'x-forwarded-for',
+      XFF_DEPTH: '1',
+      SREP_ORIGIN: 'http://localhost:4173',
       SREP_DATABASE_URL: process.env.E2E_DATABASE_URL ?? 'sqlite:./data/e2e.db',
       SREP_LOG_LEVEL: 'warn',
     },

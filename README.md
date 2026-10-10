@@ -5,7 +5,10 @@ srep is an open-source, self-hosted spaced-repetition web app (an Anki alternati
 ## Status
 
 The app is pre-1.0.
-Milestone M0 is done.
+Milestones M0 and M1 are done.
+M1 adds passkey and security-key login.
+The Chromium end-to-end tests cover the flows.
+The Firefox and Safari checks are manual (see "Browser matrix").
 See [ROADMAP.md](ROADMAP.md).
 
 ## Requirements
@@ -61,8 +64,7 @@ npm run dev
 ```
 
 Open http://localhost:5173.
-The page is blank.
-The title is `srep`.
+A fresh instance sends you to `/setup` (see "Authentication").
 
 Build and start the production server:
 
@@ -80,12 +82,15 @@ An empty value means unset.
 Copy `.env.example` to `.env` for local use.
 Do not commit `.env`.
 
-| Variable                | Default                 | Rule                                                                 |
-| ----------------------- | ----------------------- | -------------------------------------------------------------------- |
-| `SREP_DATABASE_URL`     | `sqlite:./data/srep.db` | Starts with `sqlite:`, `postgres://`, or `postgresql://`.            |
-| `SREP_LOG_LEVEL`        | `info`                  | One of `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`. |
-| `SREP_MIGRATIONS_DIR`   | unset                   | Optional path. Default is `<cwd>/drizzle/<dialect>`.                 |
-| `SREP_MIGRATE_ON_START` | `true`                  | `true` or `false`.                                                   |
+| Variable                | Default                 | Rule                                                                      |
+| ----------------------- | ----------------------- | ------------------------------------------------------------------------- |
+| `SREP_DATABASE_URL`     | `sqlite:./data/srep.db` | Starts with `sqlite:`, `postgres://`, or `postgresql://`.                 |
+| `SREP_LOG_LEVEL`        | `info`                  | One of `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`.      |
+| `SREP_MIGRATIONS_DIR`   | unset                   | Optional path. Default is `<cwd>/drizzle/<dialect>`.                      |
+| `SREP_MIGRATE_ON_START` | `true`                  | `true` or `false`.                                                        |
+| `SREP_ORIGIN`           | `http://localhost:3000` | The public origin. HTTPS, or HTTP on `localhost`. No path. No IP address. |
+| `SREP_RP_ID`            | host of `SREP_ORIGIN`   | WebAuthn RP ID. The host, or a parent domain of it.                       |
+| `SREP_RP_NAME`          | `srep`                  | Name that the authenticator shows. 1 to 64 characters.                    |
 
 `PORT`, `HOST`, and `ORIGIN` keep their adapter names.
 `PORT` default is 3000 in the production image.
@@ -95,8 +100,75 @@ SvelteKit 3 does not read `ORIGIN` at run time.
 The server uses the request host when `paths.origin` is unset.
 Compose still sets `ORIGIN` for later milestones.
 
-WebAuthn (M1) needs HTTPS.
+WebAuthn needs HTTPS.
 Localhost does not need HTTPS.
+The server refuses to start when `SREP_ORIGIN` or `SREP_RP_ID` is invalid.
+The error names the variable.
+The server never reads the RP ID or the origin from request headers.
+
+## Authentication
+
+srep has exactly one account.
+There are no passwords.
+You sign in with a passkey or a security key.
+
+### Set up
+
+1. Start the server. The log shows one line: `srep setup is not complete. Open <origin>/setup and use this setup token: <token>`.
+2. Open `<SREP_ORIGIN>/setup`.
+3. Enter the setup token and a nickname. Choose "Passkey" or "Security key". Press "Create".
+4. Save the 10 recovery codes. The page shows them once. The database keeps only hashes.
+5. Open `/security` and add a second credential.
+
+After setup, the setup page is locked for good. The token stops working.
+
+### Log in and manage credentials
+
+- Open `/login`. Use "Log in with a passkey" or "Log in with a security key".
+- Open `/security` to rename or revoke credentials, add new ones, and log out.
+- srep refuses to revoke the last credential.
+- "Log out everywhere" ends all sessions.
+- A revoke does not end other sessions. Use "Log out everywhere" for that.
+
+### Recovery
+
+- A recovery code works once. Use "Use a recovery code" on `/login`.
+- With host access, run `npm run srep -- reset-auth`. With Docker, run `docker compose exec srep srep reset-auth`.
+- The command asks you to type `reset`. Add `--yes` to skip the question.
+- It removes all credentials, recovery codes and sessions. It prints a new setup token. Setup opens again.
+- In a production build, use `node build-cli/srep.js reset-auth`.
+
+### Sessions and limits
+
+- The session cookie is `HttpOnly` and `SameSite=Strict`. On HTTPS it is `Secure` and has the `__Host-` prefix.
+- A session ends after 7 days without use, or 30 days after login.
+- Every mutating request needs the right `Origin` header. Requests with a session also need the `x-srep-csrf` header.
+- A mutating API call needs a `content-type` header. SvelteKit rejects a mutating call without one.
+- Every `/api` route needs a session, except the public auth routes.
+- Rate limits: 20 auth requests per address per 5 minutes. 5 bad setup tokens per 15 minutes. 5 bad recovery codes per 15 minutes.
+- The limits live in memory. A restart clears them.
+
+### Reverse proxy
+
+Behind a reverse proxy, every client looks like the proxy address.
+Then the per-address limit becomes one limit for all clients.
+Set `ADDRESS_HEADER=x-forwarded-for` and `XFF_DEPTH` (adapter-node variables) to fix this.
+Set `PROTOCOL_HEADER=x-forwarded-proto` and `HOST_HEADER=x-forwarded-host` so that SvelteKit sees the public origin.
+Set `SREP_ORIGIN` to the public HTTPS origin.
+
+### Browser matrix
+
+Chromium is tested by automation with a virtual authenticator.
+Firefox and Safari have no virtual authenticator in automation, so they are checked by hand.
+Repeat the steps "passkey login", "security key login" and "recovery code login" in each browser.
+Safari needs HTTPS or `localhost`.
+It does not keep `Secure` cookies over plain http, so use an HTTPS reverse proxy for Safari.
+
+| Browser  | Automated | Manual result |
+| -------- | --------- | ------------- |
+| Chromium | yes       | not needed    |
+| Firefox  | not run   | not run       |
+| Safari   | not run   | not run       |
 
 ## Database
 
@@ -157,6 +229,9 @@ npm run test:e2e
 ```
 
 Set `E2E_DATABASE_URL` to test Postgres.
+The end-to-end run resets the auth state with `srep reset-auth --yes`.
+A reused local server keeps its rate-limit counters. Five runs in 15 minutes can hit the setup-token limit.
+Stop the server to clear the counters.
 The default end-to-end database is `sqlite:./data/e2e.db`.
 
 ## Licence

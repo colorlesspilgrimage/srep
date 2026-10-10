@@ -28,6 +28,9 @@ Unit tests use SQLite.
 Set `SREP_TEST_POSTGRES_URL` to run Postgres unit tests.
 Set `E2E_DATABASE_URL` to run end-to-end tests on Postgres.
 Install Chromium for Playwright with `npx playwright install chromium`.
+`npm run build` also builds the CLI in `build-cli/`.
+The end-to-end tests run `npx tsx scripts/srep.ts reset-auth --yes` to reset the auth state.
+The passkey tests use the Chromium virtual authenticator.
 
 ## Migrations
 
