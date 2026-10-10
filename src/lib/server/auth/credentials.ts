@@ -81,6 +81,44 @@ export async function registerOptions(
   return { ok: true, options, challengeId };
 }
 
+// Verifies a registration response and builds its row. Does not store the row.
+export async function buildCredentialRow(
+  deps: AuthDeps,
+  input: {
+    expectedChallenge: string;
+    response: RegistrationResponseJSON;
+    kind: CredentialKind;
+    nickname: string;
+  },
+  logMessage: string,
+): Promise<{ ok: true; row: CredentialRow } | Failure> {
+  try {
+    const verified = await deps.webauthn.verifyRegistration({
+      auth: deps.auth,
+      expectedChallenge: input.expectedChallenge,
+      response: input.response,
+    });
+    const row: CredentialRow = {
+      id: crypto.randomUUID(),
+      credentialId: verified.credentialId,
+      publicKey: verified.publicKey,
+      signCount: verified.signCount,
+      transports: verified.transports,
+      kind: input.kind,
+      nickname: input.nickname,
+      createdAt: deps.now(),
+      lastUsedAt: null,
+    };
+    return { ok: true, row };
+  } catch (error: unknown) {
+    if (error instanceof WebAuthnError) {
+      deps.logger.warn({ code: error.code }, logMessage);
+      return fail(400, 'verification_failed');
+    }
+    throw error;
+  }
+}
+
 export async function registerVerify(
   deps: AuthDeps,
   input: {
@@ -98,33 +136,17 @@ export async function registerVerify(
   if (!taken.ok) {
     return taken;
   }
-  try {
-    const verified = await deps.webauthn.verifyRegistration({
-      auth: deps.auth,
-      expectedChallenge: taken.challenge,
-      response: input.response,
-    });
-    if ((await deps.store.getCredentialByCredentialId(verified.credentialId)) !== undefined) {
-      return fail(409, 'duplicate_credential');
-    }
-    const row: CredentialRow = {
-      id: crypto.randomUUID(),
-      credentialId: verified.credentialId,
-      publicKey: verified.publicKey,
-      signCount: verified.signCount,
-      transports: verified.transports,
-      kind: input.kind,
-      nickname,
-      createdAt: deps.now(),
-      lastUsedAt: null,
-    };
-    await deps.store.insertCredential(row);
-    return { ok: true, credential: toPublicCredential(row) };
-  } catch (error: unknown) {
-    if (error instanceof WebAuthnError) {
-      deps.logger.warn({ code: error.code }, 'credential registration failed');
-      return fail(400, 'verification_failed');
-    }
-    throw error;
+  const built = await buildCredentialRow(
+    deps,
+    { expectedChallenge: taken.challenge, response: input.response, kind: input.kind, nickname },
+    'credential registration failed',
+  );
+  if (!built.ok) {
+    return built;
   }
+  if ((await deps.store.getCredentialByCredentialId(built.row.credentialId)) !== undefined) {
+    return fail(409, 'duplicate_credential');
+  }
+  await deps.store.insertCredential(built.row);
+  return { ok: true, credential: toPublicCredential(built.row) };
 }

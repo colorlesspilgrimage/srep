@@ -2,13 +2,12 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getAuthContext } from '#lib/server/auth/context.js';
 import { SETUP_FAILURE_KEY } from '#lib/server/auth/limiters.js';
-import { csrfTokenFor } from '#lib/server/auth/tokens.js';
 import {
   checkAttempts,
   errorResponse,
+  issueSession,
   readJson,
   reserveFailure,
-  setSessionCookie,
   settleFailure,
   userAgentOf,
 } from '#lib/server/auth/http.js';
@@ -32,10 +31,6 @@ export const POST: RequestHandler = async (event) => {
   if (!result.ok) {
     return errorResponse(result);
   }
-  setSessionCookie(event.cookies, ctx.deps.auth, result.sessionToken, result.maxAgeSec);
-  return json({
-    recoveryCodes: result.recoveryCodes,
-    credential: result.credential,
-    csrfToken: csrfTokenFor(result.sessionToken),
-  });
+  const csrfToken = issueSession(event.cookies, ctx.deps.auth, result);
+  return json({ recoveryCodes: result.recoveryCodes, credential: result.credential, csrfToken });
 };

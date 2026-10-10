@@ -1,4 +1,5 @@
 import { blankToUnset, type Env } from '#lib/server/env.js';
+import { isShortText } from '#lib/server/auth/short-text.js';
 
 export type AuthConfig = {
   origin: string;
@@ -11,8 +12,6 @@ export type RpConfigResult = { value: AuthConfig } | { errors: string[] };
 
 const DEFAULT_ORIGIN = 'http://localhost:3000';
 const DEFAULT_RP_NAME = 'srep';
-// Control characters are the Unicode category Cc: U+0000 to U+001F and U+007F to U+009F.
-const CONTROL_CHARS = /\p{Cc}/u;
 
 function isIpHost(hostname: string): boolean {
   if (hostname.startsWith('[')) {
@@ -56,25 +55,24 @@ function parseRpId(raw: string | undefined, host: string): { rpId: string } | { 
     return { rpId: host };
   }
   const mismatch = `SREP_RP_ID: "${raw}" does not match SREP_ORIGIN host "${host}". The RP ID must equal the host or be a parent domain.`;
-  const rpId = raw;
-  if (rpId !== rpId.toLowerCase()) {
-    return { error: `SREP_RP_ID: "${rpId}" must be lowercase` };
+  if (raw !== raw.toLowerCase()) {
+    return { error: `SREP_RP_ID: "${raw}" must be lowercase` };
   }
-  if (/[/:?#@\s]/.test(rpId)) {
+  if (/[/:?#@\s]/.test(raw)) {
     return { error: mismatch };
   }
-  if (host !== rpId && !host.endsWith(`.${rpId}`)) {
+  if (host !== raw && !host.endsWith(`.${raw}`)) {
     return { error: mismatch };
   }
-  if (!rpId.includes('.') && rpId !== 'localhost') {
-    return { error: `SREP_RP_ID: "${rpId}" must contain a dot, or be localhost` };
+  if (!raw.includes('.') && raw !== 'localhost') {
+    return { error: `SREP_RP_ID: "${raw}" must contain a dot, or be localhost` };
   }
-  return { rpId };
+  return { rpId: raw };
 }
 
 function parseRpName(raw: string | undefined): { rpName: string } | { error: string } {
   const rpName = (raw ?? DEFAULT_RP_NAME).trim();
-  if (rpName.length < 1 || rpName.length > 64 || CONTROL_CHARS.test(rpName)) {
+  if (!isShortText(rpName)) {
     return { error: 'SREP_RP_NAME: must be 1 to 64 characters without control characters' };
   }
   return { rpName };

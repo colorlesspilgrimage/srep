@@ -2,13 +2,13 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getAuthContext } from '#lib/server/auth/context.js';
 import { renameCredential, revokeCredential } from '#lib/server/auth/credentials.js';
-import { errorResponse, readJson } from '#lib/server/auth/http.js';
+import { badRequest, errorResponse, readJson } from '#lib/server/auth/http.js';
 import { credentialIdSchema, renameSchema } from '#lib/server/auth/schemas.js';
 
 export const PATCH: RequestHandler = async ({ request, params }) => {
   const id = credentialIdSchema.safeParse(params.id);
   if (!id.success) {
-    return json({ error: 'bad_request' }, { status: 400 });
+    return badRequest();
   }
   const body = await readJson(request, renameSchema);
   if (!body.ok) {
@@ -21,7 +21,7 @@ export const PATCH: RequestHandler = async ({ request, params }) => {
 export const DELETE: RequestHandler = async ({ params }) => {
   const id = credentialIdSchema.safeParse(params.id);
   if (!id.success) {
-    return json({ error: 'bad_request' }, { status: 400 });
+    return badRequest();
   }
   const result = await revokeCredential(getAuthContext().deps, id.data);
   return result.ok ? json({ ok: true }) : errorResponse(result);

@@ -4,8 +4,7 @@ export type RateLimiter = {
   /** Counts one call for the key. */
   check: (key: string) => RateLimitResult;
   /**
-   * Gives back one counted call for the key, in the current window only.
-   * Count first and give back later. Then parallel calls cannot pass the limit (CWE-307).
+   * Gives back one call counted in the current window. Count first, release later (CWE-307).
    */
   release: (key: string) => void;
   reset: (key: string) => void;
