@@ -100,6 +100,20 @@ describe('parseRpConfig', () => {
     expect(errors({ SREP_ORIGIN: 'not a url' })).toEqual(['SREP_ORIGIN: must be a valid URL']);
   });
 
+  // Regression: a trailing dot was accepted. WebAuthn then failed at run time.
+  it('rejects a host with a trailing dot', () => {
+    expect(errors({ SREP_ORIGIN: 'https://example.com.' })).toEqual([
+      'SREP_ORIGIN: host must not end with a dot',
+    ]);
+  });
+
+  // Regression: an upper-case RP ID gave a "does not match" message. The real problem is the case.
+  it('names the case problem for an upper-case RP ID', () => {
+    expect(errors({ SREP_ORIGIN: 'https://srep.example.com', SREP_RP_ID: 'Example.com' })).toEqual([
+      'SREP_RP_ID: "Example.com" must be lowercase',
+    ]);
+  });
+
   it('treats blank values as unset', () => {
     expect(ok({ SREP_ORIGIN: '', SREP_RP_ID: '', SREP_RP_NAME: '' }).rpId).toBe('localhost');
   });

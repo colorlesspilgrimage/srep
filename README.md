@@ -82,15 +82,15 @@ An empty value means unset.
 Copy `.env.example` to `.env` for local use.
 Do not commit `.env`.
 
-| Variable                | Default                 | Rule                                                                      |
-| ----------------------- | ----------------------- | ------------------------------------------------------------------------- |
-| `SREP_DATABASE_URL`     | `sqlite:./data/srep.db` | Starts with `sqlite:`, `postgres://`, or `postgresql://`.                 |
-| `SREP_LOG_LEVEL`        | `info`                  | One of `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`.      |
-| `SREP_MIGRATIONS_DIR`   | unset                   | Optional path. Default is `<cwd>/drizzle/<dialect>`.                      |
-| `SREP_MIGRATE_ON_START` | `true`                  | `true` or `false`.                                                        |
-| `SREP_ORIGIN`           | `http://localhost:3000` | The public origin. HTTPS, or HTTP on `localhost`. No path. No IP address. |
-| `SREP_RP_ID`            | host of `SREP_ORIGIN`   | WebAuthn RP ID. The host, or a parent domain of it.                       |
-| `SREP_RP_NAME`          | `srep`                  | Name that the authenticator shows. 1 to 64 characters.                    |
+| Variable                | Default                 | Rule                                                                                       |
+| ----------------------- | ----------------------- | ------------------------------------------------------------------------------------------ |
+| `SREP_DATABASE_URL`     | `sqlite:./data/srep.db` | Starts with `sqlite:`, `postgres://`, or `postgresql://`.                                  |
+| `SREP_LOG_LEVEL`        | `info`                  | One of `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`.                       |
+| `SREP_MIGRATIONS_DIR`   | unset                   | Optional path. Default is `<cwd>/drizzle/<dialect>`.                                       |
+| `SREP_MIGRATE_ON_START` | `true`                  | `true` or `false`.                                                                         |
+| `SREP_ORIGIN`           | `http://localhost:3000` | The public origin. HTTPS, or HTTP on `localhost`. No path. No IP address. No trailing dot. |
+| `SREP_RP_ID`            | host of `SREP_ORIGIN`   | WebAuthn RP ID in lowercase. The host, or a parent domain of it.                           |
+| `SREP_RP_NAME`          | `srep`                  | Name that the authenticator shows. 1 to 64 characters.                                     |
 
 `PORT`, `HOST`, and `ORIGIN` keep their adapter names.
 `PORT` default is 3000 in the production image.

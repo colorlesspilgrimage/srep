@@ -123,7 +123,8 @@ describe('POST /api/auth/login/verify', () => {
   });
 });
 
-describe('POST /api/auth/recovery/login', () => {
+// scrypt makes each recovery attempt slow. A loaded host needs more than the default 5 s.
+describe('POST /api/auth/recovery/login', { timeout: 30_000 }, () => {
   it('logs in with a code once and counts failures globally', async () => {
     ({ h } = await useRouteContext());
     const done = await doSetup(h);

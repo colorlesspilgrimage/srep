@@ -44,6 +44,10 @@ function parseOrigin(raw: string): { url: URL } | { error: string } {
   if (isIpHost(url.hostname)) {
     return { error: 'SREP_ORIGIN: host must be a domain name, not an IP address' };
   }
+  // A trailing dot gives an origin and an RP ID that browsers do not match.
+  if (url.hostname.endsWith('.')) {
+    return { error: 'SREP_ORIGIN: host must not end with a dot' };
+  }
   return { url };
 }
 
@@ -53,7 +57,10 @@ function parseRpId(raw: string | undefined, host: string): { rpId: string } | { 
   }
   const mismatch = `SREP_RP_ID: "${raw}" does not match SREP_ORIGIN host "${host}". The RP ID must equal the host or be a parent domain.`;
   const rpId = raw;
-  if (rpId !== rpId.toLowerCase() || /[/:?#@\s]/.test(rpId)) {
+  if (rpId !== rpId.toLowerCase()) {
+    return { error: `SREP_RP_ID: "${rpId}" must be lowercase` };
+  }
+  if (/[/:?#@\s]/.test(rpId)) {
     return { error: mismatch };
   }
   if (host !== rpId && !host.endsWith(`.${rpId}`)) {
