@@ -1,5 +1,8 @@
 # srep
 
+[![ci](https://github.com/colorlesspilgrimage/srep/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/colorlesspilgrimage/srep/actions/workflows/ci.yml)
+
+
 srep is an open-source, self-hosted spaced-repetition web app (an Anki alternative) with a TUI-style interface, passwordless single-user auth, and a database backend.
 
 ## Status
