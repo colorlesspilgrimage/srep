@@ -1,6 +1,5 @@
-// Control characters are code points 0 to 31 and 127.
-// eslint-disable-next-line no-control-regex
-const CONTROL_CHARS = /[\u0000-\u001f\u007f]/;
+// Control characters are the Unicode category Cc: U+0000 to U+001F and U+007F to U+009F.
+const CONTROL_CHARS = /\p{Cc}/u;
 
 // Returns the trimmed nickname, or null when it is not valid.
 export function normalizeNickname(input: string): string | null {

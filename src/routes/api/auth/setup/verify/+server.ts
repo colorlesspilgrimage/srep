@@ -8,7 +8,7 @@ import {
   checkBlocked,
   errorResponse,
   readJson,
-  recordFailure,
+  runLimited,
   setSessionCookie,
   userAgentOf,
 } from '#lib/server/auth/http.js';
@@ -26,9 +26,13 @@ export const POST: RequestHandler = async (event) => {
   if (!body.ok) {
     return body.response;
   }
-  const result = await setupVerify(ctx.deps, { ...body.data, userAgent: userAgentOf(event) });
+  const result = await runLimited(failures, SETUP_FAILURE_KEY, 'setup_token_invalid', () =>
+    setupVerify(ctx.deps, { ...body.data, userAgent: userAgentOf(event) }),
+  );
+  if (result instanceof Response) {
+    return result;
+  }
   if (!result.ok) {
-    recordFailure(failures, SETUP_FAILURE_KEY, result, 'setup_token_invalid');
     return errorResponse(result);
   }
   setSessionCookie(event.cookies, ctx.deps.auth, result.sessionToken, result.maxAgeSec);

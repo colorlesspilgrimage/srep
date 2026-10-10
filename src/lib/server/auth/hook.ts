@@ -2,7 +2,7 @@ import { json, type RequestEvent } from '@sveltejs/kit';
 import {
   checkCsrfHeader,
   checkOrigin,
-  isApiPath,
+  isApiRequestPath,
   isMutating,
   isPublicApiRoute,
 } from '#lib/server/auth/api-guard.js';
@@ -46,7 +46,7 @@ async function checkRoute(
   const { pathname } = event.url;
   const method = event.request.method;
   const signedIn = event.locals.session !== null;
-  if (isApiPath(pathname)) {
+  if (isApiRequestPath(pathname)) {
     const isPublic = isPublicApiRoute(method, pathname);
     if (!isPublic && !signedIn) {
       return json({ error: 'unauthenticated' }, { status: 401 });
@@ -76,10 +76,13 @@ function finish(deps: AuthDeps, event: RequestEvent, response: Response, clear: 
   for (const [name, value] of Object.entries(buildSecurityHeaders(deps.auth))) {
     response.headers.set(name, value);
   }
-  if (isApiPath(event.url.pathname)) {
+  if (isApiRequestPath(event.url.pathname)) {
     response.headers.set('cache-control', 'no-store');
   }
-  if (clear) {
+  // A login route can set a new session cookie in the same response. The browser applies
+  // Set-Cookie lines in order, so a later clear line would delete the new session.
+  const prefix = `${sessionCookieName(deps.auth.secureCookies)}=`;
+  if (clear && !response.headers.getSetCookie().some((line) => line.startsWith(prefix))) {
     response.headers.append('set-cookie', clearCookieHeader(deps.auth.secureCookies));
   }
   return response;

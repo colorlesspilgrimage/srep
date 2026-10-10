@@ -118,6 +118,22 @@ describe('POST /api/auth/setup/options', () => {
     expect(await response.json()).toEqual({ error: 'rate_limited' });
   });
 
+  // Regression: a parallel burst of bad tokens must stop at the global failure limit.
+  it('stops a parallel burst of bad tokens at the failure limit', async () => {
+    ({ h } = await useRouteContext());
+    await open();
+    const burst = Array.from({ length: 8 }, (_, i) =>
+      optionsPost(
+        makeEvent('/api/auth/setup/options', {
+          body: { setupToken: 'bad', ...fields },
+          address: `203.0.113.${i}`,
+        }).event,
+      ),
+    );
+    const statuses = (await Promise.all(burst)).map((r) => r.status).sort();
+    expect(statuses).toEqual([403, 403, 403, 403, 403, 429, 429, 429]);
+  });
+
   it('limits attempts per client address', async () => {
     ({ h } = await useRouteContext());
     let last = 0;
@@ -183,5 +199,25 @@ describe('POST /api/auth/setup/verify', () => {
     const again = await verifyPost(makeEvent('/api/auth/setup/verify', { body }).event);
     expect(again.status).toBe(403);
     expect(await again.json()).toEqual({ error: 'setup_locked' });
+  });
+
+  it('returns 400 for a malformed body', async () => {
+    ({ h } = await useRouteContext());
+    const { event } = makeEvent('/api/auth/setup/verify', { body: { setupToken: 'x' } });
+    expect((await verifyPost(event)).status).toBe(400);
+  });
+
+  // Regression: a parallel burst of bad tokens must stop at the global failure limit.
+  it('counts bad tokens in a parallel burst and then blocks', async () => {
+    ({ h } = await useRouteContext());
+    await open();
+    const body = { setupToken: 'bad', challengeId: 'c', response: { id: 'x' }, ...fields };
+    const send = (i: number) =>
+      verifyPost(makeEvent('/api/auth/setup/verify', { body, address: `203.0.113.${i}` }).event);
+    const statuses = (await Promise.all([0, 1, 2, 3, 4, 5].map(send))).map((r) => r.status);
+    expect(statuses.sort()).toEqual([403, 403, 403, 403, 403, 429]);
+    const after = await send(9);
+    expect(after.status).toBe(429);
+    expect(Number(after.headers.get('retry-after'))).toBeGreaterThan(0);
   });
 });

@@ -7,7 +7,7 @@ import {
   checkBlocked,
   errorResponse,
   readJson,
-  recordFailure,
+  runLimited,
 } from '#lib/server/auth/http.js';
 import { setupOptionsSchema } from '#lib/server/auth/schemas.js';
 import { setupOptions } from '#lib/server/auth/setup.js';
@@ -23,9 +23,13 @@ export const POST: RequestHandler = async (event) => {
   if (!body.ok) {
     return body.response;
   }
-  const result = await setupOptions(ctx.deps, body.data);
+  const result = await runLimited(failures, SETUP_FAILURE_KEY, 'setup_token_invalid', () =>
+    setupOptions(ctx.deps, body.data),
+  );
+  if (result instanceof Response) {
+    return result;
+  }
   if (!result.ok) {
-    recordFailure(failures, SETUP_FAILURE_KEY, result, 'setup_token_invalid');
     return errorResponse(result);
   }
   return json({ options: result.options, challengeId: result.challengeId });

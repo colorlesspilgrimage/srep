@@ -91,15 +91,36 @@ export function checkBlocked(limiter: RateLimiter, key: string): Response | null
   return limitResponse(limiter.peek(key));
 }
 
-export function recordFailure(
+// One attempt at a time for each failure limiter. The next attempt starts only
+// after the previous failure is counted. So a parallel burst cannot pass the
+// limit before the first failures are counted (CWE-307, CWE-770).
+const failureQueues = new WeakMap<RateLimiter, Promise<unknown>>();
+
+// Runs the attempt when the limiter allows it. Counts a failure with the given code.
+// Returns a 429 response when the limiter blocks.
+export function runLimited<T extends { ok: true }>(
   limiter: RateLimiter,
   key: string,
-  failure: Failure,
   code: string,
-): void {
-  if (failure.error === code) {
-    limiter.check(key);
-  }
+  attempt: () => Promise<T | Failure>,
+): Promise<T | Failure | Response> {
+  const previous = failureQueues.get(limiter) ?? Promise.resolve();
+  const next = previous.then(async () => {
+    const blocked = checkBlocked(limiter, key);
+    if (blocked !== null) {
+      return blocked;
+    }
+    const result = await attempt();
+    if (!result.ok && result.error === code) {
+      limiter.check(key);
+    }
+    return result;
+  });
+  failureQueues.set(
+    limiter,
+    next.catch(() => undefined),
+  );
+  return next;
 }
 
 export function setSessionCookie(

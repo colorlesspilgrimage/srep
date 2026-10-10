@@ -44,6 +44,10 @@ describe('unauthenticated API access', () => {
     ['GET', '/api'],
     ['PUT', '/api/auth/status'],
     ['GET', '/api/auth/status/'],
+    ['GET', '/%61pi/decks'],
+    ['GET', '/%61pi/auth/credentials'],
+    ['GET', '/api/auth/%73tatus'],
+    ['POST', '/%61pi/auth/login/options'],
   ])('%s %s returns 401 JSON', async (method, path) => {
     h = await createHarness();
     const { response, resolve } = await run(path, { method });
@@ -76,6 +80,22 @@ describe('unauthenticated API access', () => {
     expect(response.headers.get('set-cookie')).toBe(
       'srep_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict',
     );
+  });
+
+  // Regression: a login with a stale cookie set the new cookie, then the hook cleared it.
+  it('keeps a new session cookie that the route sets', async () => {
+    h = await createHarness();
+    const fresh = 'srep_session=new; Path=/; Max-Age=60; HttpOnly; SameSite=Strict';
+    const resolve = vi.fn(
+      async () => new Response('{}', { status: 200, headers: { 'set-cookie': fresh } }),
+    );
+    const event = makeEvent('/api/auth/recovery/login', {
+      method: 'POST',
+      headers: { origin: ORIGIN },
+      cookie: 'stale',
+    });
+    const response = await handleAuth(h.deps, event, resolve);
+    expect(response.headers.getSetCookie()).toEqual([fresh]);
   });
 });
 
@@ -209,6 +229,27 @@ describe('origin and CSRF checks', () => {
     expect(bad.response.status).toBe(403);
     const good = await run('/', { method: 'POST', cookie, headers: { origin: ORIGIN } });
     expect(good.response.status).toBe(200);
+  });
+
+  // Regression: SvelteKit routes "/%61pi/..." to "/api/...". The guard must apply too.
+  it('rejects a session POST to a percent-encoded API path without a CSRF header', async () => {
+    h = await createHarness();
+    const { cookie, csrf } = await signedIn();
+    const bad = await run('/%61pi/auth/logout-all', {
+      method: 'POST',
+      headers: { origin: ORIGIN },
+      cookie,
+    });
+    expect(bad.response.status).toBe(403);
+    expect(await bad.response.json()).toEqual({ error: 'bad_csrf' });
+    expect(bad.resolve).not.toHaveBeenCalled();
+    const good = await run('/%61pi/auth/logout-all', {
+      method: 'POST',
+      headers: { origin: ORIGIN, 'x-srep-csrf': csrf },
+      cookie,
+    });
+    expect(good.response.status).toBe(200);
+    expect(good.response.headers.get('cache-control')).toBe('no-store');
   });
 });
 
