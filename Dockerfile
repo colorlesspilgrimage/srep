@@ -5,6 +5,9 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
+# npm ci runs prepare before the rest of the source is copied.
+# The script exits 0 when vite.config.ts is absent.
+COPY scripts/prepare.mjs scripts/prepare.mjs
 RUN npm ci
 COPY . .
 RUN npm run build
