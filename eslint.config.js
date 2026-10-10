@@ -8,6 +8,7 @@ export default tseslint.config(
   {
     ignores: [
       'build/',
+      'build-cli/',
       '.svelte-kit/',
       'node_modules/',
       'drizzle/',
