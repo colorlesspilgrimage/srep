@@ -61,9 +61,9 @@ export interface WebAuthnPort {
 
 const ALLOWED_TRANSPORTS = ['usb', 'nfc', 'ble', 'internal', 'hybrid', 'smart-card', 'cable'];
 
-// Drop every transport value that the WebAuthn spec does not list.
+// Drop every transport value that the WebAuthn spec does not list. Drop repeated values.
 export function sanitizeTransports(transports: readonly string[] | undefined): string[] {
-  return (transports ?? []).filter((t) => ALLOWED_TRANSPORTS.includes(t));
+  return [...new Set(transports ?? [])].filter((t) => ALLOWED_TRANSPORTS.includes(t));
 }
 
 // Both values 0 is fine: many passkey providers always send 0.

@@ -232,4 +232,10 @@ describe('helpers', () => {
     ]);
     expect(sanitizeTransports(undefined)).toEqual([]);
   });
+
+  // Regression: a client can send one value many times. Store each value once.
+  it('stores each transport once', () => {
+    expect(sanitizeTransports(Array.from({ length: 5000 }, () => 'usb'))).toEqual(['usb']);
+    expect(sanitizeTransports(['nfc', 'usb', 'nfc'])).toEqual(['nfc', 'usb']);
+  });
 });
