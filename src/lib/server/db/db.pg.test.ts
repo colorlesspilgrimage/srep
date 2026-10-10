@@ -3,6 +3,8 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { parseConfig, type Config } from '#lib/server/config.js';
 import { createDb, type DbHandle } from '#lib/server/db/client.js';
 import { runMigrations } from '#lib/server/db/migrate.js';
+import { defineStoreSuite } from '#lib/server/auth/store.suite.js';
+import { createPgHarness } from '#lib/server/auth/test-support/harness.js';
 import { appSettings } from '#lib/server/db/schema/pg.js';
 
 const logger = { info() {} };
@@ -17,7 +19,9 @@ describe.skipIf(!url)('postgres database', () => {
       return;
     }
     if (handle.dialect === 'postgres') {
-      await handle.db.execute(sql`drop table if exists app_settings`);
+      await handle.db.execute(
+        sql`drop table if exists app_settings, auth_credential, auth_recovery, session, auth_challenge`,
+      );
       await handle.db.execute(sql`drop schema if exists drizzle cascade`);
     }
     await handle.close();
@@ -51,5 +55,10 @@ describe.skipIf(!url)('postgres database', () => {
 
   it('resolves ping', async () => {
     await expect(handle.ping()).resolves.toBeUndefined();
+  });
+
+  // The store suite runs here, so it cannot race with the cleanup above.
+  describe('auth store (postgres)', () => {
+    defineStoreSuite(() => createPgHarness(url ?? ''));
   });
 });

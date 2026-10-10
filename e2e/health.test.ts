@@ -7,16 +7,16 @@ test('GET /healthz returns ok', async ({ request }) => {
   expect(await response.json()).toEqual({ status: 'ok' });
 });
 
-test('GET / is a blank page', async ({ page }) => {
-  const response = await page.goto('/');
-  expect(response?.status()).toBe(200);
-  await expect(page).toHaveTitle('srep');
-  await expect(page.locator('main')).toHaveText('');
+test('GET / redirects when not signed in', async ({ request }) => {
+  const response = await request.get('/', { maxRedirects: 0 });
+  expect(response.status()).toBe(303);
+  expect(response.headers()['location']).toMatch(/\/(setup|login)$/);
 });
 
-test('GET /nope returns 404', async ({ request }) => {
-  const response = await request.get('/nope');
-  expect(response.status()).toBe(404);
+test('GET /nope redirects when not signed in', async ({ request }) => {
+  // Unknown pages need a session like every other page. The 404 comes after sign-in.
+  const response = await request.get('/nope', { maxRedirects: 0 });
+  expect(response.status()).toBe(303);
 });
 
 test('HEAD /healthz returns 200', async ({ request }) => {

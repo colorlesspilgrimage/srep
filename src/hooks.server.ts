@@ -1,4 +1,7 @@
-import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
+import { sequence, type Handle, type ServerInit } from '@sveltejs/kit/hooks';
+import { getAuthContext } from '#lib/server/auth/context.js';
+import { handleAuth } from '#lib/server/auth/hook.js';
+import { announceSetupToken, startMaintenance } from '#lib/server/auth/startup.js';
 import { getConfig } from '#lib/server/config.js';
 import { getDb } from '#lib/server/db/index.js';
 import { runMigrations } from '#lib/server/db/migrate.js';
@@ -6,7 +9,7 @@ import { createSyncLogger, getLogger } from '#lib/server/logger.js';
 
 const shutdownFlag = '__srepShutdownRegistered';
 
-function registerShutdown(): void {
+function registerShutdown(stopMaintenance: () => void): void {
   const globalState = globalThis as typeof globalThis & { [shutdownFlag]?: boolean };
   if (globalState[shutdownFlag] === true) {
     return;
@@ -16,6 +19,7 @@ function registerShutdown(): void {
   const onSignal = (signal: NodeJS.Signals): void => {
     const logger = getLogger();
     logger.info({ signal }, 'shutdown');
+    stopMaintenance();
     void getDb()
       .close()
       .finally(() => {
@@ -46,14 +50,16 @@ export const init: ServerInit = async () => {
     if (config.migrateOnStart) {
       await runMigrations(db, config, logger);
     }
-    registerShutdown();
+    const { deps } = getAuthContext();
+    await announceSetupToken(deps);
+    registerShutdown(await startMaintenance(deps));
   } catch (error: unknown) {
     logFatal(error);
     throw error;
   }
 };
 
-export const handle: Handle = async ({ event, resolve }) => {
+const logRequests: Handle = async ({ event, resolve }) => {
   const started = Date.now();
   const response = await resolve(event);
   const durationMs = Date.now() - started;
@@ -72,3 +78,8 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
   return response;
 };
+
+const authenticate: Handle = ({ event, resolve }) =>
+  handleAuth(getAuthContext().deps, event, resolve);
+
+export const handle: Handle = sequence(logRequests, authenticate);

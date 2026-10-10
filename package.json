@@ -13,7 +13,8 @@
   },
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && npm run build:cli",
+    "build:cli": "esbuild scripts/srep.ts --bundle --platform=node --format=esm --packages=external --outfile=build-cli/srep.js",
     "preview": "vite preview",
     "prepare": "node scripts/prepare.mjs",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -24,9 +25,12 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:generate:sqlite": "drizzle-kit generate --config drizzle.sqlite.config.ts",
     "db:generate:pg": "drizzle-kit generate --config drizzle.pg.config.ts",
-    "db:generate": "npm run db:generate:sqlite && npm run db:generate:pg"
+    "db:generate": "npm run db:generate:sqlite && npm run db:generate:pg",
+    "srep": "tsx scripts/srep.ts"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^14.0.0",
+    "@simplewebauthn/server": "^14.0.3",
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.4",
     "pino": "^10.4.0",
@@ -41,7 +45,9 @@
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.5",
+    "@vitest/coverage-v8": "^5.0.3",
     "drizzle-kit": "^0.31.11",
+    "esbuild": "^0.28.2",
     "eslint": "^10.12.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-svelte": "^3.23.1",

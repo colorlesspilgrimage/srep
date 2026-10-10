@@ -69,4 +69,36 @@ describe('createLogger', () => {
     expect(text.trim().split('\n')).toHaveLength(1);
     expect(text).toContain('\\n');
   });
+  it('redacts auth secrets at the top level and one level deep', () => {
+    const { lines, stream } = capture();
+    const logger = createLogger({ level: 'info', destination: stream });
+    logger.info(
+      {
+        setupToken: 'st-1',
+        code: 'cd-2',
+        recoveryCode: 'rc-3',
+        sessionToken: 'se-4',
+        a: { code: 'cd-5', setupToken: 'st-6', recoveryCode: 'rc-7', sessionToken: 'se-8' },
+        req: { headers: { 'x-srep-csrf': 'cs-9' } },
+        res: { headers: { 'set-cookie': 'ck-10' } },
+      },
+      'secrets',
+    );
+    const text = lines.join('');
+    for (const secret of [
+      'st-1',
+      'cd-2',
+      'rc-3',
+      'se-4',
+      'cd-5',
+      'st-6',
+      'rc-7',
+      'se-8',
+      'cs-9',
+      'ck-10',
+    ]) {
+      expect(text).not.toContain(secret);
+    }
+    expect(text).toContain('[Redacted]');
+  });
 });

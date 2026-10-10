@@ -6,6 +6,9 @@ services:
     environment:
       SREP_DATABASE_URL: ${SREP_DATABASE_URL:-sqlite:/data/srep.db}
       ORIGIN: ${ORIGIN:-http://localhost:3000}
+      SREP_ORIGIN: ${SREP_ORIGIN:-http://localhost:3000}
+      SREP_RP_ID: ${SREP_RP_ID:-}
+      SREP_RP_NAME: ${SREP_RP_NAME:-}
     volumes:
       - srep-data:/data
     restart: unless-stopped

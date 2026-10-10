@@ -13,6 +13,37 @@ function configErrorMessage(env: Record<string, string | undefined>): string {
 }
 
 describe('parseConfig', () => {
+  it('adds the auth settings', () => {
+    expect(parseConfig({}).auth).toEqual({
+      origin: 'http://localhost:3000',
+      rpId: 'localhost',
+      rpName: 'srep',
+      secureCookies: false,
+    });
+    const config = parseConfig({ SREP_ORIGIN: 'https://srep.example.com' });
+    expect(config.auth.rpId).toBe('srep.example.com');
+  });
+
+  it('throws ConfigError that names SREP_ORIGIN for a bad origin', () => {
+    expect(configErrorMessage({ SREP_ORIGIN: 'ftp://x' })).toContain('SREP_ORIGIN');
+  });
+
+  it('names both values for an RP ID that does not match', () => {
+    const message = configErrorMessage({
+      SREP_ORIGIN: 'https://srep.example.com',
+      SREP_RP_ID: 'other.org',
+    });
+    expect(message).toContain('SREP_RP_ID');
+    expect(message).toContain('other.org');
+    expect(message).toContain('srep.example.com');
+  });
+
+  it('reports auth errors together with the other errors', () => {
+    const message = configErrorMessage({ SREP_LOG_LEVEL: 'loud', SREP_ORIGIN: 'ftp://x' });
+    expect(message).toContain('SREP_LOG_LEVEL');
+    expect(message).toContain('SREP_ORIGIN');
+  });
+
   it('uses defaults for an empty env', () => {
     const config = parseConfig({});
     expect(config.logLevel).toBe('info');

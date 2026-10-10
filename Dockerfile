@@ -20,9 +20,11 @@ ENV HOST=0.0.0.0
 ENV SREP_DATABASE_URL=sqlite:/data/srep.db
 WORKDIR /app
 COPY --from=build /app/build ./build
+COPY --from=build /app/build-cli ./build-cli
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/drizzle ./drizzle
+RUN printf '#!/bin/sh\nexec node /app/build-cli/srep.js "$@"\n' > /usr/local/bin/srep && chmod 755 /usr/local/bin/srep
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN mkdir -p /data
 VOLUME /data
