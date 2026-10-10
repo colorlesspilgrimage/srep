@@ -152,8 +152,8 @@ export const webAuthn: WebAuthnPort = {
         expectedOrigin: auth.origin,
         expectedRPID: auth.rpId,
         requireUserVerification: false,
-        // The counter is 0 here on purpose. The library check throws a generic error.
-        // The check below gives the typed counter_replay code instead.
+        // Counter 0 is deliberate. The library error is generic,
+        // so the check below gives the typed counter_replay code.
         credential: {
           id: credential.credentialId,
           publicKey: isoBase64URL.toBuffer(credential.publicKey),

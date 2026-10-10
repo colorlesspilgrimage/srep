@@ -4,13 +4,12 @@ import { getAuthContext } from '#lib/server/auth/context.js';
 import {
   checkAttempts,
   errorResponse,
+  issueSession,
   readJson,
-  setSessionCookie,
   userAgentOf,
 } from '#lib/server/auth/http.js';
 import { loginVerify } from '#lib/server/auth/login.js';
 import { loginVerifySchema } from '#lib/server/auth/schemas.js';
-import { csrfTokenFor } from '#lib/server/auth/tokens.js';
 
 export const POST: RequestHandler = async (event) => {
   const ctx = getAuthContext();
@@ -26,6 +25,6 @@ export const POST: RequestHandler = async (event) => {
   if (!result.ok) {
     return errorResponse(result);
   }
-  setSessionCookie(event.cookies, ctx.deps.auth, result.sessionToken, result.maxAgeSec);
-  return json({ csrfToken: csrfTokenFor(result.sessionToken) });
+  const csrfToken = issueSession(event.cookies, ctx.deps.auth, result);
+  return json({ csrfToken });
 };

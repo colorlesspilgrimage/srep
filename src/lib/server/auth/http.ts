@@ -4,6 +4,7 @@ import { sessionCookieName, sessionCookieOptions } from '#lib/server/auth/cookie
 import type { AuthContext } from '#lib/server/auth/context.js';
 import type { AuthConfig } from '#lib/server/auth/rp-config.js';
 import type { RateLimiter, RateLimitResult } from '#lib/server/auth/rate-limit.js';
+import { csrfTokenFor } from '#lib/server/auth/tokens.js';
 import type { Failure } from '#lib/server/auth/deps.js';
 
 const MAX_BODY_BYTES = 64 * 1024;
@@ -12,6 +13,10 @@ type Parsed<T> = { ok: true; data: T } | { ok: false; response: Response };
 
 function errorBody(status: number, error: string): Response {
   return json({ error }, { status });
+}
+
+export function badRequest(): Response {
+  return errorBody(400, 'bad_request');
 }
 
 // Reads at most MAX_BODY_BYTES. Returns null when the body is larger.
@@ -58,11 +63,11 @@ export async function readJson<S extends z.ZodType>(
   try {
     value = JSON.parse(text);
   } catch {
-    return { ok: false, response: errorBody(400, 'bad_request') };
+    return { ok: false, response: badRequest() };
   }
   const parsed = schema.safeParse(value);
   if (!parsed.success) {
-    return { ok: false, response: errorBody(400, 'bad_request') };
+    return { ok: false, response: badRequest() };
   }
   return { ok: true, data: parsed.data };
 }
@@ -104,17 +109,18 @@ export function settleFailure(
   }
 }
 
-export function setSessionCookie(
+// Sets the session cookie. Returns the CSRF token for the new session.
+export function issueSession(
   cookies: Cookies,
   auth: AuthConfig,
-  rawToken: string,
-  maxAgeSec: number,
-): void {
+  session: { sessionToken: string; maxAgeSec: number },
+): string {
   cookies.set(
     sessionCookieName(auth.secureCookies),
-    rawToken,
-    sessionCookieOptions(auth.secureCookies, maxAgeSec),
+    session.sessionToken,
+    sessionCookieOptions(auth.secureCookies, session.maxAgeSec),
   );
+  return csrfTokenFor(session.sessionToken);
 }
 
 export function clearSessionCookie(cookies: Cookies, auth: AuthConfig): void {

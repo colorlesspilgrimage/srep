@@ -1,12 +1,16 @@
 import { createChallenge, takeChallenge } from '#lib/server/auth/challenges.js';
-import { toPublicCredential, type PublicCredential } from '#lib/server/auth/credentials.js';
+import {
+  buildCredentialRow,
+  toPublicCredential,
+  type PublicCredential,
+} from '#lib/server/auth/credentials.js';
 import { fail, type AuthDeps, type Failure, type Result } from '#lib/server/auth/deps.js';
 import { normalizeNickname } from '#lib/server/auth/nickname.js';
 import { generateRecoveryCodes, hashRecoveryCode } from '#lib/server/auth/recovery-codes.js';
 import type { CredentialRow } from '#lib/server/auth/store.js';
 import { buildSession } from '#lib/server/auth/sessions.js';
 import { randomToken, safeEqual, sha256Hex } from '#lib/server/auth/tokens.js';
-import { WebAuthnError, type CredentialKind } from '#lib/server/auth/webauthn.js';
+import type { CredentialKind } from '#lib/server/auth/webauthn.js';
 import type {
   PublicKeyCredentialCreationOptionsJSON,
   RegistrationResponseJSON,
@@ -80,31 +84,11 @@ async function verifyNewCredential(
   if (!taken.ok) {
     return taken;
   }
-  try {
-    const verified = await deps.webauthn.verifyRegistration({
-      auth: deps.auth,
-      expectedChallenge: taken.challenge,
-      response: input.response,
-    });
-    const row: CredentialRow = {
-      id: crypto.randomUUID(),
-      credentialId: verified.credentialId,
-      publicKey: verified.publicKey,
-      signCount: verified.signCount,
-      transports: verified.transports,
-      kind: input.kind,
-      nickname,
-      createdAt: deps.now(),
-      lastUsedAt: null,
-    };
-    return { ok: true, row };
-  } catch (error: unknown) {
-    if (error instanceof WebAuthnError) {
-      deps.logger.warn({ code: error.code }, 'setup registration failed');
-      return fail(400, 'verification_failed');
-    }
-    throw error;
-  }
+  return buildCredentialRow(
+    deps,
+    { expectedChallenge: taken.challenge, response: input.response, kind: input.kind, nickname },
+    'setup registration failed',
+  );
 }
 
 export async function setupVerify(

@@ -5,15 +5,14 @@ import { RECOVERY_FAILURE_KEY } from '#lib/server/auth/limiters.js';
 import {
   checkAttempts,
   errorResponse,
+  issueSession,
   readJson,
   reserveFailure,
-  setSessionCookie,
   settleFailure,
   userAgentOf,
 } from '#lib/server/auth/http.js';
 import { recoveryLogin } from '#lib/server/auth/recovery.js';
 import { recoveryLoginSchema } from '#lib/server/auth/schemas.js';
-import { csrfTokenFor } from '#lib/server/auth/tokens.js';
 
 export const POST: RequestHandler = async (event) => {
   const ctx = getAuthContext();
@@ -32,6 +31,6 @@ export const POST: RequestHandler = async (event) => {
   if (!result.ok) {
     return errorResponse(result);
   }
-  setSessionCookie(event.cookies, ctx.deps.auth, result.sessionToken, result.maxAgeSec);
-  return json({ csrfToken: csrfTokenFor(result.sessionToken), remaining: result.remaining });
+  const csrfToken = issueSession(event.cookies, ctx.deps.auth, result);
+  return json({ csrfToken, remaining: result.remaining });
 };

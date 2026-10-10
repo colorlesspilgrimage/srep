@@ -9,6 +9,7 @@ import {
 } from '#lib/server/auth/api-guard.js';
 import { clearCookieHeader, sessionCookieName } from '#lib/server/auth/cookies.js';
 import type { AuthDeps } from '#lib/server/auth/deps.js';
+import { badRequest } from '#lib/server/auth/http.js';
 import { buildSecurityHeaders } from '#lib/server/auth/security-headers.js';
 import { resolveSession } from '#lib/server/auth/sessions.js';
 import { csrfTokenFor } from '#lib/server/auth/tokens.js';
@@ -100,7 +101,7 @@ export async function handleAuth(
   event.locals.session = null;
   const path = decodeRoutePath(event.url.pathname);
   if (path === null) {
-    return finish(deps, event.url.pathname, json({ error: 'bad_request' }, { status: 400 }), false);
+    return finish(deps, event.url.pathname, badRequest(), false);
   }
   // Static app files and the health check need no session. Remote functions do.
   if (path === '/healthz' || (path.startsWith('/_app/') && !isApiPath(path))) {
