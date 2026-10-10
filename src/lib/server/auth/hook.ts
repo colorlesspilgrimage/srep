@@ -79,7 +79,10 @@ function finish(deps: AuthDeps, event: RequestEvent, response: Response, clear: 
   if (isApiRequestPath(event.url.pathname)) {
     response.headers.set('cache-control', 'no-store');
   }
-  if (clear) {
+  // A login route can set a new session cookie in the same response. The browser applies
+  // Set-Cookie lines in order, so a later clear line would delete the new session.
+  const prefix = `${sessionCookieName(deps.auth.secureCookies)}=`;
+  if (clear && !response.headers.getSetCookie().some((line) => line.startsWith(prefix))) {
     response.headers.append('set-cookie', clearCookieHeader(deps.auth.secureCookies));
   }
   return response;

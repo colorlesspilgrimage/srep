@@ -81,6 +81,22 @@ describe('unauthenticated API access', () => {
       'srep_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict',
     );
   });
+
+  // Regression: a login with a stale cookie set the new cookie, then the hook cleared it.
+  it('keeps a new session cookie that the route sets', async () => {
+    h = await createHarness();
+    const fresh = 'srep_session=new; Path=/; Max-Age=60; HttpOnly; SameSite=Strict';
+    const resolve = vi.fn(
+      async () => new Response('{}', { status: 200, headers: { 'set-cookie': fresh } }),
+    );
+    const event = makeEvent('/api/auth/recovery/login', {
+      method: 'POST',
+      headers: { origin: ORIGIN },
+      cookie: 'stale',
+    });
+    const response = await handleAuth(h.deps, event, resolve);
+    expect(response.headers.getSetCookie()).toEqual([fresh]);
+  });
 });
 
 describe('page redirects', () => {
