@@ -110,6 +110,17 @@ jobs:
       - name: Run the image and check health
         run: |
           docker run -d --name srep-ci -p 3000:3000 -v srep-ci-data:/data srep:ci
-          curl --retry 20 --retry-delay 1 --retry-connrefused -fsS http://127.0.0.1:3000/healthz > /tmp/healthz.json
-          grep -F '{"status":"ok"}' /tmp/healthz.json
+          ok=0
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:3000/healthz > /tmp/healthz.json; then
+              ok=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ok" -ne 1 ] || ! grep -F '{"status":"ok"}' /tmp/healthz.json; then
+            docker logs srep-ci
+            docker rm -f srep-ci
+            exit 1
+          fi
           docker rm -f srep-ci
