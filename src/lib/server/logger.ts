@@ -14,6 +14,16 @@ export function createLogger(opts: { level: string; destination?: DestinationStr
       '*.token',
       'req.headers.authorization',
       'req.headers.cookie',
+      'code',
+      'setupToken',
+      'recoveryCode',
+      'sessionToken',
+      '*.code',
+      '*.setupToken',
+      '*.recoveryCode',
+      '*.sessionToken',
+      'req.headers["x-srep-csrf"]',
+      'res.headers["set-cookie"]',
     ],
   };
   if (opts.destination === undefined) {

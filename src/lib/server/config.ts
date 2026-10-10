@@ -1,5 +1,7 @@
 import path from 'node:path';
 import { z } from 'zod';
+import { parseRpConfig, type AuthConfig } from '#lib/server/auth/rp-config.js';
+import { blankToUnset } from '#lib/server/env.js';
 import { once } from '#lib/server/once.js';
 
 const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'] as const;
@@ -14,6 +16,7 @@ export type Config = {
   logLevel: LogLevel;
   migrationsDir: string | undefined;
   migrateOnStart: boolean;
+  auth: AuthConfig;
 };
 
 export class ConfigError extends Error {
@@ -21,13 +24,6 @@ export class ConfigError extends Error {
     super(message);
     this.name = 'ConfigError';
   }
-}
-
-function blankToUnset(value: string | undefined): string | undefined {
-  if (value === undefined || value === '') {
-    return undefined;
-  }
-  return value;
 }
 
 export function redactDatabaseUrl(url: string): string {
@@ -104,7 +100,17 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
     }
   }
 
-  if (errors.length > 0 || !logParsed.success || !migrateParsed.success) {
+  const authResult = parseRpConfig(env);
+  if ('errors' in authResult) {
+    errors.push(...authResult.errors);
+  }
+
+  if (
+    errors.length > 0 ||
+    !logParsed.success ||
+    !migrateParsed.success ||
+    !('value' in authResult)
+  ) {
     throw new ConfigError(errors.join('\n'));
   }
 
@@ -124,6 +130,7 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
     logLevel: logParsed.data,
     migrationsDir,
     migrateOnStart: migrateParsed.data === 'true',
+    auth: authResult.value,
   };
 }
 
