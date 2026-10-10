@@ -49,7 +49,8 @@ async function checkRoute(
   const method = event.request.method;
   const signedIn = event.locals.session !== null;
   if (isApiPath(path)) {
-    const isPublic = isPublicApiRoute(method, path);
+    // Public routes match the raw path too, so an encoded spelling needs a session (CWE-863).
+    const isPublic = isPublicApiRoute(method, path) && path === event.url.pathname;
     if (!isPublic && !signedIn) {
       return json({ error: 'unauthenticated' }, { status: 401 });
     }
