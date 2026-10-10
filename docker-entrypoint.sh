@@ -2,4 +2,4 @@
 set -eu
 mkdir -p /data
 chown -R node:node /data
-exec runuser -u node -- "$@"
+exec runuser --preserve-environment -u node -- "$@"
