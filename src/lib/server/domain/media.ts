@@ -56,8 +56,11 @@ export async function readMedia(
     return fail(404, 'not_found');
   }
   const media = await deps.store.getMediaBySha(sha);
-  const bytes = media === undefined ? null : await deps.media.read(sha);
-  if (media === undefined || bytes === null) {
+  if (media === undefined) {
+    return fail(404, 'not_found');
+  }
+  const bytes = await deps.media.read(sha);
+  if (bytes === null) {
     return fail(404, 'not_found');
   }
   return { ok: true, media, bytes };

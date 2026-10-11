@@ -12,6 +12,12 @@ export const MAX_CARDS_PER_MOVE = 500;
 
 export const idSchema = z.uuid();
 
+// Returns the id, or null when the raw value is not a valid id.
+export function parseId(raw: string | undefined): string | null {
+  const parsed = idSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
+
 const steps = z.array(z.number().gt(0).max(43_200)).max(10);
 
 export const presetSchema = z

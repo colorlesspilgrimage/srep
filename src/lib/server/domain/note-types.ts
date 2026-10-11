@@ -5,7 +5,7 @@ import {
   parseTemplate,
   templateFields,
 } from '#lib/server/domain/core/template.js';
-import type { NoteTypeCreateInput } from '#lib/server/domain/core/validation.js';
+import { MAX_TEMPLATE_TEXT, type NoteTypeCreateInput } from '#lib/server/domain/core/validation.js';
 import type { DomainDeps } from '#lib/server/domain/deps.js';
 import { newId } from '#lib/server/domain/ids.js';
 import type { NoteTypeWithTemplates, TemplateRow } from '#lib/server/domain/store/store-types.js';
@@ -14,7 +14,6 @@ export const MAX_FIELDS = 50;
 export const MAX_TEMPLATES = 20;
 const CSS_CLASS = /^[a-z][a-z0-9-]{0,31}$/;
 const MAX_TEMPLATE_NAME = 100;
-const MAX_TEMPLATE_TEXT = 10_000;
 
 function checkFields(fields: string[]): Failure | null {
   if (fields.length < 1 || fields.length > MAX_FIELDS) {
