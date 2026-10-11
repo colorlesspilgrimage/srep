@@ -15,12 +15,16 @@ export type DeckPatch = {
 
 // Returns the trimmed name, or null when the name is not valid.
 // \p{Cc} also matches U+0000.
+// A name must not start or end with ':'. Such a name makes `:::` in a path, and then
+// two different trees can have the same path (for example `a` + `:b` and `a:` + `b`).
 export function validateDeckName(name: string): string | null {
   const trimmed = name.trim();
   if (
     trimmed.length < 1 ||
     trimmed.length > MAX_DECK_NAME ||
     trimmed.includes(DECK_SEPARATOR) ||
+    trimmed.startsWith(':') ||
+    trimmed.endsWith(':') ||
     CONTROL.test(trimmed)
   ) {
     return null;

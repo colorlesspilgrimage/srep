@@ -1,6 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
+  DECK_SEPARATOR,
   pathOf,
   planDeckCreate,
   planDeckUpdate,
@@ -52,6 +53,10 @@ describe('validateDeckName', () => {
     ['x'.repeat(101), null],
     ['a::b', null],
     ['a:b', 'a:b'],
+    [':a', null],
+    ['a:', null],
+    [' a: ', null],
+    [':', null],
     ['a\u0000b', null],
     ['a\u0007b', null],
     ['50% _off_ \\o/', '50% _off_ \\o/'],
@@ -191,7 +196,8 @@ function checkMove(before: DeckRow[], after: DeckRow[], movedId: string): void {
 }
 
 describe('deck path properties (seeded)', () => {
-  const name = fc.constantFrom('a', 'b', 'A%', '_', '\\', '😀');
+  // `a:b` holds one colon. A valid name can hold it, but never at the start or the end.
+  const name = fc.constantFrom('a', 'b', 'A%', '_', '\\', '😀', 'a:b');
   const create = fc.record({ parent: fc.integer({ min: -1, max: 20 }), name });
   const move = fc.record({
     deck: fc.nat(),
@@ -242,6 +248,22 @@ describe('deck path properties (seeded)', () => {
             });
           }
         }
+      }),
+      { seed: 20261011, numRuns: 200 },
+    );
+  });
+
+  // Regression: a name with a colon at the start or the end made `:::` in a path.
+  // Then two different chains of names gave the same path.
+  it('splits the path of valid names back into the same names', () => {
+    const raw = fc.array(fc.constantFrom(':', 'a', ' ', '%'), { minLength: 1, maxLength: 6 });
+    fc.assert(
+      fc.property(fc.array(raw, { minLength: 1, maxLength: 5 }), (chains) => {
+        const names = chains.map((c) => validateDeckName(c.join('')));
+        const valid = names.filter((n): n is string => n !== null);
+        fc.pre(valid.length === names.length);
+        const path = valid.join(DECK_SEPARATOR);
+        expect(path.split(DECK_SEPARATOR)).toEqual(names);
       }),
       { seed: 20261011, numRuns: 200 },
     );

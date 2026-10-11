@@ -209,4 +209,36 @@ describe('updateNote', () => {
     expect(await updateNote(h.deps, unknown, {})).toMatchObject({ status: 404 });
     expect(await getNote(h.deps, unknown)).toMatchObject({ status: 404 });
   });
+
+  // Regression (CWE-362): a tags-only patch read the fields before the transaction and
+  // wrote them back. A parallel field edit between the read and the write was lost.
+  it('keeps a parallel edit of the parts that the patch does not change', async () => {
+    await setup();
+    const n = await note(BASIC_ID, ['a', 'b'], ['old']);
+    const racing = {
+      ...h.deps,
+      store: {
+        ...h.store,
+        updateNote: async (...args: Parameters<typeof h.store.updateNote>) => {
+          await edit(n.id, { fields: ['changed', 'b'] });
+          return h.store.updateNote(...args);
+        },
+      },
+    };
+    const result = await updateNote(racing, n.id, { tags: ['new'] });
+    expect(result).toMatchObject({ ok: true, note: { fields: ['changed', 'b'], tags: ['new'] } });
+    const fieldsOnly = {
+      ...racing,
+      store: {
+        ...h.store,
+        updateNote: async (...args: Parameters<typeof h.store.updateNote>) => {
+          await edit(n.id, { tags: ['other'] });
+          return h.store.updateNote(...args);
+        },
+      },
+    };
+    const second = await updateNote(fieldsOnly, n.id, { fields: ['x', 'y'] });
+    expect(second).toMatchObject({ ok: true, note: { fields: ['x', 'y'], tags: ['other'] } });
+    expect(second.ok && second.note.cards[0]?.front).toBe('x');
+  });
 });
