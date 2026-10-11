@@ -38,6 +38,8 @@ export default defineConfig({
       SREP_ORIGIN: 'http://localhost:4173',
       SREP_DATABASE_URL: process.env.E2E_DATABASE_URL ?? 'sqlite:./data/e2e.db',
       SREP_LOG_LEVEL: 'warn',
+      SREP_MEDIA_DIR: './data/e2e-media',
+      BODY_SIZE_LIMIT: '11M',
     },
   },
 });

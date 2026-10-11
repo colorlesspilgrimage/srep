@@ -7,8 +7,9 @@ srep is an open-source, self-hosted spaced-repetition web app (an Anki alternati
 ## Status
 
 The app is pre-1.0.
-Milestones M0 and M1 are done.
+Milestones M0, M1 and M2 are done.
 M1 adds passkey and security-key login.
+M2 adds decks, presets, note types, notes, card generation and media, through a JSON API.
 The Chromium end-to-end tests cover the flows.
 The Firefox and Safari checks are manual (see "Browser matrix").
 See [ROADMAP.md](ROADMAP.md).
@@ -93,6 +94,8 @@ Do not commit `.env`.
 | `SREP_ORIGIN`           | `http://localhost:3000` | The public origin. HTTPS, or HTTP on `localhost`. No path. No IP address. No trailing dot. |
 | `SREP_RP_ID`            | host of `SREP_ORIGIN`   | WebAuthn RP ID in lowercase. The host, or a parent domain of it.                           |
 | `SREP_RP_NAME`          | `srep`                  | Name that the authenticator shows. 1 to 64 characters.                                     |
+| `SREP_MEDIA_DIR`        | see rule                | Media folder. Default is `<database folder>/media` for a SQLite file, else `./data/media`. |
+| `SREP_MEDIA_MAX_BYTES`  | `10485760`              | Maximum size of one media file in bytes. Integer from 1 to 104857600.                      |
 
 `PORT`, `HOST`, and `ORIGIN` keep their adapter names.
 `PORT` default is 3000 in the production image.
@@ -177,6 +180,51 @@ It does not keep `Secure` cookies over plain http, so use an HTTPS reverse proxy
 | Firefox  | not run   | not run       |
 | Safari   | not run   | not run       |
 
+## Decks, notes and media
+
+The JSON API is under `/api`.
+Every route needs a session.
+Mutating routes need the `origin` header, the `x-srep-csrf` header and a JSON `content-type`.
+
+| Method                   | Path                     | Use                                                            |
+| ------------------------ | ------------------------ | -------------------------------------------------------------- |
+| `GET`, `POST`            | `/api/decks`             | List decks. Create a deck (`name`, `parentId`, `presetId`).    |
+| `GET`, `PATCH`, `DELETE` | `/api/decks/:id`         | Read, rename, move, or delete a deck tree (`move` or `trash`). |
+| `GET`                    | `/api/decks/:id/impact`  | Count the decks, cards and notes that a delete touches.        |
+| `GET`, `POST`            | `/api/presets`           | List presets. Create a preset.                                 |
+| `PUT`, `DELETE`          | `/api/presets/:id`       | Replace or delete a preset.                                    |
+| `GET`, `POST`            | `/api/note-types`        | List note types. Create a custom note type.                    |
+| `GET`, `DELETE`          | `/api/note-types/:id`    | Read or delete a note type.                                    |
+| `POST`                   | `/api/notes`             | Create a note. The reply shows the generated cards.            |
+| `GET`, `PATCH`, `DELETE` | `/api/notes/:id`         | Read, edit, or move a note to the trash.                       |
+| `POST`                   | `/api/notes/:id/restore` | Restore a note from the trash.                                 |
+| `POST`                   | `/api/cards/move`        | Move 1 to 500 cards to a deck.                                 |
+| `POST`                   | `/api/media`             | Upload one file. The body is the raw file.                     |
+| `GET`                    | `/api/media/:sha256`     | Download a file.                                               |
+
+Built-in note types are Basic, Basic+Reversed and Cloze.
+Templates use `{{Field}}`, `{{#Field}}...{{/Field}}` and `{{cloze:Field}}`.
+The trash keeps a note for 30 days.
+The app removes older trash at start.
+
+Media types are PNG, JPEG, GIF, WebP, WAV, Ogg, MP3 and MP4 audio.
+The server checks the magic bytes.
+SVG and HTML are refused.
+The default size limit is 10 MiB (`SREP_MEDIA_MAX_BYTES`).
+The server stores each file once, under its SHA-256.
+Put `{{media:<sha256>}}` in a field to use a file.
+
+Run the demo without a server:
+
+```bash
+SREP_DATABASE_URL=sqlite:/tmp/demo.db SREP_MEDIA_DIR=/tmp/demo-media npm run domain:demo -- --unique
+```
+
+adapter-node limits request bodies to 512K by default.
+Set `BODY_SIZE_LIMIT=11M` for uploads up to 10 MiB.
+The Docker image sets it.
+JSON routes keep their own 64 KiB limit.
+
 ## Database
 
 SQLite is the default.
@@ -204,6 +252,9 @@ npm run db:generate
 
 Commit the files under `drizzle/`.
 Every schema change needs both dialects.
+
+Back up `SREP_MEDIA_DIR` together with the database.
+The Docker image keeps media in `/data/media`, in the same volume as the SQLite file.
 
 ## Testing
 
