@@ -80,7 +80,9 @@ function finish(deps: AuthDeps, path: string, response: Response, clear: boolean
   for (const [name, value] of Object.entries(buildSecurityHeaders(deps.auth))) {
     response.headers.set(name, value);
   }
-  if (isApiPath(path)) {
+  // API answers are not cached. A route can set its own policy: the media route marks
+  // content-addressed files as private and immutable.
+  if (isApiPath(path) && !response.headers.has('cache-control')) {
     response.headers.set('cache-control', 'no-store');
   }
   // A login route can set a new session cookie in the same response. The browser applies
