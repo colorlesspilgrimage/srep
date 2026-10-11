@@ -91,17 +91,20 @@ export async function createNote(deps: DomainDeps, input: NoteCreateInput): Note
   return viewOf(deps, noteType, note.id);
 }
 
+// `fields` and `tags` are undefined when the patch does not change them. Then the
+// transaction keeps the stored values, so a parallel edit is not lost (CWE-362).
 type PlannedEdit = {
   noteType: NoteTypeWithTemplates;
-  fields: string[];
-  tags: string[];
+  fields: string[] | undefined;
+  tags: string[] | undefined;
   deckId: string | undefined;
   now: number;
 };
 
 // Pure step in the store transaction. A new card goes to the deck of the first card.
 function planNoteChange(deps: DomainDeps, edit: PlannedEdit, state: NoteState): NoteChange {
-  const desired = desiredCards(edit.noteType, fieldsByName(edit.noteType, edit.fields));
+  const fields = edit.fields ?? state.note.fields;
+  const desired = desiredCards(edit.noteType, fieldsByName(edit.noteType, fields));
   const plan = reconcile(desired, state.cards);
   const home = state.cards.find((c) => c.deckId !== null)?.deckId ?? edit.deckId;
   if (plan.create.length > 0 && home === undefined) {
@@ -109,10 +112,10 @@ function planNoteChange(deps: DomainDeps, edit: PlannedEdit, state: NoteState): 
   }
   return {
     ok: true,
-    fields: edit.fields,
-    checksum: checksumOf(edit.noteType, edit.fields),
+    fields,
+    checksum: checksumOf(edit.noteType, fields),
     updatedAt: edit.now,
-    tags: edit.tags,
+    tags: edit.tags ?? state.tags,
     create: plan.create.map((c) => ({ id: newId(deps.random), ...c, deckId: home as string })),
     deleteIds: plan.deleteIds,
     orphanIds: plan.orphanIds,
@@ -136,7 +139,13 @@ export async function updateNote(deps: DomainDeps, id: string, patch: NotePatchI
   if (patch.deckId !== undefined && (await deps.store.getDeck(patch.deckId)) === undefined) {
     return fail(404, 'not_found');
   }
-  const edit = { noteType, fields, tags: content.tags, deckId: patch.deckId, now: deps.now() };
+  const edit: PlannedEdit = {
+    noteType,
+    fields: patch.fields,
+    tags: patch.tags === undefined ? undefined : content.tags,
+    deckId: patch.deckId,
+    now: deps.now(),
+  };
   const result = await deps.store.updateNote(id, (state) => planNoteChange(deps, edit, state));
   if (result === 'not_found') {
     return fail(404, 'not_found');

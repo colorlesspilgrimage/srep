@@ -85,6 +85,23 @@ describe('createDeck', () => {
     expect(await getDeck(h.deps, UNKNOWN)).toMatchObject({ status: 404 });
     expect(await getDeck(h.deps, root.id)).toMatchObject({ ok: true, deck: root });
   });
+
+  // Regression: `a:` + `b` and `a` + `:b` both gave the path `a:::b`. Then a delete of
+  // deck `a` also deleted the child of deck `a:`.
+  it('refuses names that start or end with a colon, so paths stay unique per tree', async () => {
+    h = await createDomainHarness();
+    const a = await make('a');
+    const other = await make('a:b');
+    const child = await make('c', other.id);
+    expect(await createDeck(h.deps, { name: 'a:' })).toMatchObject({ status: 400 });
+    expect(await createDeck(h.deps, { name: ':b', parentId: a.id })).toMatchObject({
+      status: 400,
+    });
+    expect(await updateDeck(h.deps, child.id, { name: ':c' })).toMatchObject({ status: 400 });
+    expect(await deleteDeck(h.deps, a.id, { action: 'trash' })).toEqual({ ok: true });
+    const left = await listDecks(h.deps);
+    expect(left.ok && left.decks.map((d) => d.path)).toEqual(['a:b', 'a:b::c']);
+  });
 });
 
 describe('updateDeck', () => {
