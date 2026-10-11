@@ -25,7 +25,7 @@ function cardNoteIds(tx: Exec, deckIds: string[]): string[] {
   );
 }
 
-// Deletes the decks deepest first. A parent row then never loses a child too late.
+// Deletes the deepest decks first, so each child goes before its parent.
 function deleteDecks(tx: Exec, all: DeckRow[], ids: string[]): void {
   const depth = new Map(all.map((d) => [d.id, depthOf(d.path)]));
   const ordered = [...ids].sort((a, b) => (depth.get(b) ?? 0) - (depth.get(a) ?? 0));

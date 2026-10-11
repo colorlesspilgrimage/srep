@@ -9,7 +9,7 @@ export async function listPresets(deps: DomainDeps): Promise<Result<{ presets: P
   return { ok: true, presets: await deps.store.listPresets() };
 }
 
-// The script and the API share this check. A route has checked the body already.
+// The routes check the body with presetSchema. This check covers every other caller.
 function parsePreset(input: PresetInput): PresetInput | null {
   const parsed = presetSchema.safeParse(input);
   return parsed.success ? parsed.data : null;

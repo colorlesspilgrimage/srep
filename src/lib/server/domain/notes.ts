@@ -113,7 +113,8 @@ type PlannedEdit = {
   now: number;
 };
 
-// Pure step in the store transaction. A new card goes to the deck of the first card.
+// Pure step in the store transaction. A new card goes to the deck of the first card
+// that has one. Without such a card, it goes to the requested deck.
 function planNoteChange(deps: DomainDeps, edit: PlannedEdit, state: NoteState): NoteChange {
   const fields = edit.fields ?? state.note.fields;
   const desired = desiredCards(edit.noteType, fieldsByName(edit.noteType, fields));
@@ -135,7 +136,7 @@ function planNoteChange(deps: DomainDeps, edit: PlannedEdit, state: NoteState): 
   };
 }
 
-// Keeps the history of every card that stays. See reconcile() for removed cards.
+// Cards that stay keep their review history. See reconcile() for removed cards.
 export async function updateNote(deps: DomainDeps, id: string, patch: NotePatchInput): NoteResult {
   const current = await deps.store.getNoteState(id);
   const noteType =
