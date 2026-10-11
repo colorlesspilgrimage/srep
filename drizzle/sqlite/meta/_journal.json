@@ -15,6 +15,13 @@
       "when": 1791653721666,
       "tag": "0001_glamorous_calypso",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791732890190,
+      "tag": "0002_big_expediter",
+      "breakpoints": true
     }
   ]
 }
