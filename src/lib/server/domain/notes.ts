@@ -1,6 +1,12 @@
 import { fail, type Failure, type Result } from '#lib/server/auth/deps.js';
 import { randomToken } from '#lib/server/auth/tokens.js';
-import { desiredCards, fieldsByName, reconcile } from '#lib/server/domain/core/card-plan.js';
+import {
+  desiredCards,
+  fieldsByName,
+  reconcile,
+  withinRenderCost,
+  type DesiredCard,
+} from '#lib/server/domain/core/card-plan.js';
 import { findMediaTokens } from '#lib/server/domain/core/media-rules.js';
 import { normalizeTags } from '#lib/server/domain/core/tags.js';
 import { fieldChecksum } from '#lib/server/domain/core/text.js';
@@ -26,12 +32,15 @@ export const TRASH_RETENTION_MS = 30 * 24 * 3600 * 1000;
 
 type NoteResult = Promise<Result<{ note: NoteView }>>;
 
-// Checks the field count and size, the tags and the media tokens. Returns the clean tags.
+// Checks the field count and size, the tags, the render cost and the media tokens.
+// `existing` lists the stored cards of the note, which the view renders too.
+// Returns the clean tags.
 async function checkContent(
   deps: DomainDeps,
   noteType: NoteTypeWithTemplates,
   fields: string[],
   tags: string[],
+  existing: DesiredCard[] = [],
 ): Promise<Failure | { ok: true; tags: string[] }> {
   if (fields.length !== noteType.fields.length) {
     return fail(400, 'field_count_mismatch');
@@ -42,6 +51,9 @@ async function checkContent(
   const clean = normalizeTags(tags);
   if (clean === null) {
     return fail(400, 'invalid_tag');
+  }
+  if (!withinRenderCost(noteType, fieldsByName(noteType, fields), existing)) {
+    return fail(413, 'payload_too_large');
   }
   const missing = await deps.store.findMissingMedia(fields.flatMap(findMediaTokens));
   return missing.length > 0 ? fail(400, 'unknown_media') : { ok: true, tags: clean };
@@ -132,7 +144,8 @@ export async function updateNote(deps: DomainDeps, id: string, patch: NotePatchI
     return fail(404, 'not_found');
   }
   const fields = patch.fields ?? current.note.fields;
-  const content = await checkContent(deps, noteType, fields, patch.tags ?? current.tags);
+  const tags = patch.tags ?? current.tags;
+  const content = await checkContent(deps, noteType, fields, tags, current.cards);
   if (!content.ok) {
     return content;
   }

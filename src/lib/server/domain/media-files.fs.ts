@@ -18,7 +18,7 @@ function isMissing(error: unknown): boolean {
 
 // Files live at <dir>/<sha[0..2]>/<sha>. Folders are 0700 and files 0600, because
 // media can hold private data. A write goes to <dir>/tmp first, then a rename makes
-// it visible in one step.
+// it visible in one step. A failed write removes its temp file (CWE-459).
 export function createFsMediaFiles(dir: string): MediaFiles {
   return {
     async write(sha, bytes) {
@@ -27,16 +27,25 @@ export function createFsMediaFiles(dir: string): MediaFiles {
       await fs.mkdir(tmpDir, { recursive: true, mode: 0o700 });
       await fs.mkdir(path.dirname(target), { recursive: true, mode: 0o700 });
       const tmp = path.join(tmpDir, crypto.randomBytes(16).toString('hex'));
-      await fs.writeFile(tmp, bytes, { mode: 0o600, flag: 'wx' });
       try {
-        await fs.access(target);
-        await fs.rm(tmp, { force: true });
-      } catch (error) {
-        if (!isMissing(error)) {
+        await fs.writeFile(tmp, bytes, { mode: 0o600, flag: 'wx' });
+        const present = await fs.access(target).then(
+          () => true,
+          (error: unknown) => {
+            if (!isMissing(error)) {
+              throw error;
+            }
+            return false;
+          },
+        );
+        if (present) {
           await fs.rm(tmp, { force: true });
-          throw error;
+        } else {
+          await fs.rename(tmp, target);
         }
-        await fs.rename(tmp, target);
+      } catch (error) {
+        await fs.rm(tmp, { force: true });
+        throw error;
       }
     },
 

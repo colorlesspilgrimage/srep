@@ -137,7 +137,29 @@ export function isClozeTemplate(frontAst: TemplateNode[]): boolean {
   return templateFields(frontAst).cloze.size > 0;
 }
 
-export type RenderContext = { side: 'front' | 'back'; clozeIndex: number };
+// The budget counts the work of a render: nodes, field text read and text written.
+// A template can name one field many times, so the output can be much larger than
+// the input (CWE-400, CWE-405). The caller sets the budget and catches the error.
+export type RenderBudget = { left: number };
+
+export class RenderLimitError extends Error {
+  constructor() {
+    super('render budget exhausted');
+    this.name = 'RenderLimitError';
+  }
+}
+
+export function chargeRender(budget: RenderBudget | undefined, cost: number): void {
+  if (budget === undefined) {
+    return;
+  }
+  budget.left -= cost;
+  if (budget.left < 0) {
+    throw new RenderLimitError();
+  }
+}
+
+export type RenderContext = { side: 'front' | 'back'; clozeIndex: number; budget?: RenderBudget };
 
 // One pass. A field value that contains `{{...}}` is not expanded again.
 // The depth of the recursion is at most MAX_BLOCK_DEPTH (CWE-674).
@@ -149,10 +171,13 @@ export function renderTemplate(
   let out = '';
   for (const node of ast) {
     const value = node.kind === 'text' ? node.text : (fields[node.name] ?? '');
+    chargeRender(ctx.budget, 1 + value.length);
     if (node.kind === 'text' || node.kind === 'field') {
       out += value;
     } else if (node.kind === 'cloze') {
-      out += renderCloze(value, ctx.clozeIndex, ctx.side);
+      const rendered = renderCloze(value, ctx.clozeIndex, ctx.side);
+      chargeRender(ctx.budget, rendered.length);
+      out += rendered;
     } else if (!isBlank(value)) {
       out += renderTemplate(node.children, fields, ctx);
     }
