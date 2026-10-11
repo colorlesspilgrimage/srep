@@ -18,6 +18,10 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
 ENV SREP_DATABASE_URL=sqlite:/data/srep.db
+# Media files live in the /data volume, for SQLite and for Postgres.
+ENV SREP_MEDIA_DIR=/data/media
+# One media file can be 10 MiB. JSON routes keep their own 64 KiB limit.
+ENV BODY_SIZE_LIMIT=11M
 WORKDIR /app
 COPY --from=build /app/build ./build
 COPY --from=build /app/build-cli ./build-cli

@@ -17,7 +17,11 @@ export type Config = {
   migrationsDir: string | undefined;
   migrateOnStart: boolean;
   auth: AuthConfig;
+  media: { dir: string; maxBytes: number };
 };
+
+export const DEFAULT_MEDIA_MAX_BYTES = 10 * 1024 * 1024;
+const MEDIA_MAX_BYTES_LIMIT = 100 * 1024 * 1024;
 
 export class ConfigError extends Error {
   constructor(message: string) {
@@ -69,6 +73,37 @@ function databaseError(url: string): string | undefined {
   return undefined;
 }
 
+// Reads the optional media folder. The default comes later from the database path.
+function mediaDirOf(raw: string | undefined, errors: string[]): string | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+  if (raw.includes('\0')) {
+    errors.push('SREP_MEDIA_DIR: must not contain a NUL character');
+    return undefined;
+  }
+  return path.resolve(raw);
+}
+
+function mediaMaxBytesOf(raw: string | undefined, errors: string[]): number {
+  if (raw === undefined) {
+    return DEFAULT_MEDIA_MAX_BYTES;
+  }
+  const value = /^[0-9]+$/.test(raw) ? Number(raw) : Number.NaN;
+  if (!(value >= 1 && value <= MEDIA_MAX_BYTES_LIMIT)) {
+    errors.push(`SREP_MEDIA_MAX_BYTES: must be an integer from 1 to ${MEDIA_MAX_BYTES_LIMIT}`);
+  }
+  return value;
+}
+
+// SQLite files keep media next to the database. Other cases use ./data/media.
+function defaultMediaDir(database: Config['database']): string {
+  if (database.dialect === 'sqlite' && database.path !== ':memory:') {
+    return path.join(path.dirname(database.path), 'media');
+  }
+  return path.resolve('data', 'media');
+}
+
 export function parseConfig(env: Record<string, string | undefined>): Config {
   const errors: string[] = [];
   const databaseUrl = blankToUnset(env.SREP_DATABASE_URL) ?? 'sqlite:./data/srep.db';
@@ -99,6 +134,9 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
       migrationsDir = path.resolve(migrationsRaw);
     }
   }
+
+  const mediaDir = mediaDirOf(blankToUnset(env.SREP_MEDIA_DIR), errors);
+  const mediaMaxBytes = mediaMaxBytesOf(blankToUnset(env.SREP_MEDIA_MAX_BYTES), errors);
 
   const authResult = parseRpConfig(env);
   if ('errors' in authResult) {
@@ -131,6 +169,7 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
     migrationsDir,
     migrateOnStart: migrateParsed.data === 'true',
     auth: authResult.value,
+    media: { dir: mediaDir ?? defaultMediaDir(database), maxBytes: mediaMaxBytes },
   };
 }
 

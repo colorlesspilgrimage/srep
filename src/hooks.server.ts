@@ -5,6 +5,8 @@ import { announceSetupToken, startMaintenance } from '#lib/server/auth/startup.j
 import { getConfig } from '#lib/server/config.js';
 import { getDb } from '#lib/server/db/index.js';
 import { runMigrations } from '#lib/server/db/migrate.js';
+import { getDomainContext } from '#lib/server/domain/context.js';
+import { seedDomain } from '#lib/server/domain/seed.js';
 import { createSyncLogger, getLogger } from '#lib/server/logger.js';
 
 const shutdownFlag = '__srepShutdownRegistered';
@@ -50,6 +52,8 @@ export const init: ServerInit = async () => {
     if (config.migrateOnStart) {
       await runMigrations(db, config, logger);
     }
+    // Adds the built-in preset and note types, and empties trash older than 30 days.
+    await seedDomain(getDomainContext());
     const { deps } = getAuthContext();
     await announceSetupToken(deps);
     registerShutdown(await startMaintenance(deps));

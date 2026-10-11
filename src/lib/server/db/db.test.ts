@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { afterEach, describe, expect, it } from 'vitest';
 import { parseConfig } from '#lib/server/config.js';
 import { createDb, type DbHandle } from '#lib/server/db/client.js';
@@ -10,6 +10,17 @@ import { appSettings } from '#lib/server/db/schema/sqlite.js';
 import { makeTempDir, removeTempDirs } from '#lib/server/temp-dir.js';
 
 const logger = { info() {} };
+const DOMAIN_TABLES = [
+  'deck_preset',
+  'deck',
+  'note_type',
+  'card_template',
+  'note',
+  'note_tag',
+  'card',
+  'review_log',
+  'media',
+];
 const dirs: string[] = [];
 
 afterEach(() => {
@@ -80,6 +91,23 @@ describe('sqlite database', () => {
     expect(rows[0]?.value).toEqual({ theme: 'phosphor' });
     const found = handle.db.select().from(appSettings).where(eq(appSettings.key, 'ui')).get();
     expect(found?.value).toEqual({ theme: 'phosphor' });
+    await handle.close();
+  });
+
+  it('creates the domain tables', async () => {
+    const config = parseConfig({ SREP_DATABASE_URL: 'sqlite::memory:' });
+    const handle = createDb(config);
+    await runMigrations(handle, config, logger);
+    if (handle.dialect !== 'sqlite') {
+      throw new Error('expected sqlite');
+    }
+    const rows = handle.db.all<{ name: string }>(
+      sql`select name from sqlite_master where type = 'table'`,
+    );
+    const names = rows.map((row) => row.name);
+    for (const table of DOMAIN_TABLES) {
+      expect(names).toContain(table);
+    }
     await handle.close();
   });
 

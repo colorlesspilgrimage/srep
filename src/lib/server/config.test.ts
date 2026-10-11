@@ -128,6 +128,43 @@ describe('parseConfig', () => {
     expect(config.migrationsDir).toBeUndefined();
     expect(config.database.dialect).toBe('sqlite');
   });
+
+  describe('media settings', () => {
+    const maxBytesError = 'SREP_MEDIA_MAX_BYTES: must be an integer from 1 to 104857600';
+
+    it('puts media next to a sqlite file and uses 10 MiB', () => {
+      const config = parseConfig({ SREP_DATABASE_URL: 'sqlite:/tmp/x/y.db' });
+      expect(config.media).toEqual({ dir: '/tmp/x/media', maxBytes: 10_485_760 });
+    });
+
+    it('uses <cwd>/data/media for memory and postgres', () => {
+      const expected = path.resolve('data', 'media');
+      expect(parseConfig({ SREP_DATABASE_URL: 'sqlite::memory:' }).media.dir).toBe(expected);
+      const pg = parseConfig({ SREP_DATABASE_URL: 'postgres://u:p@db:5432/srep' });
+      expect(pg.media.dir).toBe(expected);
+    });
+
+    it('reads overrides and treats blanks as unset', () => {
+      const config = parseConfig({ SREP_MEDIA_DIR: 'rel/media', SREP_MEDIA_MAX_BYTES: '1' });
+      expect(config.media).toEqual({ dir: path.resolve('rel/media'), maxBytes: 1 });
+      const top = parseConfig({ SREP_MEDIA_MAX_BYTES: '104857600', SREP_MEDIA_DIR: '' });
+      expect(top.media.maxBytes).toBe(104_857_600);
+      expect(top.media.dir).toBe(path.resolve('data', 'media'));
+    });
+
+    it('rejects a NUL in SREP_MEDIA_DIR', () => {
+      expect(configErrorMessage({ SREP_MEDIA_DIR: '/a\0b' })).toBe(
+        'SREP_MEDIA_DIR: must not contain a NUL character',
+      );
+    });
+
+    it.each(['abc', '-1', '1.5', '0', '104857601', '1e3'])(
+      'rejects SREP_MEDIA_MAX_BYTES=%s',
+      (value) => {
+        expect(configErrorMessage({ SREP_MEDIA_MAX_BYTES: value })).toBe(maxBytesError);
+      },
+    );
+  });
 });
 
 describe('redactDatabaseUrl', () => {

@@ -99,6 +99,57 @@ describe('unauthenticated API access', () => {
   });
 });
 
+// Every M2 route needs a session (CWE-862, ASVS V4). No route is in the public list.
+describe('unauthenticated access to the domain routes', () => {
+  const ID = '123e4567-e89b-42d3-a456-426614174000';
+  const SHA = '0'.repeat(64);
+  const routes: [string, string][] = [
+    ['GET', '/api/decks'],
+    ['POST', '/api/decks'],
+    ['GET', `/api/decks/${ID}`],
+    ['PATCH', `/api/decks/${ID}`],
+    ['DELETE', `/api/decks/${ID}`],
+    ['GET', `/api/decks/${ID}/impact`],
+    ['GET', '/api/presets'],
+    ['POST', '/api/presets'],
+    ['PUT', `/api/presets/${ID}`],
+    ['DELETE', `/api/presets/${ID}`],
+    ['GET', '/api/note-types'],
+    ['POST', '/api/note-types'],
+    ['GET', `/api/note-types/${ID}`],
+    ['DELETE', `/api/note-types/${ID}`],
+    ['POST', '/api/notes'],
+    ['GET', `/api/notes/${ID}`],
+    ['PATCH', `/api/notes/${ID}`],
+    ['DELETE', `/api/notes/${ID}`],
+    ['POST', `/api/notes/${ID}/restore`],
+    ['POST', '/api/cards/move'],
+    ['POST', '/api/media'],
+    ['GET', `/api/media/${SHA}`],
+  ];
+
+  it.each(routes)('%s %s returns 401 without a session', async (method, path) => {
+    h = await createHarness();
+    const headers = { origin: ORIGIN, 'content-type': 'application/json' };
+    const { response, resolve } = await run(path, { method, headers });
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: 'unauthenticated' });
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
+  it('keeps a cache-control header that an API route sets', async () => {
+    h = await createHarness();
+    const { cookie } = await signedIn();
+    const policy = 'private, max-age=31536000, immutable';
+    const resolve = vi.fn(
+      async () => new Response('x', { status: 200, headers: { 'cache-control': policy } }),
+    );
+    const response = await handleAuth(h.deps, makeEvent(`/api/media/${SHA}`, { cookie }), resolve);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe(policy);
+  });
+});
+
 describe('page redirects', () => {
   it('redirects to /setup before setup and to /login after', async () => {
     h = await createHarness();

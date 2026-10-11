@@ -15,6 +15,13 @@
       "when": 1791653722357,
       "tag": "0001_clammy_earthquake",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791732890884,
+      "tag": "0002_optimal_sally_floyd",
+      "breakpoints": true
     }
   ]
 }
