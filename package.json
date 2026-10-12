@@ -27,7 +27,8 @@
     "db:generate:pg": "drizzle-kit generate --config drizzle.pg.config.ts",
     "db:generate": "npm run db:generate:sqlite && npm run db:generate:pg",
     "srep": "tsx scripts/srep.ts",
-    "domain:demo": "tsx scripts/domain-demo.ts"
+    "domain:demo": "tsx scripts/domain-demo.ts",
+    "study:simulate": "tsx scripts/study-simulate.ts"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^14.0.0",
@@ -36,6 +37,7 @@
     "drizzle-orm": "^0.45.4",
     "pino": "^10.4.0",
     "postgres": "^3.4.9",
+    "ts-fsrs": "5.4.2",
     "zod": "^4.6.5"
   },
   "devDependencies": {

@@ -42,6 +42,7 @@ export function makeEvent(path: string, opts: EventOptions = {}) {
   const cookiesSet: SetCookie[] = [];
   const event = {
     request,
+    url: new URL(request.url),
     params: opts.params ?? {},
     locals: { session: opts.session ?? null },
     getClientAddress: () => opts.address ?? '203.0.113.7',

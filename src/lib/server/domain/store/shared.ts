@@ -28,6 +28,8 @@ export function newCard(draft: CardDraft, noteId: string, now: number, position:
     position,
     buriedUntil: null,
     flags: 0,
+    schedState: 'new',
+    learningStep: 0,
   };
 }
 

@@ -7,9 +7,10 @@ srep is an open-source, self-hosted spaced-repetition web app (an Anki alternati
 ## Status
 
 The app is pre-1.0.
-Milestones M0, M1 and M2 are done.
+Milestones M0 to M3 are done.
 M1 adds passkey and security-key login.
 M2 adds decks, presets, note types, notes, card generation and media, through a JSON API.
+M3 adds the FSRS study engine (next card, answer, undo, suspend, bury, daily limits and a log replay check), through a JSON API.
 The Chromium end-to-end tests cover the flows.
 The Firefox and Safari checks are manual (see "Browser matrix").
 See [ROADMAP.md](ROADMAP.md).
@@ -224,6 +225,29 @@ adapter-node limits request bodies to 512K by default.
 Set `BODY_SIZE_LIMIT=11M` for uploads up to 10 MiB.
 The Docker image sets it.
 JSON routes keep their own 64 KiB limit.
+
+## Study engine
+
+The study API schedules cards with FSRS (ts-fsrs 5.4.2, fuzz off).
+The same session, header and `content-type` rules apply.
+
+| Method       | Path                  | Use                                                               |
+| ------------ | --------------------- | ----------------------------------------------------------------- |
+| `GET`        | `/api/study/next`     | Next card of a deck tree (`?deckId=`), or `wait` or `done`.       |
+| `POST`       | `/api/study/answer`   | Answer a card (`cardId`, `rating` 1 to 4, `reps`, `elapsedMs`).   |
+| `POST`       | `/api/study/undo`     | Revert the most recent review.                                    |
+| `GET`        | `/api/study/verify`   | Replay the review log and list the cards whose cache differs.     |
+| `POST`       | `/api/study/rebuild`  | Rewrite the card cache from the review log.                       |
+| `POST`       | `/api/cards/suspend`  | Suspend 1 to 500 cards. `unsuspend` and `bury` work the same way. |
+| `GET`, `PUT` | `/api/settings/study` | Read or set the study day (`rolloverHour`, `timezone`).           |
+
+The study day starts at 04:00 UTC by default.
+Each deck uses the daily limits of its own preset.
+Run the 365-day simulation without a server:
+
+```bash
+npm run study:simulate -- --days 365
+```
 
 ## Database
 

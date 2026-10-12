@@ -8,6 +8,8 @@ import { createPgHarness } from '#lib/server/auth/test-support/harness.js';
 import { defineDomainStoreSuite } from '#lib/server/domain/store/store.suite.js';
 import { createPgDomainHarness } from '#lib/server/domain/test-support/harness.js';
 import { appSettings } from '#lib/server/db/schema/pg.js';
+import { defineStudyStoreSuite } from '#lib/server/study/store/study-store.suite.js';
+import { createPgStudyHarness } from '#lib/server/study/test-support/harness.js';
 
 const logger = { info() {} };
 const url = process.env.SREP_TEST_POSTGRES_URL;
@@ -66,5 +68,9 @@ describe.skipIf(!url)('postgres database', () => {
 
   describe('domain store (postgres)', () => {
     defineDomainStoreSuite(() => createPgDomainHarness(url ?? ''));
+  });
+
+  describe('study store (postgres)', () => {
+    defineStudyStoreSuite(() => createPgStudyHarness(url ?? ''));
   });
 });

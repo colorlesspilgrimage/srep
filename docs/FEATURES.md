@@ -47,6 +47,32 @@ Decks, note types, notes, generated cards and content-addressed media, through a
   - Code: `src/lib/server/domain/` (`core/` pure logic, `store/` repository, services), `src/routes/api/{decks,presets,note-types,notes,cards,media}/`, `src/lib/server/db/schema/{sqlite,pg}.ts`, `drizzle/sqlite/0002_big_expediter.sql`, `drizzle/pg/0002_optimal_sally_floyd.sql`, `scripts/domain-demo.ts`.
   - Tests: `src/lib/server/domain/**/*.test.ts`, `src/routes/api/{decks,presets,note-types,notes,cards,media}/server.test.ts`, `src/lib/server/auth/hook.test.ts` (401 for every new route), `scripts/domain-demo.test.ts`, `e2e/domain.test.ts`.
 
+## Scheduler and study engine (M3)
+
+FSRS scheduling with learning steps, a day-rollover clock, daily limits, a queue builder, answer, undo, suspend, bury, sibling burying, and a replay check of the review log.
+
+- Entry point: API under `/api/study/{next,answer,undo,verify,rebuild}`, `/api/cards/{suspend,unsuspend,bury}`, `/api/settings/study`. Script `npm run study:simulate`.
+- Use:
+  1. Start the server and log in (see "Authentication (M1)"). Mutating calls need the `origin`, `x-srep-csrf` and `content-type: application/json` headers.
+  2. Add decks and notes (see "Decks, notes and media (M2)").
+  3. Set the study day (optional): `PUT /api/settings/study` with `{"rolloverHour":4,"timezone":"Europe/Berlin"}`. The default is hour 4 and `UTC`.
+  4. Get the next card: `GET /api/study/next?deckId=<id>`. The reply has `status` (`card`, `wait` or `done`), the card with its four preview intervals, and the counts.
+  5. Answer: `POST /api/study/answer` with `{"cardId":"<id>","rating":3,"reps":<reps from next>,"elapsedMs":4000}`. Ratings: 1 Again, 2 Hard, 3 Good, 4 Easy.
+  6. Undo the last review: `POST /api/study/undo` with `{}`.
+  7. Suspend, unsuspend or bury cards: `POST /api/cards/suspend` (also `unsuspend`, `bury`) with `{"cardIds":["<id>"]}`.
+  8. Check the cache against the log: `GET /api/study/verify`. Repair it: `POST /api/study/rebuild` with `{}`. Editing a preset changes the replay result; run `rebuild` after such an edit.
+  9. No server needed: `npm run study:simulate -- --days 365`. The script always uses an in-memory database. It ignores `SREP_DATABASE_URL`, so it never changes your data.
+- Notes: ts-fsrs is pinned to `5.4.2`. Fuzz is off. Learning steps are rounded to whole minutes (at least 1), because ts-fsrs counts whole minutes only. A preset with 20 `fsrsParams` gets `422 bad_preset` (ts-fsrs accepts 19 or 21). Daily limits count the review log rows of the card's current deck, so a moved card takes its past reviews with it.
+- Check:
+  - `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:4173/api/study/next` prints `401`.
+  - `npm run study:simulate -- --days 365` prints a last line with `"limitViolations":0,"replayMismatches":0,"undoMismatches":0` and exits 0.
+  - `npx vitest run src/lib/server/study src/routes/api scripts` passes.
+  - `npm run test:e2e` passes (`e2e/study.test.ts`).
+  - Postgres: set `SREP_TEST_POSTGRES_URL` and run `npx vitest run src/lib/server/db/db.pg.test.ts` (the study store suite runs there).
+- Code and tests:
+  - Code: `src/lib/server/study/` (`core/` pure logic, `store/` repository, services), `src/routes/api/{study,settings}/`, `src/routes/api/cards/{suspend,unsuspend,bury}/`, `src/lib/server/db/schema/{sqlite,pg}.ts`, `drizzle/sqlite/0003_equal_metal_master.sql`, `drizzle/pg/0003_steep_the_initiative.sql`, `scripts/study-simulate.ts`.
+  - Tests: `src/lib/server/study/**/*.test.ts`, `src/lib/server/study/store/study-store.suite.ts`, `src/lib/server/study/store/study-store-race.suite.ts` (Postgres only), `src/routes/api/{study,settings}/**/server.test.ts`, `src/routes/api/cards/server.test.ts`, `src/lib/server/auth/hook.test.ts`, `scripts/study-simulate.test.ts`, `e2e/study.test.ts`.
+
 ## Health endpoint (M0)
 
 `GET /healthz` returns `{"status":"ok"}` when the database answers. It needs no session.

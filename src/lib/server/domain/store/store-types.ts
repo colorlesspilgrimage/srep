@@ -1,7 +1,7 @@
 import type { Failure } from '#lib/server/auth/deps.js';
-import type { CardState, NewOrder } from '#lib/server/db/schema/sqlite.js';
+import type { CardState, NewOrder, SchedState } from '#lib/server/db/schema/sqlite.js';
 
-export type { CardState, NewOrder };
+export type { CardState, NewOrder, SchedState };
 
 export type PresetRow = {
   id: string;
@@ -75,6 +75,10 @@ export type CardRow = {
   position: number;
   buriedUntil: number | null;
   flags: number;
+  /** The scheduling state. It equals state unless the card is suspended or buried. */
+  schedState: SchedState;
+  /** Index of the current learning or relearning step. */
+  learningStep: number;
 };
 
 export type MediaRow = {
