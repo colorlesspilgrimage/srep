@@ -10,6 +10,7 @@ import {
   type DeckSnapshot,
   type HeadCard,
 } from '#lib/server/study/core/queue-choice.js';
+import { PG_READ_SNAPSHOT } from '#lib/server/study/store/read-snapshot.pg.js';
 import type { StudySnapshotInput } from '#lib/server/study/store/study-store-types.js';
 
 type Exec = Pick<PostgresJsDatabase, 'select'>;
@@ -112,7 +113,7 @@ async function deckSnapshot(
   };
 }
 
-// One read-only transaction gives one consistent view of all decks.
+// One repeatable-read, read-only transaction gives one consistent view of all decks.
 export async function readPgSnapshots(
   db: PostgresJsDatabase,
   input: StudySnapshotInput,
@@ -123,5 +124,5 @@ export async function readPgSnapshots(
       out.push(await deckSnapshot(tx, deckId, input));
     }
     return out;
-  });
+  }, PG_READ_SNAPSHOT);
 }
