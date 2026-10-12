@@ -14,7 +14,12 @@ import {
   type StepUnit,
 } from 'ts-fsrs';
 import type { PresetRow } from '#lib/server/domain/store/store-types.js';
-import type { Rating, SchedFields, SchedState } from '#lib/server/study/core/types.js';
+import {
+  RATINGS,
+  type Rating,
+  type SchedFields,
+  type SchedState,
+} from '#lib/server/study/core/types.js';
 
 export type SchedulerPreset = Pick<
   PresetRow,
@@ -147,7 +152,7 @@ export function previewAnswers(
   nowMs: number,
 ): AnswerPreviews | null {
   const previews: Partial<AnswerPreviews> = {};
-  for (const rating of [1, 2, 3, 4] as const) {
+  for (const rating of RATINGS) {
     const result = answerCard(preset, fields, rating, nowMs);
     if (result === null) {
       return null;

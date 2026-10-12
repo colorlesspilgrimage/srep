@@ -5,6 +5,7 @@
 import { fail, type Failure } from '#lib/server/auth/deps.js';
 import type { CardRow, CardState } from '#lib/server/domain/store/store-types.js';
 import { answerCard, type SchedulerPreset } from '#lib/server/study/core/fsrs-adapter.js';
+import { isParkedState } from '#lib/server/study/core/parked-state.js';
 import type {
   Rating,
   ReviewLogRow,
@@ -68,7 +69,7 @@ export function planAnswer(input: AnswerInput): AnswerPlan | Failure {
   if (card.reps !== input.expectedReps) {
     return fail(409, 'stale_card');
   }
-  if (card.state === 'suspended' || card.state === 'buried') {
+  if (isParkedState(card.state)) {
     return fail(409, 'card_not_studyable');
   }
   const reviewedAt = Math.max(input.nowMs, (input.lastReviewedAtMax ?? -1) + 1);
@@ -111,7 +112,7 @@ export function planAnswer(input: AnswerInput): AnswerPlan | Failure {
 // A card that the user suspended or buried after the answer keeps that state.
 export function planUndo(input: UndoInput): UndoPlan {
   const { log, card } = input;
-  const keepState = card.state === 'suspended' || card.state === 'buried';
+  const keepState = isParkedState(card.state);
   const listed = new Set(log.buriedSiblingIds);
   return {
     cardRestore: {

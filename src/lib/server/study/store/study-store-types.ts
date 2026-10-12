@@ -21,6 +21,9 @@ export const STUDY_LOCK_KEY = 7_303_301;
 /** The page size of verify and rebuild (CWE-770). */
 export const REPLAY_PAGE_SIZE = 500;
 
+/** The app_settings key of the study settings. */
+export const STUDY_SETTINGS_KEY = 'study';
+
 export type StudySnapshotInput = {
   deckIds: string[];
   nowMs: number;

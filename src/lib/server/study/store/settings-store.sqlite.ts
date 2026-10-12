@@ -2,9 +2,10 @@
 import { eq } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { appSettings } from '#lib/server/db/schema/sqlite.js';
-import type { StudySettingsStore } from '#lib/server/study/store/study-store-types.js';
-
-const STUDY_SETTINGS_KEY = 'study';
+import {
+  STUDY_SETTINGS_KEY,
+  type StudySettingsStore,
+} from '#lib/server/study/store/study-store-types.js';
 
 export function createSqliteStudySettingsStore(db: BetterSQLite3Database): StudySettingsStore {
   return {

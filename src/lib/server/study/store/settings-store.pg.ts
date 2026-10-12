@@ -2,9 +2,10 @@
 import { eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { appSettings } from '#lib/server/db/schema/pg.js';
-import type { StudySettingsStore } from '#lib/server/study/store/study-store-types.js';
-
-const STUDY_SETTINGS_KEY = 'study';
+import {
+  STUDY_SETTINGS_KEY,
+  type StudySettingsStore,
+} from '#lib/server/study/store/study-store-types.js';
 
 export function createPgStudySettingsStore(db: PostgresJsDatabase): StudySettingsStore {
   return {
