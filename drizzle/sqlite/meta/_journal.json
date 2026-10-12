@@ -22,6 +22,13 @@
       "when": 1791732890190,
       "tag": "0002_big_expediter",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1791832385953,
+      "tag": "0003_equal_metal_master",
+      "breakpoints": true
     }
   ]
 }

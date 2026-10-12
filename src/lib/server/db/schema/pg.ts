@@ -11,7 +11,7 @@ import {
   uniqueIndex,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
-import type { CardState, JsonValue, NewOrder } from '#lib/server/db/schema/sqlite.js';
+import type { CardState, JsonValue, NewOrder, SchedState } from '#lib/server/db/schema/sqlite.js';
 
 const epochMs = (name: string) => bigint(name, { mode: 'number' });
 
@@ -165,6 +165,8 @@ export const card = pgTable(
     position: integer('position').notNull(),
     buriedUntil: epochMs('buried_until'),
     flags: integer('flags').notNull(),
+    schedState: text('sched_state').notNull().default('new').$type<SchedState>(),
+    learningStep: integer('learning_step').notNull().default(0),
   },
   (t) => [
     uniqueIndex('card_note_template_ordinal_idx').on(t.noteId, t.templateId, t.ordinal),
@@ -173,7 +175,8 @@ export const card = pgTable(
   ],
 );
 
-// Append-only. M2 never writes rows. The trash purge removes rows by cascade.
+// Written by the M3 study engine. Only undo and the trash purge cascade delete rows.
+// The *_before columns hold the card scheduling fields before the answer.
 export const reviewLog = pgTable(
   'review_log',
   {
@@ -183,14 +186,22 @@ export const reviewLog = pgTable(
       .references(() => card.id, { onDelete: 'cascade' }),
     reviewedAt: epochMs('reviewed_at').notNull(),
     rating: integer('rating').notNull(),
-    stateBefore: text('state_before').notNull().$type<CardState>(),
+    stateBefore: text('state_before').notNull().$type<SchedState>(),
     dueBefore: epochMs('due_before').notNull(),
     stabilityBefore: doublePrecision('stability_before').notNull(),
     difficultyBefore: doublePrecision('difficulty_before').notNull(),
     elapsedMs: integer('elapsed_ms').notNull(),
     intervalAfter: integer('interval_after').notNull(),
+    lastReviewBefore: epochMs('last_review_before'),
+    repsBefore: integer('reps_before').notNull().default(0),
+    lapsesBefore: integer('lapses_before').notNull().default(0),
+    stepBefore: integer('step_before').notNull().default(0),
+    buriedSiblingIds: jsonb('buried_sibling_ids').notNull().$type<string[]>().default([]),
   },
-  (t) => [index('review_log_card_idx').on(t.cardId, t.reviewedAt)],
+  (t) => [
+    index('review_log_card_idx').on(t.cardId, t.reviewedAt),
+    index('review_log_reviewed_at_idx').on(t.reviewedAt),
+  ],
 );
 
 export const media = pgTable('media', {

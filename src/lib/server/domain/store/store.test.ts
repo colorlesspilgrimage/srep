@@ -33,6 +33,7 @@ describe('domain indexes (sqlite)', () => {
       'deck_parent_id_idx',
       'note_checksum_idx',
       'review_log_card_idx',
+      'review_log_reviewed_at_idx',
     ]) {
       expect(names).toContain(name);
     }

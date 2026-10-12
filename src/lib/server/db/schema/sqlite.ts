@@ -13,6 +13,8 @@ export type JsonValue =
   string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 export type CardState = 'new' | 'learning' | 'review' | 'relearning' | 'suspended' | 'buried';
+/** The scheduling state. card.state equals it unless the card is suspended or buried. */
+export type SchedState = 'new' | 'learning' | 'review' | 'relearning';
 export type NewOrder = 'added' | 'random';
 
 export const appSettings = sqliteTable('app_settings', {
@@ -165,6 +167,8 @@ export const card = sqliteTable(
     position: integer('position').notNull(),
     buriedUntil: integer('buried_until'),
     flags: integer('flags').notNull(),
+    schedState: text('sched_state').notNull().default('new').$type<SchedState>(),
+    learningStep: integer('learning_step').notNull().default(0),
   },
   (t) => [
     uniqueIndex('card_note_template_ordinal_idx').on(t.noteId, t.templateId, t.ordinal),
@@ -173,7 +177,8 @@ export const card = sqliteTable(
   ],
 );
 
-// Append-only. M2 never writes rows. The trash purge removes rows by cascade.
+// Written by the M3 study engine. Only undo and the trash purge cascade delete rows.
+// The *_before columns hold the card scheduling fields before the answer.
 export const reviewLog = sqliteTable(
   'review_log',
   {
@@ -183,14 +188,25 @@ export const reviewLog = sqliteTable(
       .references(() => card.id, { onDelete: 'cascade' }),
     reviewedAt: integer('reviewed_at').notNull(),
     rating: integer('rating').notNull(),
-    stateBefore: text('state_before').notNull().$type<CardState>(),
+    stateBefore: text('state_before').notNull().$type<SchedState>(),
     dueBefore: integer('due_before').notNull(),
     stabilityBefore: real('stability_before').notNull(),
     difficultyBefore: real('difficulty_before').notNull(),
     elapsedMs: integer('elapsed_ms').notNull(),
     intervalAfter: integer('interval_after').notNull(),
+    lastReviewBefore: integer('last_review_before'),
+    repsBefore: integer('reps_before').notNull().default(0),
+    lapsesBefore: integer('lapses_before').notNull().default(0),
+    stepBefore: integer('step_before').notNull().default(0),
+    buriedSiblingIds: text('buried_sibling_ids', { mode: 'json' })
+      .notNull()
+      .$type<string[]>()
+      .default([]),
   },
-  (t) => [index('review_log_card_idx').on(t.cardId, t.reviewedAt)],
+  (t) => [
+    index('review_log_card_idx').on(t.cardId, t.reviewedAt),
+    index('review_log_reviewed_at_idx').on(t.reviewedAt),
+  ],
 );
 
 export const media = sqliteTable('media', {
