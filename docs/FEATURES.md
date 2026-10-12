@@ -61,7 +61,7 @@ FSRS scheduling with learning steps, a day-rollover clock, daily limits, a queue
   6. Undo the last review: `POST /api/study/undo` with `{}`.
   7. Suspend, unsuspend or bury cards: `POST /api/cards/suspend` (also `unsuspend`, `bury`) with `{"cardIds":["<id>"]}`.
   8. Check the cache against the log: `GET /api/study/verify`. Repair it: `POST /api/study/rebuild` with `{}`. Editing a preset changes the replay result; run `rebuild` after such an edit.
-  9. No server needed: `npm run study:simulate -- --days 365`.
+  9. No server needed: `npm run study:simulate -- --days 365`. The script always uses an in-memory database. It ignores `SREP_DATABASE_URL`, so it never changes your data.
 - Notes: ts-fsrs is pinned to `5.4.2`. Fuzz is off. Learning steps are rounded to whole minutes (at least 1), because ts-fsrs counts whole minutes only. A preset with 20 `fsrsParams` gets `422 bad_preset` (ts-fsrs accepts 19 or 21). Daily limits count the review log rows of the card's current deck, so a moved card takes its past reviews with it.
 - Check:
   - `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:4173/api/study/next` prints `401`.
@@ -71,7 +71,7 @@ FSRS scheduling with learning steps, a day-rollover clock, daily limits, a queue
   - Postgres: set `SREP_TEST_POSTGRES_URL` and run `npx vitest run src/lib/server/db/db.pg.test.ts` (the study store suite runs there).
 - Code and tests:
   - Code: `src/lib/server/study/` (`core/` pure logic, `store/` repository, services), `src/routes/api/{study,settings}/`, `src/routes/api/cards/{suspend,unsuspend,bury}/`, `src/lib/server/db/schema/{sqlite,pg}.ts`, `drizzle/sqlite/0003_equal_metal_master.sql`, `drizzle/pg/0003_steep_the_initiative.sql`, `scripts/study-simulate.ts`.
-  - Tests: `src/lib/server/study/**/*.test.ts`, `src/lib/server/study/store/study-store.suite.ts`, `src/routes/api/{study,settings}/**/server.test.ts`, `src/routes/api/cards/server.test.ts`, `src/lib/server/auth/hook.test.ts`, `scripts/study-simulate.test.ts`, `e2e/study.test.ts`.
+  - Tests: `src/lib/server/study/**/*.test.ts`, `src/lib/server/study/store/study-store.suite.ts`, `src/lib/server/study/store/study-store-race.suite.ts` (Postgres only), `src/routes/api/{study,settings}/**/server.test.ts`, `src/routes/api/cards/server.test.ts`, `src/lib/server/auth/hook.test.ts`, `scripts/study-simulate.test.ts`, `e2e/study.test.ts`.
 
 ## Health endpoint (M0)
 
