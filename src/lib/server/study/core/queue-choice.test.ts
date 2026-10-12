@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   chooseNext,
@@ -192,5 +193,19 @@ describe('shuffleKey', () => {
     const big = shuffleKey(2_000_000);
     expect(big).toBeLessThan(SHUFFLE_MODULUS);
     expect(big).toBe(Number((2_000_000n * BigInt(SHUFFLE_MULTIPLIER)) % BigInt(SHUFFLE_MODULUS)));
+  });
+
+  // Regression: the plain JS product lost precision above 3 393 554, so the JS key and
+  // the SQL key gave a different order for a large position.
+  it('equals the exact 64-bit SQL expression above the float limit', () => {
+    const exact = (p: number) =>
+      Number((BigInt(p) * BigInt(SHUFFLE_MULTIPLIER)) % BigInt(SHUFFLE_MODULUS));
+    for (const position of [3_393_554, 3_393_555, 10_000_001, 2 ** 31, 2 ** 32 - 1]) {
+      expect(shuffleKey(position), String(position)).toBe(exact(position));
+    }
+    fc.assert(
+      fc.property(fc.integer({ min: 0, max: 2 ** 32 - 1 }), (p) => shuffleKey(p) === exact(p)),
+      { seed: 1012, numRuns: 2000 },
+    );
   });
 });

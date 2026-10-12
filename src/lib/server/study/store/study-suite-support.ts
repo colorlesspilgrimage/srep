@@ -21,6 +21,7 @@ type CardPatch = Partial<{
   buriedUntil: number | null;
   deckId: string | null;
   flags: number;
+  position: number;
 }>;
 
 const COLUMN: Record<keyof CardPatch, string> = {
@@ -32,6 +33,7 @@ const COLUMN: Record<keyof CardPatch, string> = {
   buriedUntil: 'buried_until',
   deckId: 'deck_id',
   flags: 'flags',
+  position: 'position',
 };
 
 /** Sets card columns with plain SQL. Tests use it for states that only M3 writes. */

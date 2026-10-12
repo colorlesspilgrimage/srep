@@ -42,12 +42,15 @@ export type QueueChoice =
 export type StudyCounts = { new: number; learning: number; review: number };
 
 // A stable pseudo-random order for newOrder 'random' (Knuth multiplicative hash).
-// The stores use the same expression in SQL. Exact in JS for position <= 2_000_000.
+// The stores use the same expression in SQL: (position * SHUFFLE_MULTIPLIER) % SHUFFLE_MODULUS.
+// A plain JS product loses precision above position 3_393_554 (2^53 / multiplier).
+// Math.imul keeps the exact low 32 bits, so the JS key equals the SQL key for every
+// non-negative integer position below 2^32.
 export const SHUFFLE_MULTIPLIER = 2654435761;
 export const SHUFFLE_MODULUS = 4294967296;
 
 export function shuffleKey(position: number): number {
-  return (position * SHUFFLE_MULTIPLIER) % SHUFFLE_MODULUS;
+  return Math.imul(position, SHUFFLE_MULTIPLIER) >>> 0;
 }
 
 export function remainingQuota(

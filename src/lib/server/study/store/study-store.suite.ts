@@ -114,6 +114,21 @@ export function defineStudyStoreSuite(make: MakeStudyHarness): void {
       const [added] = await s.studyStore.readStudySnapshots({ ...input, shuffleDeckIds: [] });
       expect(added?.newHead?.cardId).toBe('r0-c0');
     });
+
+    // Regression: above position 3 393 554 the JS key lost precision. These two positions
+    // have exact keys 1466011291 < 1466011301, but the float product put them in reverse.
+    it('agrees with the JS shuffle key for positions above the float limit', async () => {
+      const s = await open();
+      const positions = [2_000_000_011, 145_059_125];
+      for (const [i, position] of positions.entries()) {
+        await addNote(s, `big${i}`, ['d1']);
+        await setCard(s, `big${i}-c0`, { position });
+      }
+      expect(shuffleKey(2_000_000_011)).toBeLessThan(shuffleKey(145_059_125));
+      const input = { deckIds: ['d1'], nowMs: NOW, window: WINDOW, shuffleDeckIds: ['d1'] };
+      const [random] = await s.studyStore.readStudySnapshots(input);
+      expect(random?.newHead?.cardId).toBe('big0-c0');
+    });
   });
 
   describe('answerCard', () => {

@@ -4,6 +4,7 @@ import { asc, eq, gt, inArray, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { card, reviewLog } from '#lib/server/db/schema/pg.js';
 import type { ReviewLogRow } from '#lib/server/study/core/types.js';
+import { PG_READ_SNAPSHOT } from '#lib/server/study/store/read-snapshot.pg.js';
 import { takeStudyLock } from '#lib/server/study/store/study-lock.pg.js';
 import {
   REPLAY_PAGE_SIZE,
@@ -55,8 +56,10 @@ async function applyRebuild(tx: Exec, update: CardRebuildUpdate): Promise<void> 
 
 export function createPgStudyReplayStore(db: PostgresJsDatabase): StudyReplayStore {
   return {
+    // A card row and its log rows come from one snapshot, so a concurrent answer cannot
+    // show up as a false mismatch in verify.
     async readReplayBatch(afterCardId, limit) {
-      return db.transaction(async (tx) => readBatch(tx, afterCardId, limit));
+      return db.transaction(async (tx) => readBatch(tx, afterCardId, limit), PG_READ_SNAPSHOT);
     },
 
     async rebuildCards(computeBatch) {
