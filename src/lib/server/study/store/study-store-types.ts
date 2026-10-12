@@ -92,3 +92,9 @@ export interface StudyStore {
   /** Upsert of app_settings key 'study'. */
   putStudySettings(value: StudySettings): Promise<void>;
 }
+
+/** The parts of the StudyStore. Each dialect builds one factory per part (*-store.<dialect>.ts). */
+export type StudyReviewStore = Pick<StudyStore, 'readCard' | 'answerCard' | 'undoLastReview'>;
+export type StudyCardStateStore = Pick<StudyStore, 'changeCardStates' | 'unburyExpired'>;
+export type StudyReplayStore = Pick<StudyStore, 'readReplayBatch' | 'rebuildCards'>;
+export type StudySettingsStore = Pick<StudyStore, 'getStudySettings' | 'putStudySettings'>;
