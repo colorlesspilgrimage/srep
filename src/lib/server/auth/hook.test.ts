@@ -99,7 +99,7 @@ describe('unauthenticated API access', () => {
   });
 });
 
-// Every M2 route needs a session (CWE-862, ASVS V4). No route is in the public list.
+// Every M2 and M3 route needs a session (CWE-862, ASVS V4). No route is in the public list.
 describe('unauthenticated access to the domain routes', () => {
   const ID = '123e4567-e89b-42d3-a456-426614174000';
   const SHA = '0'.repeat(64);
@@ -126,6 +126,17 @@ describe('unauthenticated access to the domain routes', () => {
     ['POST', '/api/cards/move'],
     ['POST', '/api/media'],
     ['GET', `/api/media/${SHA}`],
+    ['GET', '/api/study/next'],
+    ['GET', `/api/study/next?deckId=${ID}`],
+    ['POST', '/api/study/answer'],
+    ['POST', '/api/study/undo'],
+    ['GET', '/api/study/verify'],
+    ['POST', '/api/study/rebuild'],
+    ['POST', '/api/cards/suspend'],
+    ['POST', '/api/cards/unsuspend'],
+    ['POST', '/api/cards/bury'],
+    ['GET', '/api/settings/study'],
+    ['PUT', '/api/settings/study'],
   ];
 
   it.each(routes)('%s %s returns 401 without a session', async (method, path) => {
