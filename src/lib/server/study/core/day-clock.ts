@@ -25,12 +25,23 @@ export function isValidTimezone(name: string): boolean {
   }
 }
 
-// The cache key is a time zone that Intl accepted. Its size is bounded by the IANA zone list.
+// The cache key is a time zone that Intl accepted. Intl accepts every upper and lower case
+// form of a name, so the keys are not bounded by the IANA zone list. The cache is cleared
+// when it is full (CWE-770).
+export const MAX_CACHED_TIMEZONES = 64;
 const formatters = new Map<string, Intl.DateTimeFormat>();
+
+/** The number of cached formatters. Test seam for the cache bound. */
+export function cachedTimezoneCount(): number {
+  return formatters.size;
+}
 
 function formatterFor(timezone: string): Intl.DateTimeFormat {
   let formatter = formatters.get(timezone);
   if (formatter === undefined) {
+    if (formatters.size >= MAX_CACHED_TIMEZONES) {
+      formatters.clear();
+    }
     formatter = new Intl.DateTimeFormat('en-US', {
       timeZone: timezone,
       hourCycle: 'h23',

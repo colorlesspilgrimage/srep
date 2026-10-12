@@ -16,12 +16,15 @@ import type {
 
 type Exec = Pick<PostgresJsDatabase, 'select' | 'insert' | 'update' | 'delete' | 'execute'>;
 
+// The card row is read FOR UPDATE: a suspend or bury locks card rows and does not take the
+// study lock, so without the row lock this answer could overwrite it (CWE-362).
 async function readAnswerContext(tx: Exec, cardId: string): Promise<AnswerContext | undefined> {
   const [row] = await tx
     .select(getTableColumns(card))
     .from(card)
     .innerJoin(note, eq(note.id, card.noteId))
-    .where(and(eq(card.id, cardId), isNull(note.deletedAt)));
+    .where(and(eq(card.id, cardId), isNull(note.deletedAt)))
+    .for('update', { of: card });
   if (row === undefined || row.deckId === null) {
     return undefined;
   }
@@ -79,7 +82,8 @@ async function undoNewestReview(
   if (log === undefined) {
     return 'nothing_to_undo';
   }
-  const [row] = await tx.select().from(card).where(eq(card.id, log.cardId));
+  // FOR UPDATE: see readAnswerContext. The plan keeps a suspend that committed first.
+  const [row] = await tx.select().from(card).where(eq(card.id, log.cardId)).for('update');
   if (row === undefined) {
     throw new Error('review log row without a card');
   }

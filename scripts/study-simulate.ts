@@ -1,9 +1,10 @@
 // Runs the study simulation with a fake clock and prints JSON lines.
 // Usage: npm run study:simulate [-- --days N] (N is 1..3650, default 365).
-// Database: a fresh in-memory SQLite database, or SREP_DATABASE_URL when it is set.
+// Database: always a fresh in-memory SQLite database. The script ignores SREP_DATABASE_URL,
+// because it adds decks and notes, changes the study settings and undoes reviews (CWE-1188).
 // Exit codes: 0 all counters are 0, 1 a counter is not 0 or a step failed, 2 bad arguments.
 import type { Config } from '../src/lib/server/config.ts';
-import { getConfig, parseConfig } from '../src/lib/server/config.ts';
+import { parseConfig } from '../src/lib/server/config.ts';
 import { createDb, type DbHandle } from '../src/lib/server/db/client.ts';
 import { runMigrations } from '../src/lib/server/db/migrate.ts';
 import type { DomainDeps } from '../src/lib/server/domain/deps.ts';
@@ -28,12 +29,6 @@ function parseDays(args: string[]): number | null {
   }
   const days = Number(args[1]);
   return days >= 1 && days <= 3650 ? days : null;
-}
-
-function configFromEnv(): Config {
-  return process.env.SREP_DATABASE_URL === undefined
-    ? parseConfig({ SREP_DATABASE_URL: 'sqlite::memory:' })
-    : getConfig();
 }
 
 async function simulate(db: DbHandle, config: Config, days: number): Promise<number> {
@@ -70,7 +65,7 @@ async function main(): Promise<number> {
   }
   let db: DbHandle | undefined;
   try {
-    const config = configFromEnv();
+    const config = parseConfig({ SREP_DATABASE_URL: 'sqlite::memory:' });
     db = createDb(config);
     return await simulate(db, config, days);
   } catch (error: unknown) {

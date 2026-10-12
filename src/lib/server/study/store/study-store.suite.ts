@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { fail } from '#lib/server/auth/deps.js';
 import { addNote, countRows } from '#lib/server/domain/store/suite-support.js';
 import { shuffleKey } from '#lib/server/study/core/queue-choice.js';
+import { defineStudyRaceSuite } from '#lib/server/study/store/study-store-race.suite.js';
 import { defineStudyStateSuite } from '#lib/server/study/store/study-store-state.suite.js';
 import {
   addDeckRow,
@@ -207,4 +208,5 @@ export function defineStudyStoreSuite(make: MakeStudyHarness): void {
   });
 
   defineStudyStateSuite(open);
+  defineStudyRaceSuite(open);
 }

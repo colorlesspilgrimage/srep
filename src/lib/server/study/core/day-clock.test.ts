@@ -1,6 +1,11 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { isValidTimezone, studyWindow } from '#lib/server/study/core/day-clock.js';
+import {
+  cachedTimezoneCount,
+  isValidTimezone,
+  MAX_CACHED_TIMEZONES,
+  studyWindow,
+} from '#lib/server/study/core/day-clock.js';
 import type { StudySettings } from '#lib/server/study/core/types.js';
 
 const HOUR = 3_600_000;
@@ -147,5 +152,21 @@ describe('studyWindow properties (seeded)', () => {
       ),
       { seed: 20261012, numRuns: 500 },
     );
+  });
+});
+
+// CWE-770: Intl accepts every upper and lower case form of a zone name.
+// Each form is a new cache key, so the cache must have a bound.
+describe('the time-zone formatter cache', () => {
+  it('keeps at most MAX_CACHED_TIMEZONES entries', () => {
+    const name = 'europe/berlin';
+    for (let variant = 0; variant < 300; variant += 1) {
+      const timezone = [...name]
+        .map((char, index) => ((variant >> index) & 1 ? char.toUpperCase() : char))
+        .join('');
+      expect(isValidTimezone(timezone)).toBe(true);
+      studyWindow(at('2026-01-02T12:00:00Z'), { rolloverHour: 4, timezone });
+    }
+    expect(cachedTimezoneCount()).toBeLessThanOrEqual(MAX_CACHED_TIMEZONES);
   });
 });

@@ -1,4 +1,6 @@
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -6,9 +8,9 @@ const root = path.resolve(import.meta.dirname, '..');
 const tsx = path.join(root, 'node_modules', '.bin', 'tsx');
 const script = path.join(root, 'scripts', 'study-simulate.ts');
 
-// An argument array and no shell. The database is in memory.
-function runSimulate(args: string[]) {
-  const env = { ...process.env, SREP_DATABASE_URL: 'sqlite::memory:', SREP_LOG_LEVEL: 'silent' };
+// An argument array and no shell. The script must always use an in-memory database.
+function runSimulate(args: string[], databaseUrl = 'sqlite::memory:') {
+  const env = { ...process.env, SREP_DATABASE_URL: databaseUrl, SREP_LOG_LEVEL: 'silent' };
   return spawnSync(tsx, [script, ...args], { cwd: root, env, encoding: 'utf8', input: '' });
 }
 
@@ -38,5 +40,18 @@ describe('study simulation script', { timeout: 30_000 }, () => {
     const result = runSimulate(['--nope']);
     expect(result.status).toBe(2);
     expect(result.stderr).toContain('Usage');
+  });
+
+  // CWE-1188: the Docker image sets SREP_DATABASE_URL. The simulation must not write to it.
+  it('never opens the database of SREP_DATABASE_URL', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'srep-simulate-'));
+    try {
+      const realDatabase = path.join(dir, 'srep.db');
+      const result = runSimulate(['--days', '1'], `sqlite:${realDatabase}`);
+      expect(result.status).toBe(0);
+      expect(fs.existsSync(realDatabase)).toBe(false);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
