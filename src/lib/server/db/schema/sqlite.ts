@@ -177,7 +177,7 @@ export const card = sqliteTable(
   ],
 );
 
-// Written by the M3 study engine. Only undo and the trash purge cascade delete rows.
+// Written by the study engine. Undo deletes a row. A trash purge cascades to the card's rows.
 // The *_before columns hold the card scheduling fields before the answer.
 export const reviewLog = sqliteTable(
   'review_log',

@@ -10,7 +10,12 @@ import {
   toFsrsCard,
   type SchedulerPreset,
 } from '#lib/server/study/core/fsrs-adapter.js';
-import type { Rating, ReviewLogRow, SchedFields } from '#lib/server/study/core/types.js';
+import {
+  RATINGS,
+  type Rating,
+  type ReviewLogRow,
+  type SchedFields,
+} from '#lib/server/study/core/types.js';
 
 export type ReplayResult = { fields: SchedFields; chainMismatches: number[] };
 
@@ -49,7 +54,7 @@ function beforeFieldsOf(row: ReviewLogRow): SchedFields {
 }
 
 function isRating(value: number): value is Rating {
-  return value === 1 || value === 2 || value === 3 || value === 4;
+  return (RATINGS as readonly number[]).includes(value);
 }
 
 // Uses the same steps as answerCard (buildFsrs, then scheduleFsrsCard), with one build.

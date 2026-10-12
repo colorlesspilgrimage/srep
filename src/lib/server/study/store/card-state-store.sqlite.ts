@@ -4,7 +4,7 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { card } from '#lib/server/db/schema/sqlite.js';
 import { chunk } from '#lib/server/domain/store/shared.js';
 import type { CardRow } from '#lib/server/domain/store/store-types.js';
-import type { CardStateUpdate } from '#lib/server/study/core/card-state-plan.js';
+import { groupStateUpdates, type CardStateUpdate } from '#lib/server/study/core/card-state-plan.js';
 import type { StudyCardStateStore } from '#lib/server/study/store/study-store-types.js';
 
 type Exec = Pick<BetterSQLite3Database, 'select' | 'insert' | 'update' | 'delete'>;
@@ -16,17 +16,13 @@ export function readSqliteCardsById(tx: Exec, ids: string[]): CardRow[] {
   );
 }
 
-// Groups the updates by their values, so one statement serves many cards.
 function applyStateUpdates(tx: Exec, updates: CardStateUpdate[]): void {
-  const groups = new Map<string, CardStateUpdate[]>();
-  for (const update of updates) {
-    const key = `${update.state}|${update.buriedUntil}`;
-    groups.set(key, [...(groups.get(key) ?? []), update]);
-  }
-  for (const group of groups.values()) {
-    const { state, buriedUntil } = group[0] as CardStateUpdate;
-    for (const part of chunk(group.map((u) => u.id))) {
-      tx.update(card).set({ state, buriedUntil }).where(inArray(card.id, part)).run();
+  for (const group of groupStateUpdates(updates)) {
+    for (const part of chunk(group.ids)) {
+      tx.update(card)
+        .set({ state: group.state, buriedUntil: group.buriedUntil })
+        .where(inArray(card.id, part))
+        .run();
     }
   }
 }

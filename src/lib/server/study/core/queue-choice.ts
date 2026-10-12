@@ -41,11 +41,10 @@ export type QueueChoice =
 
 export type StudyCounts = { new: number; learning: number; review: number };
 
-// A stable pseudo-random order for newOrder 'random' (Knuth multiplicative hash).
-// The stores use the same expression in SQL: (position * SHUFFLE_MULTIPLIER) % SHUFFLE_MODULUS.
-// A plain JS product loses precision above position 3_393_554 (2^53 / multiplier).
-// Math.imul keeps the exact low 32 bits, so the JS key equals the SQL key for every
-// non-negative integer position below 2^32.
+// Knuth multiplicative hash for newOrder 'random'. The stores compute the same value in SQL:
+// (position * SHUFFLE_MULTIPLIER) % SHUFFLE_MODULUS. Math.imul gives the exact low 32 bits.
+// A plain JS product loses precision above position 3_393_263 (2^53 / multiplier). The SQL
+// product stays inside 64 bits below position 3_474_701_543 (2^63 / multiplier).
 export const SHUFFLE_MULTIPLIER = 2654435761;
 export const SHUFFLE_MODULUS = 4294967296;
 
@@ -77,8 +76,10 @@ export function studyCounts(snapshots: DeckSnapshot[], quotas: DeckQuota[]): Stu
   return counts;
 }
 
-// Compares tuples of numbers, then the card id.
-function lessThan(a: { keys: number[]; cardId: string }, b: { keys: number[]; cardId: string }) {
+// A card that competes for the next slot. Smaller keys win. Equal keys compare the card id.
+type RankedCandidate = { keys: number[]; cardId: string };
+
+function lessThan(a: RankedCandidate, b: RankedCandidate) {
   for (let i = 0; i < a.keys.length; i += 1) {
     const diff = (a.keys[i] as number) - (b.keys[i] as number);
     if (diff !== 0) {
@@ -88,8 +89,8 @@ function lessThan(a: { keys: number[]; cardId: string }, b: { keys: number[]; ca
   return a.cardId < b.cardId;
 }
 
-function pickMin(candidates: { keys: number[]; cardId: string }[]): string | null {
-  let best: { keys: number[]; cardId: string } | null = null;
+function pickMin(candidates: RankedCandidate[]): string | null {
+  let best: RankedCandidate | null = null;
   for (const candidate of candidates) {
     if (best === null || lessThan(candidate, best)) {
       best = candidate;
@@ -98,7 +99,9 @@ function pickMin(candidates: { keys: number[]; cardId: string }[]): string | nul
   return best?.cardId ?? null;
 }
 
-type DeckState = { snapshot: DeckSnapshot; quota: DeckQuota | undefined } & {
+type DeckState = {
+  snapshot: DeckSnapshot;
+  quota: DeckQuota | undefined;
   newLeft: number;
   reviewLeft: number;
 };

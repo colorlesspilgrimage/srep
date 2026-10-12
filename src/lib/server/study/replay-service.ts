@@ -7,6 +7,7 @@ import type { Result } from '#lib/server/auth/deps.js';
 import { BUILTIN_PRESET, DEFAULT_PRESET_ID } from '#lib/server/domain/builtin.js';
 import type { CardRow, DeckRow, PresetRow } from '#lib/server/domain/store/store-types.js';
 import { schedFieldsOf } from '#lib/server/study/core/answer-plan.js';
+import { isParkedState } from '#lib/server/study/core/parked-state.js';
 import { compareSched, replayCard } from '#lib/server/study/core/replay.js';
 import type { SchedFields } from '#lib/server/study/core/types.js';
 import type { StudyDeps } from '#lib/server/study/deps.js';
@@ -46,8 +47,7 @@ function checkCard(item: ReplayBatchItem, presetOf: PresetLookup): CardCheck {
   }
   const { card } = item;
   const fields = compareSched(schedFieldsOf(card), replay.fields);
-  const parked = card.state === 'suspended' || card.state === 'buried';
-  if (!parked && card.state !== replay.fields.schedState) {
+  if (!isParkedState(card.state) && card.state !== replay.fields.schedState) {
     fields.push('state');
   }
   return { kind: 'checked', fields, logIndexes: replay.chainMismatches, replayed: replay.fields };

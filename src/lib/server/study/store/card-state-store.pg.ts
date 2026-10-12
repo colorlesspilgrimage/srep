@@ -6,7 +6,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { card } from '#lib/server/db/schema/pg.js';
 import { chunk } from '#lib/server/domain/store/shared.js';
 import type { CardRow } from '#lib/server/domain/store/store-types.js';
-import type { CardStateUpdate } from '#lib/server/study/core/card-state-plan.js';
+import { groupStateUpdates, type CardStateUpdate } from '#lib/server/study/core/card-state-plan.js';
 import type { StudyCardStateStore } from '#lib/server/study/store/study-store-types.js';
 
 type Exec = Pick<PostgresJsDatabase, 'select' | 'insert' | 'update' | 'delete' | 'execute'>;
@@ -21,17 +21,13 @@ export async function readPgCardsById(tx: Exec, ids: string[], lock: boolean): P
   return out;
 }
 
-// Groups the updates by their values, so one statement serves many cards.
 async function applyStateUpdates(tx: Exec, updates: CardStateUpdate[]): Promise<void> {
-  const groups = new Map<string, CardStateUpdate[]>();
-  for (const update of updates) {
-    const key = `${update.state}|${update.buriedUntil}`;
-    groups.set(key, [...(groups.get(key) ?? []), update]);
-  }
-  for (const group of groups.values()) {
-    const { state, buriedUntil } = group[0] as CardStateUpdate;
-    for (const part of chunk(group.map((u) => u.id))) {
-      await tx.update(card).set({ state, buriedUntil }).where(inArray(card.id, part));
+  for (const group of groupStateUpdates(updates)) {
+    for (const part of chunk(group.ids)) {
+      await tx
+        .update(card)
+        .set({ state: group.state, buriedUntil: group.buriedUntil })
+        .where(inArray(card.id, part));
     }
   }
 }
