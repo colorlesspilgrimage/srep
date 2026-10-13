@@ -68,6 +68,26 @@ describe('gallery cache headers', () => {
     const result = await loadGallery('');
     expectSafePage(result, 'nord');
   });
+
+  it('a corrupt saved theme does not become the page theme', async () => {
+    getThemeSettings.mockResolvedValue({ ok: false, status: 500, error: 'settings_corrupt' });
+    const headers = new Headers();
+    const page = load({
+      setHeaders(value: Record<string, string>) {
+        for (const [name, header] of Object.entries(value)) {
+          headers.set(name, header);
+        }
+      },
+      url: new URL('http://127.0.0.1:3000/gallery'),
+    } as Parameters<typeof load>[0]);
+    await expect(page).rejects.toMatchObject({
+      status: 500,
+      body: { message: 'settings_corrupt' },
+    });
+    expect(headers.get('cache-control')).toBe('no-store');
+    expect(headers.get('vary')).toBe('Cookie');
+    expect(JSON.stringify(headers)).not.toContain('<script>');
+  });
 });
 
 const REJECTED_SEARCH = [

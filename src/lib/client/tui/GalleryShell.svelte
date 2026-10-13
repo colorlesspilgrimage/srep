@@ -8,6 +8,12 @@
   import Pane from './Pane.svelte';
   import SettingsPane from './SettingsPane.svelte';
   import StatusLine from './StatusLine.svelte';
+  import {
+    beginThemeSave,
+    finishThemeSave,
+    statusAfterChoice,
+    themeSaveMatches,
+  } from './theme-save-state.js';
   import { DEFAULT_THEME_ID, PREMADE_THEMES, themeById, themeClass } from './themes.js';
 
   // Contract: the gallery shell. One tree shows the side list or the tab bar.
@@ -37,6 +43,8 @@
   let openModalButton = $state<HTMLButtonElement | null>(null);
   let pickedId = $state<string | null>(null);
   let statusText = $state('');
+  let saveSerial = $state(0);
+  let savePending = $state(false);
 
   const sectionIndex = $derived(SECTIONS.findIndex((item) => item.id === section));
   const active = $derived.by(() => {
@@ -85,17 +93,35 @@
 
   function chooseTheme(index: number): void {
     const next = PREMADE_THEMES[index];
-    if (next !== undefined) {
-      pickedId = next.id;
+    if (next === undefined) {
+      return;
     }
+    const nextState = statusAfterChoice({ serial: saveSerial, statusText }, active.id, next.id);
+    saveSerial = nextState.serial;
+    statusText = nextState.statusText;
+    pickedId = next.id;
   }
 
   async function saveTheme(): Promise<void> {
-    const result = await apiFetch<{ id: string }>('/api/settings/theme', {
-      method: 'PUT',
-      body: { id: active.id },
-    });
-    statusText = result.ok ? 'Saved.' : 'Could not save the theme.';
+    if (savePending) {
+      return;
+    }
+    const id = active.id;
+    const started = beginThemeSave({ serial: saveSerial, statusText });
+    saveSerial = started.state.serial;
+    savePending = true;
+    try {
+      const result = await apiFetch<{ id: string }>('/api/settings/theme', {
+        method: 'PUT',
+        body: { id },
+      });
+      const saved = themeSaveMatches(result.ok ? result.body : null, id);
+      const finished = finishThemeSave({ serial: saveSerial, statusText }, started.serial, saved);
+      saveSerial = finished.serial;
+      statusText = finished.statusText;
+    } finally {
+      savePending = false;
+    }
   }
 </script>
 
@@ -191,6 +217,7 @@
             selectedIndex={themeIndex}
             onSelect={chooseTheme}
             onSave={saveTheme}
+            {savePending}
             {statusText}
           />
         </div>
