@@ -14,7 +14,6 @@ function clampIndex(length: number, index: number): number {
 
 export type ListKeyEffect = 'move' | 'run';
 
-// Arrow keys move the row. Enter runs the row. Other keys do neither.
 export function listKeyEffect(key: string): ListKeyEffect | null {
   if (key === 'ArrowDown' || key === 'ArrowUp' || key === 'Home' || key === 'End') {
     return 'move';

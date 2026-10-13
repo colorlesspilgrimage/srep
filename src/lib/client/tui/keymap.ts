@@ -21,6 +21,14 @@ export const DEFAULT_KEYBINDS: KeybindMap = {
   [PALETTE_CLOSE]: 'Escape',
 };
 
+export function copyKeybindMap(value: KeybindMap): KeybindMap {
+  return {
+    [PALETTE_OPEN]: value[PALETTE_OPEN],
+    [PALETTE_OPEN_COLON]: value[PALETTE_OPEN_COLON],
+    [PALETTE_CLOSE]: value[PALETTE_CLOSE],
+  };
+}
+
 const MODIFIER_NAMES = ['Ctrl', 'Alt', 'Shift', 'Meta'] as const;
 const NAMED_KEYS = ['Escape', 'ArrowUp', 'ArrowDown', 'Enter', 'Home', 'End', 'Tab'] as const;
 const MODIFIER_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta']);
@@ -147,9 +155,31 @@ export function parseChord(input: string): ParsedChord {
   return { modifiers: modifiersOf(parts), key };
 }
 
-export function canonicalizeChord(input: string): string {
-  const parsed = parseChord(input);
+function parseChordOrNull(input: string): ParsedChord | null {
+  try {
+    return parseChord(input);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'bad_chord') {
+      return null;
+    }
+    throw error;
+  }
+}
+
+function canonicalChord(input: string): string | null {
+  const parsed = parseChordOrNull(input);
+  if (parsed === null) {
+    return null;
+  }
   return [...parsed.modifiers, parsed.key].join('+');
+}
+
+export function canonicalizeChord(input: string): string {
+  const canonical = canonicalChord(input);
+  if (canonical === null) {
+    failChord();
+  }
+  return canonical;
 }
 
 function modifierSet(modifiers: readonly string[]): Set<string> {
@@ -200,14 +230,9 @@ function keyMatches(key: string, eventKey: string): boolean {
 }
 
 export function eventMatches(chord: string, event: ChordEvent): boolean {
-  let parsed: ParsedChord;
-  try {
-    parsed = parseChord(chord);
-  } catch (error) {
-    if (error instanceof Error && error.message === 'bad_chord') {
-      return false;
-    }
-    throw error;
+  const parsed = parseChordOrNull(chord);
+  if (parsed === null) {
+    return false;
   }
   if (!modifiersMatch(event, parsed.modifiers)) {
     return false;
@@ -232,14 +257,9 @@ export function commandsFor(filter: string): string[] {
 }
 
 export function isReservedChord(chord: string): boolean {
-  let parsed: ParsedChord;
-  try {
-    parsed = parseChord(chord);
-  } catch (error) {
-    if (error instanceof Error && error.message === 'bad_chord') {
-      return false;
-    }
-    throw error;
+  const parsed = parseChordOrNull(chord);
+  if (parsed === null) {
+    return false;
   }
   if (!RESERVED_CHORD_KEYS.has(parsed.key) || parsed.modifiers.includes('Alt')) {
     return false;
@@ -250,14 +270,9 @@ export function isReservedChord(chord: string): boolean {
 // A letter, digit, or ":" with no Ctrl, Alt, or Meta is a character shortcut.
 // Shift still produces a character (WCAG 2.1.4).
 export function isCharacterKeyChord(chord: string): boolean {
-  let parsed: ParsedChord;
-  try {
-    parsed = parseChord(chord);
-  } catch (error) {
-    if (error instanceof Error && error.message === 'bad_chord') {
-      return false;
-    }
-    throw error;
+  const parsed = parseChordOrNull(chord);
+  if (parsed === null) {
+    return false;
   }
   if (
     parsed.modifiers.includes('Ctrl') ||
@@ -298,14 +313,9 @@ export function remap(map: KeybindMap, actionId: string, chord: string): Keybind
   if (!isActionId(actionId)) {
     return 'bad_action';
   }
-  let canonical: string;
-  try {
-    canonical = canonicalizeChord(chord);
-  } catch (error) {
-    if (error instanceof Error && error.message === 'bad_chord') {
-      return 'bad_chord';
-    }
-    throw error;
+  const canonical = canonicalChord(chord);
+  if (canonical === null) {
+    return 'bad_chord';
   }
   if (isReservedChord(canonical)) {
     return 'reserved_chord';
