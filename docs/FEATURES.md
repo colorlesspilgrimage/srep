@@ -183,7 +183,7 @@ Playwright stores a gallery screenshot for every pre-made theme at 360px and at 
 
 ## Toolchain maintenance (M4 slice 6)
 
-Node 22.17 is the minimum. drizzle-kit is pinned to 1.0.0-beta.1. npm audit reports no advisory.
+Node 22.17 is the minimum. drizzle-kit is pinned to 0.31.11. The esbuild override is `$esbuild`. npm audit reports no advisory.
 
 - Entry point: `package.json` field `engines`, and `.github/workflows/ci.yml`.
 - Use:
@@ -197,3 +197,21 @@ Node 22.17 is the minimum. drizzle-kit is pinned to 1.0.0-beta.1. npm audit repo
 - Code and tests:
   - Code: `package.json`, `package-lock.json`, `.github/workflows/ci.yml`, `CONTRIBUTING.md`, `scripts/toolchain-pin-check.ts`.
   - Tests: `scripts/toolchain-pin.test.ts` and `scripts/toolchain-pin-edge.test.ts`.
+
+## Migration generate
+
+`npm run db:generate` compares the schema with the current migration folders. An unchanged schema does not write a new migration.
+
+- Entry point: `npm run db:generate`.
+- Use:
+  1. Run the SETUP path export.
+  2. Run `npm ci`.
+  3. Run `npm run db:generate`.
+- Check:
+  - The command exits 0.
+  - The output contains `No schema changes, nothing to migrate` two times.
+  - `git diff --exit-code -- drizzle` exits 0.
+  - `npx vitest run scripts/db-generate.test.ts` exits 0.
+- Code and tests:
+  - Code: `package.json`, `package-lock.json`, `.github/workflows/ci.yml`.
+  - Tests: `scripts/db-generate.test.ts`, `scripts/toolchain-pin.test.ts`, `scripts/toolchain-pin-edge.test.ts`, `scripts/ci-workflow.test.ts`.

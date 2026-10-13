@@ -8,6 +8,7 @@ import {
   ESBUILD_FIX,
   SETUP_NODE_SHA,
   drizzleKitPinFailures,
+  esbuildOverrideFailures,
   esbuildVersionBelowFix,
   forbiddenLockText,
   installScriptApprovalFailures,
@@ -105,9 +106,27 @@ describe('toolchain pin edges', () => {
     ).toEqual(['drizzle-kit-install-script']);
   });
 
-  it('rejects the old esbuild kit name in lock text', () => {
-    expect(forbiddenLockText('{"dependencies":{"@esbuild-kit/esm-loader":"2.6.5"}}')).toEqual([
-      '@esbuild-kit',
+  it('rejects lock text that names the esbuild 0.18.20 tarball', () => {
+    expect(forbiddenLockText('https://registry.npmjs.org/esbuild/-/esbuild-0.18.20.tgz')).toEqual([
+      'esbuild-0.18.20',
+    ]);
+  });
+
+  it('allows the esbuild-kit name when the old tarball is absent', () => {
+    expect(forbiddenLockText('{"dependencies":{"@esbuild-kit/esm-loader":"2.6.5"}}')).toEqual([]);
+  });
+
+  it('rejects a missing esbuild override', () => {
+    expect(esbuildOverrideFailures(undefined)).toEqual(['overrides-esbuild', 'overrides-keys:']);
+  });
+
+  it('rejects an esbuild override value other than $esbuild', () => {
+    expect(esbuildOverrideFailures({ esbuild: '0.25.12' })).toEqual(['overrides-esbuild']);
+  });
+
+  it('rejects an esbuild override object that has another key', () => {
+    expect(esbuildOverrideFailures({ esbuild: '$esbuild', other: '1' })).toEqual([
+      'overrides-keys:esbuild,other',
     ]);
   });
 
