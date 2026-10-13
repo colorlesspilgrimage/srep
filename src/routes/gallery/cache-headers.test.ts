@@ -123,6 +123,9 @@ const REJECTED_SEARCH = [
   '?theme=%EF%BB%BFnord',
   '?theme=phosphor-green%0a',
   '?theme=%',
+  '?theme=%256eord',
+  '?theme=nord%5c..%5c',
+  '?theme=nord%2f..%2fpasswd',
   '?theme=%C0%AF',
   `?theme=${'a'.repeat(80)}`,
 ];
@@ -144,9 +147,14 @@ function expectSafePage(
   expect(body).not.toContain('javascript');
 }
 
+function themeQuery(search: string): string | null {
+  return new URL(`http://127.0.0.1:3000/gallery${search}`).searchParams.get('theme');
+}
+
 describe('gallery theme query attacks', () => {
   it.each(REJECTED_SEARCH)('rejects %s', async (search) => {
     expectSafePage(await loadGallery(search), 'phosphor-green');
+    expect(readGallerySettings).toHaveBeenCalledWith(expect.anything(), themeQuery(search));
   });
 
   it('uses the first theme value when the query repeats', async () => {

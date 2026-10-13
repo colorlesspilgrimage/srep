@@ -16,6 +16,29 @@ import { PG_READ_SNAPSHOT } from '#lib/server/study/store/read-snapshot.pg.js';
 
 // Contract: the gallery read. A theme query does not rewrite the theme row.
 
+const BAD_THEME_QUERIES = [
+  '',
+  'Nord',
+  'HIGH-CONTRAST',
+  'nord\nSet-Cookie: a=1',
+  'nord\r\nLocation: https://evil.example',
+  '<script>alert(1)</script>',
+  '../etc/passwd',
+  '..\\..\\windows\\win.ini',
+  'nord/../../etc/passwd',
+  '%6eord',
+  '%2e%2e%2fetc%2fpasswd',
+  'javascript:alert(1)',
+  'https://evil.example',
+  'ノード',
+  'n\u200bord',
+  '\ufeffnord',
+  'nord\u0000',
+  'a'.repeat(41),
+  'phosphor-green ',
+  ' phosphor-green',
+];
+
 let h: DomainHarness | undefined;
 
 afterEach(async () => {
@@ -187,6 +210,40 @@ describe('gallery settings read', () => {
     });
     expect(JSON.stringify(result)).not.toContain('<script>');
     expect(themeRow(db)?.value).toEqual({ id: 'amber-crt' });
+  });
+
+  it('rejects a bad theme query and does not write the stored theme', async () => {
+    const db = await openDb();
+    db.insert(appSettings)
+      .values({ key: THEME_SETTINGS_KEY, value: { id: 'amber-crt' } })
+      .run();
+    for (const query of BAD_THEME_QUERIES) {
+      const result = await readGallerySettings(h?.handle as DbHandle, query);
+      expect(result, query).toEqual({
+        ok: true,
+        themeId: 'phosphor-green',
+        keybinds: DEFAULT_KEYBINDS,
+      });
+      expect(JSON.stringify(result), query).not.toContain('<');
+      expect(JSON.stringify(result), query).not.toContain('://');
+      expect(themeRow(db)?.value).toEqual({ id: 'amber-crt' });
+    }
+  });
+
+  it('rejects a theme query that is not a string', async () => {
+    await openDb();
+    const arrayQuery = ['nord'] as unknown as string;
+    const objectQuery = { toString: () => 'nord' } as unknown as string;
+    expect(await readGallerySettings(h?.handle as DbHandle, arrayQuery)).toEqual({
+      ok: true,
+      themeId: 'phosphor-green',
+      keybinds: DEFAULT_KEYBINDS,
+    });
+    expect(await readGallerySettings(h?.handle as DbHandle, objectQuery)).toEqual({
+      ok: true,
+      themeId: 'phosphor-green',
+      keybinds: DEFAULT_KEYBINDS,
+    });
   });
 
   it('reads postgres rows in one snapshot', async () => {
