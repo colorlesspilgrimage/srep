@@ -123,6 +123,20 @@ describe('gallery settings read', () => {
     expect(themeRow(db)?.value).toEqual({ id: 'nord' });
   });
 
+  it('returns 500 when a stored chord is a browser shortcut', async () => {
+    const db = await openDb();
+    db.insert(appSettings)
+      .values({
+        key: KEYBIND_SETTINGS_KEY,
+        value: { ...DEFAULT_KEYBINDS, [PALETTE_OPEN]: 'Ctrl+W' },
+      })
+      .run();
+    const result = await readGallerySettings(h?.handle as DbHandle, 'nord');
+    expect(result).toEqual({ ok: false, status: 500, error: 'settings_corrupt' });
+    expect(JSON.stringify(result)).not.toContain('Ctrl+W');
+    expect(themeRow(db)).toBeUndefined();
+  });
+
   it('returns 500 for a corrupt keybinds row when the query is nord', async () => {
     const db = await openDb();
     db.insert(appSettings)

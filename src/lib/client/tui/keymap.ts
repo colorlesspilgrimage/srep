@@ -26,6 +26,36 @@ const NAMED_KEYS = ['Escape', 'ArrowUp', 'ArrowDown', 'Enter', 'Home', 'End', 'T
 const MODIFIER_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta']);
 const MAX_CHORD = 32;
 
+// Ctrl or Meta plus one of these keys closes, reloads, or moves a browser tab.
+// Ctrl+K stays allowed. It is the default open chord (CWE-20).
+const RESERVED_CHORD_KEYS = new Set([
+  'D',
+  'F',
+  'H',
+  'J',
+  'L',
+  'N',
+  'O',
+  'P',
+  'Q',
+  'R',
+  'S',
+  'T',
+  'U',
+  'W',
+  'Tab',
+  '0',
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+  '9',
+]);
+
 const COMMAND_NAMES = [
   'Show Panes',
   'Show List',
@@ -134,9 +164,37 @@ function modifiersMatch(event: ChordEvent, modifiers: readonly string[]): boolea
   return event.shiftKey === want.has('Shift') && event.metaKey === want.has('Meta');
 }
 
+// ASCII only. Locale case fold maps ı to I and ſ to S (CWE-176).
+function asciiUpper(text: string): string | null {
+  if (text.length !== 1) {
+    return null;
+  }
+  const code = text.charCodeAt(0);
+  if (code >= 65 && code <= 90) {
+    return text;
+  }
+  if (code >= 97 && code <= 122) {
+    return String.fromCharCode(code - 32);
+  }
+  return null;
+}
+
+function asciiLower(text: string): string {
+  let folded = '';
+  for (let index = 0; index < text.length; index += 1) {
+    const code = text.charCodeAt(index);
+    if (code >= 65 && code <= 90) {
+      folded += String.fromCharCode(code + 32);
+    } else {
+      folded += text.charAt(index);
+    }
+  }
+  return folded;
+}
+
 function keyMatches(key: string, eventKey: string): boolean {
   if (/^[A-Z]$/.test(key)) {
-    return eventKey.length === 1 && eventKey.toUpperCase() === key;
+    return asciiUpper(eventKey) === key;
   }
   return eventKey === key;
 }
@@ -169,8 +227,53 @@ export function closeHint(chord: string): string {
 }
 
 export function commandsFor(filter: string): string[] {
-  const needle = filter.trim().toLowerCase();
-  return COMMAND_NAMES.filter((name) => name.toLowerCase().includes(needle));
+  const needle = asciiLower(filter.trim());
+  return COMMAND_NAMES.filter((name) => asciiLower(name).includes(needle));
+}
+
+export function isReservedChord(chord: string): boolean {
+  let parsed: ParsedChord;
+  try {
+    parsed = parseChord(chord);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'bad_chord') {
+      return false;
+    }
+    throw error;
+  }
+  if (!RESERVED_CHORD_KEYS.has(parsed.key) || parsed.modifiers.includes('Alt')) {
+    return false;
+  }
+  return parsed.modifiers.includes('Ctrl') || parsed.modifiers.includes('Meta');
+}
+
+// A letter, digit, or ":" with no Ctrl, Alt, or Meta is a character shortcut.
+// Shift still produces a character (WCAG 2.1.4).
+export function isCharacterKeyChord(chord: string): boolean {
+  let parsed: ParsedChord;
+  try {
+    parsed = parseChord(chord);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'bad_chord') {
+      return false;
+    }
+    throw error;
+  }
+  if (
+    parsed.modifiers.includes('Ctrl') ||
+    parsed.modifiers.includes('Alt') ||
+    parsed.modifiers.includes('Meta')
+  ) {
+    return false;
+  }
+  return parsed.key === ':' || /^[A-Z0-9]$/.test(parsed.key);
+}
+
+export function elementIsTextField(tagName: string, editable: boolean): boolean {
+  if (editable) {
+    return true;
+  }
+  return tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
 }
 
 function isActionId(actionId: string): actionId is ActionId {
@@ -203,6 +306,9 @@ export function remap(map: KeybindMap, actionId: string, chord: string): Keybind
       return 'bad_chord';
     }
     throw error;
+  }
+  if (isReservedChord(canonical)) {
+    return 'reserved_chord';
   }
   if (chordInUse(map, actionId, canonical)) {
     return 'duplicate_chord';
@@ -238,22 +344,35 @@ export function chordFromEvent(event: ChordEvent): string | null {
   if (event.metaKey) {
     parts.push('Meta');
   }
-  const key = /^[a-zA-Z]$/.test(event.key) ? event.key.toUpperCase() : event.key;
+  const key = asciiUpper(event.key) ?? event.key;
   parts.push(key);
   return parts.join('+');
+}
+
+function fieldBlocksChord(chord: string, inField: boolean): boolean {
+  return inField && isCharacterKeyChord(chord);
 }
 
 export function paletteKeyAction(event: ChordEvent, state: PaletteState): PaletteAction {
   if (state.modalOpen) {
     return 'none';
   }
-  if (!state.paletteOpen && eventMatches(state.binds[PALETTE_OPEN], event)) {
+  const openChord = state.binds[PALETTE_OPEN];
+  const colonChord = state.binds[PALETTE_OPEN_COLON];
+  const closeChord = state.binds[PALETTE_CLOSE];
+  if (!state.paletteOpen && eventMatches(openChord, event)) {
+    if (fieldBlocksChord(openChord, state.targetIsField)) {
+      return 'none';
+    }
     return 'open';
   }
-  if (eventMatches(state.binds[PALETTE_OPEN_COLON], event) && !state.targetIsField) {
+  if (!state.paletteOpen && eventMatches(colonChord, event) && !state.targetIsField) {
     return 'open';
   }
-  if (state.paletteOpen && eventMatches(state.binds[PALETTE_CLOSE], event)) {
+  if (state.paletteOpen && eventMatches(closeChord, event)) {
+    if (fieldBlocksChord(closeChord, state.targetIsField)) {
+      return 'none';
+    }
     return 'close';
   }
   return 'none';

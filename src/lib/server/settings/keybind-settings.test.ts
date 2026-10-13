@@ -131,6 +131,58 @@ describe('keybind settings', () => {
     expect(keybindRow(db)?.value).toEqual(stored);
   });
 
+  it('refuses a reserved chord and keeps the previous good map', async () => {
+    const { db, store } = await openStore();
+    expect(await putKeybindSettings(store, ALT_MAP)).toEqual({ ok: true, keybinds: ALT_MAP });
+    const reserved = { ...DEFAULT_KEYBINDS, [PALETTE_OPEN]: 'Ctrl+W' };
+    expect(await putKeybindSettings(store, reserved)).toEqual({
+      ok: false,
+      status: 400,
+      error: 'bad_request',
+    });
+    expect(keybindRow(db)?.value).toEqual(ALT_MAP);
+  });
+
+  it('returns 500 when a stored chord is reserved', async () => {
+    const { db, store } = await openStore();
+    const stored = { ...DEFAULT_KEYBINDS, [PALETTE_OPEN]: 'Ctrl+W' };
+    db.insert(appSettings)
+      .values({ key: KEYBIND_SETTINGS_KEY, value: stored })
+      .onConflictDoUpdate({ target: appSettings.key, set: { value: stored } })
+      .run();
+    const logger = { error: vi.fn() };
+    const result = await getKeybindSettings(store, logger);
+    expect(result).toEqual({ ok: false, status: 500, error: 'settings_corrupt' });
+    expect(logger.error).toHaveBeenCalledWith({ key: 'keybinds' });
+    expect(JSON.stringify(logger.error.mock.calls)).not.toContain('Ctrl+W');
+    expect(keybindRow(db)?.value).toEqual(stored);
+  });
+
+  it('refuses prototype keys, nesting, and control characters', async () => {
+    const { db, store } = await openStore();
+    expect(await putKeybindSettings(store, ALT_MAP)).toEqual({ ok: true, keybinds: ALT_MAP });
+    const proto = JSON.parse(
+      '{"palette.open":"Ctrl+K","palette.open-colon":":","palette.close":"Escape","__proto__":{"admin":true}}',
+    );
+    const constructorKey = JSON.parse(
+      '{"palette.open":"Ctrl+K","palette.open-colon":":","palette.close":"Escape","constructor":{"prototype":{"x":1}}}',
+    );
+    const nested = { ...DEFAULT_KEYBINDS, [PALETTE_OPEN]: { nested: { a: 'Ctrl+K' } } };
+    const control = { ...DEFAULT_KEYBINDS, [PALETTE_OPEN]: 'Ctrl+K\u0000' };
+    const unicode = { ...DEFAULT_KEYBINDS, [PALETTE_OPEN]: 'Ctrl+ı' };
+    const deep = { palette: { open: { a: { b: { c: 'Ctrl+K' } } } } };
+    const inputs = [proto, constructorKey, nested, control, unicode, deep, ['Ctrl+K']];
+    for (const input of inputs) {
+      expect(await putKeybindSettings(store, input)).toEqual({
+        ok: false,
+        status: 400,
+        error: 'bad_request',
+      });
+      expect(keybindRow(db)?.value).toEqual(ALT_MAP);
+    }
+    expect(Object.prototype).not.toHaveProperty('admin');
+  });
+
   it('does not change the theme row or the study row', async () => {
     const { db, store } = await openStore();
     db.insert(appSettings).values({ key: 'study', value: STUDY_VALUE }).run();

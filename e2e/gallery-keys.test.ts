@@ -111,6 +111,24 @@ async function showSettings(): Promise<void> {
   await expect(page.getByRole('button', { name: 'Save theme' })).toBeVisible();
 }
 
+async function tabStaysInCommands(): Promise<void> {
+  await openAt(1440, 900);
+  await page.keyboard.press('Control+k');
+  const field = page.getByRole('textbox', { name: 'Command' });
+  await expect(field).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  const close = commands().getByRole('button', { name: 'Close' });
+  await expect(close).toBeFocused();
+  const inside = await page.evaluate(() => {
+    const dialog = document.querySelector('[aria-labelledby="tui-command-title"]');
+    return dialog !== null && dialog.contains(document.activeElement);
+  });
+  expect(inside).toBe(true);
+  await page.keyboard.press('Tab');
+  await expect(field).toBeFocused();
+  await expect(commands()).toBeVisible();
+}
+
 async function colonInField(): Promise<void> {
   await openAt(1440, 900);
   await page.getByRole('option', { name: 'Form', exact: true }).click();
@@ -278,6 +296,7 @@ test.describe.serial('gallery keys', () => {
   test('Enter activates Cancel change and keeps the chord', enterActivatesCancel);
   test('Space activates Cancel change and keeps the chord', spaceActivatesCancel);
   test('Escape cancels the key change and does not write', escapeRestoresDraft);
+  test('Tab stays inside the command dialog', tabStaysInCommands);
   test('colon does not open the palette from the sample field', colonInField);
   test('the sample modal still closes with Escape', modalEscape);
   test('360px page does not scroll sideways', narrowFit);

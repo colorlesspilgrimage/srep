@@ -2,6 +2,7 @@
   import './palette.css';
   import { commandsFor } from './keymap.js';
   import { listKeyEffect, listKeyIndex } from './list-state.js';
+  import { nextTrapIndex } from './palette-focus.js';
   import List from './List.svelte';
 
   // Contract: the command palette. Enter on a row runs that command and closes.
@@ -91,8 +92,48 @@
     optionAt(root, next)?.focus();
   }
 
+  const FOCUSABLE = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]',
+  ].join(', ');
+
+  function focusableItems(root: HTMLElement): HTMLElement[] {
+    const found: HTMLElement[] = [];
+    for (const node of root.querySelectorAll<HTMLElement>(FOCUSABLE)) {
+      if (node.tabIndex < 0 || node.closest('[hidden]') !== null) {
+        continue;
+      }
+      found.push(node);
+    }
+    return found;
+  }
+
+  function trapTab(root: HTMLElement, event: KeyboardEvent): void {
+    const items = focusableItems(root);
+    const current = items.indexOf(document.activeElement as HTMLElement);
+    const next = nextTrapIndex(items.length, current, event.shiftKey);
+    if (next === null) {
+      return;
+    }
+    const target = items[next];
+    if (target === undefined) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    target.focus();
+  }
+
   function bindPaletteKeys(node: HTMLElement): { destroy: () => void } {
     function onKey(event: KeyboardEvent): void {
+      if (event.key === 'Tab') {
+        trapTab(node, event);
+        return;
+      }
       const effect = listKeyEffect(event.key);
       const inList = inCommandList(event.target);
       const inField = inCommandField(event.target);
@@ -106,10 +147,10 @@
       const focused = optionIndex(event.target);
       runRow(focused ?? rowIndex, event);
     }
-    node.addEventListener('keydown', onKey, true);
+    window.addEventListener('keydown', onKey, true);
     return {
       destroy(): void {
-        node.removeEventListener('keydown', onKey, true);
+        window.removeEventListener('keydown', onKey, true);
       },
     };
   }

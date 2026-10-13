@@ -72,12 +72,65 @@ describe('/api/settings/keybinds', () => {
     expect(await readBody(next)).toEqual({ keybinds: DEFAULT_KEYBINDS });
   });
 
+  it('a reserved chord returns 400 and does not change GET', async () => {
+    await openRoute();
+    expect((await write(DEFAULT_KEYBINDS)).status).toBe(200);
+    const response = await write({ ...DEFAULT_KEYBINDS, [PALETTE_OPEN]: 'Ctrl+W' });
+    expect(response.status).toBe(400);
+    expectPrivateCache(response);
+    expect(await readBody(response)).toEqual({ error: 'bad_request' });
+    expect(await readBody(await read())).toEqual({ keybinds: DEFAULT_KEYBINDS });
+  });
+
   it('returns 400 when a key is missing', async () => {
     await openRoute();
     const response = await write({ [PALETTE_OPEN]: 'Ctrl+K' });
     expect(response.status).toBe(400);
     expectPrivateCache(response);
     expect(await readBody(response)).toEqual({ error: 'bad_request' });
+    expect(await readBody(await read())).toEqual({ keybinds: DEFAULT_KEYBINDS });
+  });
+
+  it('returns 415 when the body is not JSON', async () => {
+    await openRoute();
+    const response = await PUT(
+      makeEvent('/api/settings/keybinds', {
+        method: 'PUT',
+        rawBody: 'palette.open=Ctrl+K',
+        headers: { 'content-type': 'text/plain' },
+        session,
+      }).event,
+    );
+    expect(response.status).toBe(415);
+    expectPrivateCache(response);
+    expect(await readBody(response)).toEqual({ error: 'unsupported_media_type' });
+  });
+
+  it('returns 413 when the body is too large', async () => {
+    await openRoute();
+    const response = await PUT(
+      makeEvent('/api/settings/keybinds', {
+        method: 'PUT',
+        rawBody: `{"palette.open":"${'A'.repeat(70_000)}"}`,
+        headers: { 'content-type': 'application/json' },
+        session,
+      }).event,
+    );
+    expect(response.status).toBe(413);
+    expectPrivateCache(response);
+    expect(await readBody(response)).toEqual({ error: 'payload_too_large' });
+  });
+
+  it('returns 400 for a prototype key and keeps the cache private', async () => {
+    await openRoute();
+    const body = JSON.parse(
+      '{"palette.open":"Ctrl+K","palette.open-colon":":","palette.close":"Escape","__proto__":{"admin":true}}',
+    );
+    const response = await write(body);
+    expect(response.status).toBe(400);
+    expectPrivateCache(response);
+    expect(await readBody(response)).toEqual({ error: 'bad_request' });
+    expect(Object.prototype).not.toHaveProperty('admin');
     expect(await readBody(await read())).toEqual({ keybinds: DEFAULT_KEYBINDS });
   });
 
