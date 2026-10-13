@@ -207,6 +207,31 @@ describe('page redirects', () => {
     }
   });
 
+  it('redirects GET /gallery to /setup before setup', async () => {
+    h = await createHarness();
+    const before = await run('/gallery');
+    expect(before.response.status).toBe(303);
+    expect(before.response.headers.get('location')).toBe('/setup');
+    expect(before.resolve).not.toHaveBeenCalled();
+  });
+
+  it('redirects GET /gallery to /login after setup', async () => {
+    h = await createHarness();
+    await doSetup(h);
+    const after = await run('/gallery');
+    expect(after.response.status).toBe(303);
+    expect(after.response.headers.get('location')).toBe('/login');
+    expect(after.resolve).not.toHaveBeenCalled();
+  });
+
+  it('runs the resolver for GET /gallery with a session cookie', async () => {
+    h = await createHarness();
+    const { cookie } = await signedIn();
+    const { response, resolve } = await run('/gallery', { cookie });
+    expect(response.status).toBe(200);
+    expect(resolve).toHaveBeenCalled();
+  });
+
   it('keeps the /healthz cache-control header', async () => {
     h = await createHarness();
     const resolve = async () =>

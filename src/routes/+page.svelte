@@ -12,6 +12,9 @@
 <svelte:head><title>srep</title></svelte:head>
 <main>
   <h1>srep</h1>
-  <p><a href={resolve('/security')}>Security</a></p>
+  <p>
+    <a href={resolve('/security')}>Security</a>
+    <a href={resolve('/gallery')}>Gallery</a>
+  </p>
   <button type="button" onclick={logOut}>Log out</button>
 </main>

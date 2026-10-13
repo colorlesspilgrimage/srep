@@ -1,0 +1,204 @@
+/* Phosphor Green tokens and the gallery layout. BREAKPOINT_PX is 720. */
+
+.tui-theme-phosphor-green {
+  --tui-bg: #001a00;
+  --tui-fg: #5dff5d;
+  --tui-dim: #3dcc3d;
+  --tui-accent: #d6ff4a;
+  --tui-good: #7dffb3;
+  --tui-warn: #ffe14a;
+  --tui-bad: #ff6b6b;
+  --tui-border: #1f8f1f;
+  --tui-selection: #0d3d0d;
+}
+
+body.tui-page {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1.2;
+  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', 'Liberation Mono', monospace;
+}
+
+.tui-root {
+  background: var(--tui-bg);
+  color: var(--tui-fg);
+  font-size: 16px;
+  box-sizing: border-box;
+  padding: 0.5rem;
+  max-width: 100%;
+}
+
+.tui-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 1ch;
+  max-width: 100%;
+}
+
+.tui-side {
+  flex: 0 0 auto;
+}
+
+.tui-main {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.tui-frame {
+  width: 80ch;
+  max-width: 100%;
+}
+
+.tui-frame-line {
+  white-space: pre;
+  font-variant-ligatures: none;
+  color: var(--tui-border);
+  margin: 0;
+  overflow: hidden;
+}
+
+.tui-frame-line.tui-only-desktop {
+  width: 80ch;
+}
+
+.tui-frame-line.tui-only-mobile {
+  width: 32ch;
+}
+
+.tui-frame-row {
+  display: flex;
+  align-items: stretch;
+  max-width: 100%;
+}
+
+.tui-frame-bar {
+  color: var(--tui-border);
+  flex: 0 0 1ch;
+  width: 1ch;
+  overflow: hidden;
+}
+
+.tui-frame-slot {
+  width: 78ch;
+  flex: 0 1 78ch;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--tui-fg);
+  overflow-wrap: anywhere;
+}
+
+.tui-only-mobile {
+  display: none;
+}
+
+.tui-tabbar {
+  display: none;
+}
+
+.tui-root button {
+  margin-right: 0;
+  font: inherit;
+  color: var(--tui-fg);
+  background: var(--tui-bg);
+  border: 1px solid var(--tui-border);
+}
+
+.tui-root [aria-selected='true'] {
+  background: var(--tui-selection);
+  color: var(--tui-fg);
+}
+
+.tui-root :focus {
+  outline: 2px solid var(--tui-accent);
+  outline-offset: 2px;
+}
+
+.tui-list {
+  margin: 0;
+  padding: 0;
+}
+
+.tui-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.tui-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.tui-form input[type='text'] {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  font: inherit;
+  color: var(--tui-fg);
+  background: var(--tui-bg);
+  border: 1px solid var(--tui-border);
+}
+
+.tui-modal {
+  border: 1px solid var(--tui-border);
+  background: var(--tui-bg);
+  color: var(--tui-fg);
+  padding: 0.5rem;
+  max-width: 100%;
+}
+
+.tui-root [role='alert'] {
+  color: var(--tui-bad);
+  margin: 0;
+}
+
+.tui-status {
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 720px) {
+  .tui-root {
+    font-size: 14px;
+  }
+
+  .tui-layout {
+    display: block;
+  }
+
+  .tui-frame {
+    width: 32ch;
+  }
+
+  .tui-frame-slot {
+    width: 30ch;
+    flex-basis: 30ch;
+  }
+
+  .tui-only-mobile {
+    display: revert;
+  }
+
+  .tui-only-desktop {
+    display: none;
+  }
+
+  .tui-tabbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .tui-root button,
+  .tui-root [role='tab'],
+  .tui-root input[type='text'] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
