@@ -157,3 +157,21 @@ The gallery has a command palette, status-line key hints, and saved key remaps.
 - Code and tests:
   - Code: `src/lib/client/tui/keymap.ts`, `src/lib/client/tui/CommandPalette.svelte`, `src/lib/client/tui/KeymapForm.svelte`, `src/lib/server/settings/keybind-key.ts`, `src/lib/server/settings/keybind-store.ts`, `src/lib/server/settings/keybind-store.sqlite.ts`, `src/lib/server/settings/keybind-store.pg.ts`, `src/lib/server/settings/keybind-settings.ts`, `src/lib/server/settings/gallery-settings-read.ts`, `src/routes/api/settings/keybinds/+server.ts`, `src/routes/gallery/+page.server.ts`, `src/lib/client/tui/GalleryShell.svelte`.
   - Tests: `src/lib/client/tui/keymap.test.ts`, `src/lib/server/settings/keybind-settings.test.ts`, `src/lib/server/settings/keybind-store.race.test.ts`, `src/lib/server/settings/keybind-store.pg.test.ts`, `src/lib/server/settings/gallery-settings-read.test.ts`, `src/routes/api/settings/keybinds/server.test.ts`, `e2e/gallery-keys.test.ts`.
+
+## TUI visual regression (M4 slice 5)
+
+Playwright stores a gallery screenshot for every pre-made theme at 360px and at 1440px.
+
+- Entry point: `npx playwright test e2e/gallery-visual.test.ts` after sign-in setup inside that file. The page is `/gallery?theme=<catalog id>`.
+- Use:
+  1. Run `npm ci`.
+  2. Run `npx playwright install --with-deps chromium`.
+  3. Run `npx playwright test e2e/gallery-visual.test.ts`.
+- Check:
+  - The command exits 0.
+  - `e2e/gallery-visual.test.ts-snapshots/` contains 24 PNG files.
+  - `npx vitest run src/lib/client/tui/visual-shots.test.ts` passes.
+  - `npm run test:e2e` passes.
+- Code and tests:
+  - Code: `src/lib/client/tui/visual-shots.ts`.
+  - Tests: `src/lib/client/tui/visual-shots.test.ts`, `e2e/gallery-visual.test.ts`, and the PNG files Playwright writes beside that test.
