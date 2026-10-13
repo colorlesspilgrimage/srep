@@ -1,5 +1,9 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { visualShotPlan, type VisualShot } from '../src/lib/client/tui/visual-shots.ts';
+import {
+  visualGalleryPath,
+  visualShotPlan,
+  type VisualShot,
+} from '../src/lib/client/tui/visual-shots.ts';
 import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
@@ -68,7 +72,7 @@ async function shoot(item: VisualShot): Promise<void> {
   const height = item.width === 360 ? 800 : 900;
   await page.setViewportSize({ width: item.width, height });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto(`/gallery?theme=${item.id}`);
+  await page.goto(visualGalleryPath(item.id));
   await page.waitForFunction(() => document.body.classList.contains('tui-page'));
   await expectClosedPalette(item.themeName);
   await page.evaluate(() => document.fonts.ready);
