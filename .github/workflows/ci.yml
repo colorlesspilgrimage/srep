@@ -16,53 +16,96 @@ jobs:
   lint-typecheck-unit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+        env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          DOCKERHUB_USERNAME: ''
+          DOCKERHUB_TOKEN: ''
       - run: npm run lint
+        env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          DOCKERHUB_USERNAME: ''
+          DOCKERHUB_TOKEN: ''
       - run: npm run check
+        env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          DOCKERHUB_USERNAME: ''
+          DOCKERHUB_TOKEN: ''
       - run: npm run test
+        env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          DOCKERHUB_USERNAME: ''
+          DOCKERHUB_TOKEN: ''
 
   e2e-sqlite:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+        env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          DOCKERHUB_USERNAME: ''
+          DOCKERHUB_TOKEN: ''
       - run: npx playwright install --with-deps chromium
+        env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          DOCKERHUB_USERNAME: ''
+          DOCKERHUB_TOKEN: ''
       - name: End-to-end tests
         run: npm run test:e2e
         env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          DOCKERHUB_USERNAME: ''
+          DOCKERHUB_TOKEN: ''
           E2E_DATABASE_URL: sqlite:./data/e2e.db
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-report-sqlite
           path: playwright-report/
           if-no-files-found: ignore
+          retention-days: 1
 
   e2e-postgres:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       # Secrets are not available to pull requests from forks. Login is skipped then.
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - name: Log in to Docker Hub
         if: env.DOCKERHUB_USERNAME != ''
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Start Postgres
         run: |
+          docker pull postgres:17
+          rm -f "$HOME/.docker/config.json"
           docker run -d --name pg -p 5432:5432 \
             -e POSTGRES_USER=srep -e POSTGRES_PASSWORD=srep-ci -e POSTGRES_DB=srep \
             postgres:17
@@ -72,53 +115,78 @@ jobs:
           done
           docker logs pg
           exit 1
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+        env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          DOCKERHUB_USERNAME: ''
+          DOCKERHUB_TOKEN: ''
       - run: npx playwright install --with-deps chromium
+        env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          DOCKERHUB_USERNAME: ''
+          DOCKERHUB_TOKEN: ''
       - name: Unit tests on Postgres
         run: npm run test
         env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          DOCKERHUB_USERNAME: ''
+          DOCKERHUB_TOKEN: ''
           SREP_TEST_POSTGRES_URL: postgres://srep:srep-ci@localhost:5432/srep
       - name: End-to-end tests
         run: npm run test:e2e
         env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          DOCKERHUB_USERNAME: ''
+          DOCKERHUB_TOKEN: ''
           E2E_DATABASE_URL: postgres://srep:srep-ci@localhost:5432/srep
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-report-postgres
           path: playwright-report/
           if-no-files-found: ignore
+          retention-days: 1
 
   docker:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - name: Log in to Docker Hub
         if: env.DOCKERHUB_USERNAME != ''
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - run: docker build -t srep:ci .
+      - name: Build the image
+        run: |
+          docker build -t srep:ci .
+          rm -f "$HOME/.docker/config.json"
       - name: Run the image and check health
         run: |
           docker run -d --name srep-ci -p 3000:3000 -v srep-ci-data:/data srep:ci
           ok=0
+          health_file="${RUNNER_TEMP:-$HOME}/healthz.json"
           for i in $(seq 1 20); do
-            if curl -fsS http://127.0.0.1:3000/healthz > /tmp/healthz.json; then
+            if curl -fsS http://127.0.0.1:3000/healthz > "$health_file"; then
               ok=1
               break
             fi
             sleep 1
           done
-          if [ "$ok" -ne 1 ] || ! grep -F '{"status":"ok"}' /tmp/healthz.json; then
+          if [ "$ok" -ne 1 ] || ! grep -F '{"status":"ok"}' "$health_file"; then
             docker logs srep-ci
             docker rm -f srep-ci
             exit 1
