@@ -193,7 +193,7 @@ Node 22.17 is the minimum. drizzle-kit is pinned to 1.0.0-beta.1. npm audit repo
 - Check:
   - `node -v` prints v22.23.3, or another Node 22 version that is 22.17.0 or later.
   - `npm audit` exits 0.
-  - `npx vitest run scripts/toolchain-pin.test.ts` exits 0.
+  - `npx vitest run scripts/toolchain-pin.test.ts scripts/toolchain-pin-edge.test.ts` exits 0.
 - Code and tests:
-  - Code: `package.json`, `package-lock.json`, `.github/workflows/ci.yml`, `CONTRIBUTING.md`.
-  - Tests: `scripts/toolchain-pin.test.ts`.
+  - Code: `package.json`, `package-lock.json`, `.github/workflows/ci.yml`, `CONTRIBUTING.md`, `scripts/toolchain-pin-check.ts`.
+  - Tests: `scripts/toolchain-pin.test.ts` and `scripts/toolchain-pin-edge.test.ts`.
