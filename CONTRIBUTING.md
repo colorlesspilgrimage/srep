@@ -2,7 +2,7 @@
 
 ## Setup
 
-Install Node.js 22 or later.
+Install Node.js 22.17 or later.
 Run `npm ci`.
 Copy `.env.example` to `.env` if you need local overrides.
 
