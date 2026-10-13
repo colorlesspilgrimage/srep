@@ -17,4 +17,4 @@
 
 <List label="Theme setting" {items} {selectedIndex} {onSelect} />
 <button type="button" aria-busy={savePending} onclick={onSave}>Save theme</button>
-<p role="status">{statusText}</p>
+<p role="status" aria-label={statusText}>{statusText}</p>

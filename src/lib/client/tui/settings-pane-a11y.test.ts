@@ -8,8 +8,8 @@ const source = readFileSync(path.join(import.meta.dirname, 'SettingsPane.svelte'
 
 describe('settings pane accessibility', () => {
   it('gives the status its visible text as the accessible name', () => {
-    expect(source).toContain('<p role="status">{statusText}</p>');
-    expect(source).not.toContain('aria-label');
+    expect(source).toContain('<p role="status" aria-label={statusText}>{statusText}</p>');
+    expect(source).not.toContain('Theme save status');
     expect(source).toContain('>Save theme</button>');
     expect(source).toContain('type="button"');
     expect(source).not.toContain('style' + '=');
