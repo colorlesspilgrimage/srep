@@ -1,10 +1,11 @@
 <script lang="ts">
   import './palette.css';
   import { commandsFor } from './keymap.js';
+  import { listKeyEffect, listKeyIndex } from './list-state.js';
   import List from './List.svelte';
 
   // Contract: the command palette. Enter on a row runs that command and closes.
-  // This file does not call the network. It does not trap focus.
+  // Arrow keys only move the row. This file does not call the network.
 
   type Props = {
     open: boolean;
@@ -14,12 +15,19 @@
 
   let { open, onClose, onRun }: Props = $props();
   let filter = $state('');
+  let picked = $state(0);
 
   const names = $derived(filter.trim() === '' ? [] : commandsFor(filter));
+  const rowIndex = $derived(names.length === 0 ? 0 : Math.min(picked, names.length - 1));
 
   function focusOnMount(node: HTMLInputElement): void {
     filter = '';
+    picked = 0;
     node.focus();
+  }
+
+  function resetPick(): void {
+    picked = 0;
   }
 
   function choose(index: number): void {
@@ -47,18 +55,56 @@
     return index;
   }
 
-  function bindRowEnter(node: HTMLElement): { destroy: () => void } {
+  function optionAt(root: HTMLElement, index: number): HTMLElement | null {
+    const node = root.querySelectorAll('[role="option"]')[index];
+    if (!(node instanceof HTMLElement)) {
+      return null;
+    }
+    return node;
+  }
+
+  function inCommandList(target: EventTarget | null): boolean {
+    return target instanceof HTMLElement && target.closest('[role="listbox"]') !== null;
+  }
+
+  function inCommandField(target: EventTarget | null): boolean {
+    return target instanceof HTMLInputElement;
+  }
+
+  function runRow(index: number, event: KeyboardEvent): void {
+    if (names[index] === undefined) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    choose(index);
+  }
+
+  function moveRow(root: HTMLElement, event: KeyboardEvent): void {
+    const next = listKeyIndex(names.length, rowIndex, event.key);
+    if (next === null) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    picked = next;
+    optionAt(root, next)?.focus();
+  }
+
+  function bindPaletteKeys(node: HTMLElement): { destroy: () => void } {
     function onKey(event: KeyboardEvent): void {
-      if (event.key !== 'Enter') {
+      const effect = listKeyEffect(event.key);
+      const inList = inCommandList(event.target);
+      const inField = inCommandField(event.target);
+      if (effect === null || (!inList && !inField)) {
         return;
       }
-      const index = optionIndex(event.target);
-      if (index === null) {
+      if (effect === 'move') {
+        moveRow(node, event);
         return;
       }
-      event.preventDefault();
-      event.stopPropagation();
-      choose(index);
+      const focused = optionIndex(event.target);
+      runRow(focused ?? rowIndex, event);
     }
     node.addEventListener('keydown', onKey, true);
     return {
@@ -75,7 +121,7 @@
     role="dialog"
     aria-modal="true"
     aria-labelledby="tui-command-title"
-    use:bindRowEnter
+    use:bindPaletteKeys
   >
     <h2 id="tui-command-title">Commands</h2>
     <label for="tui-command-filter">Command</label>
@@ -85,9 +131,10 @@
       maxlength="40"
       autocomplete="off"
       bind:value={filter}
+      oninput={resetPick}
       use:focusOnMount
     />
-    <List label="Commands" items={names} selectedIndex={0} onSelect={choose} />
+    <List label="Commands" items={names} selectedIndex={rowIndex} onSelect={choose} />
     <button type="button" onclick={onClose}>Close</button>
   </div>
 {/if}

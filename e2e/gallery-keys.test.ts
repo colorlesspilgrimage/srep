@@ -161,6 +161,42 @@ async function enterFocusedRow(): Promise<void> {
   await expect(page.getByRole('textbox', { name: 'Value' })).toBeVisible();
 }
 
+async function openShowRows(): Promise<void> {
+  await openAt(1440, 900);
+  await page.keyboard.press('Control+k');
+  await page.getByRole('textbox', { name: 'Command' }).fill('show');
+  await expect(page.getByRole('listbox', { name: 'Commands' }).getByRole('option')).toHaveCount(5);
+}
+
+async function arrowDownLeavesPaletteOpen(): Promise<void> {
+  await openShowRows();
+  await page.keyboard.press('ArrowDown');
+  await expect(commands()).toBeVisible();
+  await expect(page.getByText('Pane body')).toBeVisible();
+}
+
+async function arrowDownThenEnterRunsSecondRow(): Promise<void> {
+  await openShowRows();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(commands()).toBeHidden();
+  await expect(page.getByRole('listbox', { name: 'Sample list' })).toBeVisible();
+}
+
+async function arrowUpMovesBack(): Promise<void> {
+  await openShowRows();
+  const list = page.getByRole('listbox', { name: 'Commands' });
+  await page.keyboard.press('ArrowDown');
+  await expect(list.getByRole('option', { name: 'Show List', exact: true })).toBeFocused();
+  await page.keyboard.press('ArrowUp');
+  await expect(list.getByRole('option', { name: 'Show Panes', exact: true })).toBeFocused();
+  await expect(commands()).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(commands()).toBeHidden();
+  await expect(page.getByText('Pane body')).toBeVisible();
+  await expect(page.getByRole('listbox', { name: 'Sample list' })).toBeHidden();
+}
+
 async function beginOpenChange(): Promise<void> {
   await openAt(1440, 900);
   await page.getByRole('option', { name: 'Settings', exact: true }).click();
@@ -235,6 +271,9 @@ test.describe.serial('gallery keys', () => {
   test('Ctrl+K opens the command palette and Escape closes it', openAndClose);
   test('Show Settings opens the settings pane', showSettings);
   test('Enter runs the focused command when the filter has many rows', enterFocusedRow);
+  test('ArrowDown keeps the palette open and runs no command', arrowDownLeavesPaletteOpen);
+  test('ArrowDown then Enter runs the second command row', arrowDownThenEnterRunsSecondRow);
+  test('ArrowUp moves the command row back', arrowUpMovesBack);
   test('Tab leaves Cancel change and does not store Tab', tabLeavesCancel);
   test('Enter activates Cancel change and keeps the chord', enterActivatesCancel);
   test('Space activates Cancel change and keeps the chord', spaceActivatesCancel);
