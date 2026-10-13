@@ -119,7 +119,11 @@ async function tabStaysInCommands(): Promise<void> {
   await page.keyboard.press('Shift+Tab');
   const close = commands().getByRole('button', { name: 'Close' });
   await expect(close).toBeFocused();
-  await expect(page.getByRole('tab', { name: 'Panes' })).not.toBeFocused();
+  const inside = await page.evaluate(() => {
+    const dialog = document.querySelector('[aria-labelledby="tui-command-title"]');
+    return dialog !== null && dialog.contains(document.activeElement);
+  });
+  expect(inside).toBe(true);
   await page.keyboard.press('Tab');
   await expect(field).toBeFocused();
   await expect(commands()).toBeVisible();
