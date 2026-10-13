@@ -1,4 +1,4 @@
-// Contract: form field checks. An empty value and a long value do not submit.
+// Contract: form field checks.
 // The id parts stay in a safe set so the input id cannot break the label.
 
 export const FORM_VALUE_MAX = 80;

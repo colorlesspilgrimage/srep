@@ -7,7 +7,7 @@
   import StatusLine from './StatusLine.svelte';
 
   // Contract: the gallery shell. One tree shows the side list or the tab bar.
-  // The side list is not a second frame. A frame is 80 columns wide.
+  // The side list is not a second frame.
 
   const SECTIONS = [
     { id: 'panes', label: 'Panes' },
