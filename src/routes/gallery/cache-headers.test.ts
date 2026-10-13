@@ -1,27 +1,32 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_KEYBINDS } from '#lib/client/tui/keymap.js';
+import { themeIdFromQuery } from '#lib/client/tui/themes.js';
 
-const { getThemeSettings } = vi.hoisted(() => ({
-  getThemeSettings: vi.fn(),
+const { readGallerySettings } = vi.hoisted(() => ({
+  readGallerySettings: vi.fn(),
 }));
 
-vi.mock('#lib/server/settings/theme-settings.js', () => ({
-  getThemeSettings,
+vi.mock('#lib/server/settings/gallery-settings-read.js', () => ({
+  readGallerySettings,
 }));
 
 vi.mock('#lib/server/db/index.js', () => ({
   getDb: () => ({ dialect: 'sqlite', db: {} }),
 }));
 
-vi.mock('#lib/server/logger.js', () => ({
-  getLogger: () => ({ error: () => undefined }),
-}));
-
 import { load } from './+page.server.js';
 import { galleryCacheHeaders } from './cache-headers.js';
 
+const saved = { id: 'phosphor-green' };
+
 beforeEach(() => {
-  getThemeSettings.mockReset();
-  getThemeSettings.mockResolvedValue({ ok: true, id: 'phosphor-green' });
+  saved.id = 'phosphor-green';
+  readGallerySettings.mockReset();
+  readGallerySettings.mockImplementation(async (_handle: unknown, query: string | null) => ({
+    ok: true,
+    themeId: query === null ? saved.id : themeIdFromQuery(query),
+    keybinds: { ...DEFAULT_KEYBINDS },
+  }));
 });
 
 async function loadGallery(
@@ -48,29 +53,29 @@ describe('gallery cache headers', () => {
   it('the gallery load sets that header', async () => {
     const result = await loadGallery('');
     expectSafePage(result, 'phosphor-green');
-    expect(getThemeSettings).toHaveBeenCalledOnce();
+    expect(readGallerySettings).toHaveBeenCalledOnce();
   });
 
   it('the gallery load maps a catalog theme query', async () => {
     const result = await loadGallery('?theme=nord');
     expectSafePage(result, 'nord');
-    expect(getThemeSettings).not.toHaveBeenCalled();
+    expect(readGallerySettings).toHaveBeenCalledOnce();
   });
 
   it('the gallery load rejects a theme query that is not a catalog id', async () => {
     const result = await loadGallery('?theme=%3Cscript%3E');
     expectSafePage(result, 'phosphor-green');
-    expect(getThemeSettings).not.toHaveBeenCalled();
+    expect(readGallerySettings).toHaveBeenCalledOnce();
   });
 
   it('an empty query uses the saved theme', async () => {
-    getThemeSettings.mockResolvedValue({ ok: true, id: 'nord' });
+    saved.id = 'nord';
     const result = await loadGallery('');
     expectSafePage(result, 'nord');
   });
 
   it('a corrupt saved theme does not become the page theme', async () => {
-    getThemeSettings.mockResolvedValue({ ok: false, status: 500, error: 'settings_corrupt' });
+    readGallerySettings.mockResolvedValue({ ok: false, status: 500, error: 'settings_corrupt' });
     const headers = new Headers();
     const page = load({
       setHeaders(value: Record<string, string>) {
@@ -131,7 +136,7 @@ function expectSafePage(
   expect(result.headers.get('location')).toBeNull();
   expect(result.headers.get('set-cookie')).toBeNull();
   expect([...result.headers.keys()].sort()).toEqual(['cache-control', 'vary']);
-  expect(result.page).toEqual({ themeId });
+  expect(result.page).toEqual({ themeId, keybinds: DEFAULT_KEYBINDS });
   const body = JSON.stringify(result.page);
   expect(body).not.toContain('<');
   expect(body).not.toContain('://');

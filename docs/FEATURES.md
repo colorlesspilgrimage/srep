@@ -138,3 +138,22 @@ A signed-in user can preview a theme in the gallery Settings pane and save it. T
 - Code and tests:
   - Code: `src/lib/server/settings/theme-key.ts`, `src/lib/server/settings/theme-store.ts`, `src/lib/server/settings/theme-store.sqlite.ts`, `src/lib/server/settings/theme-store.pg.ts`, `src/lib/server/settings/theme-settings.ts`, `src/routes/api/settings/theme/+server.ts`, `src/lib/client/tui/SettingsPane.svelte`, `src/lib/client/tui/GalleryShell.svelte`, `src/routes/gallery/+page.server.ts`.
   - Tests: `src/lib/server/settings/theme-settings.test.ts`, `src/lib/server/settings/theme-store.race.test.ts`, `src/routes/api/settings/theme/server.test.ts`, `src/routes/gallery/cache-headers.test.ts`, `e2e/gallery-settings.test.ts`.
+
+## TUI keyboard layer (M4 slice 4)
+
+The gallery has a command palette, status-line key hints, and saved key remaps.
+
+- Entry point: browser path `/gallery` after sign-in. Keys `Ctrl+K` and `:`. API `GET` and `PUT /api/settings/keybinds`.
+- Use:
+  1. Start the server and sign in (see "Authentication (M1)").
+  2. Open `/gallery`.
+  3. Press `Ctrl+K`. Choose `Show Settings`.
+  4. Press `Change Open palette`, press `Alt+K`, then press `Save keys`.
+  5. Reload `/gallery`. Press `Alt+K`. The palette opens.
+- Check:
+  - `curl -s -o /dev/null -w '%{http_code}\n' -X PUT http://127.0.0.1:3000/api/settings/keybinds -H 'content-type: application/json' -d '{"palette.open":"Ctrl+K","palette.open-colon":":","palette.close":"Escape"}'` prints `401`.
+  - `npx vitest run src/lib/client/tui src/lib/server/settings src/routes/gallery src/routes/api/settings` passes.
+  - `npm run test:e2e` passes.
+- Code and tests:
+  - Code: `src/lib/client/tui/keymap.ts`, `src/lib/client/tui/CommandPalette.svelte`, `src/lib/client/tui/KeymapForm.svelte`, `src/lib/server/settings/keybind-key.ts`, `src/lib/server/settings/keybind-store.ts`, `src/lib/server/settings/keybind-store.sqlite.ts`, `src/lib/server/settings/keybind-store.pg.ts`, `src/lib/server/settings/keybind-settings.ts`, `src/lib/server/settings/gallery-settings-read.ts`, `src/routes/api/settings/keybinds/+server.ts`, `src/routes/gallery/+page.server.ts`, `src/lib/client/tui/GalleryShell.svelte`.
+  - Tests: `src/lib/client/tui/keymap.test.ts`, `src/lib/server/settings/keybind-settings.test.ts`, `src/lib/server/settings/keybind-store.race.test.ts`, `src/lib/server/settings/keybind-store.pg.test.ts`, `src/lib/server/settings/gallery-settings-read.test.ts`, `src/routes/api/settings/keybinds/server.test.ts`, `e2e/gallery-keys.test.ts`.
