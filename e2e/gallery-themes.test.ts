@@ -25,7 +25,11 @@ test.describe.serial('gallery themes', () => {
 
   test.beforeAll(async ({ browser }) => {
     const setupToken = resetAuthViaCli();
-    context = await browser.newContext();
+    // The suite shares one client address. Auth allows 20 attempts on that address.
+    // This file uses its own address so later suites can still enroll.
+    context = await browser.newContext({
+      extraHTTPHeaders: { 'x-forwarded-for': '198.51.100.20' },
+    });
     page = await context.newPage();
     const cdp = await enableWebAuthn(page);
     await addAuthenticator(cdp, 'platform');
