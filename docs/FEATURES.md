@@ -81,3 +81,22 @@ FSRS scheduling with learning steps, a day-rollover clock, daily limits, a queue
 - Use: 1. Start the server. 2. Run `curl http://localhost:3000/healthz`.
 - Check: the output is `{"status":"ok"}`. `npx vitest run src/routes/healthz` passes.
 - Code and tests: `src/routes/healthz/+server.ts`, `src/lib/server/health.ts`, `src/routes/healthz/server.test.ts`, `e2e/health.test.ts`.
+
+## TUI gallery shell (M4 slice 1)
+
+A signed-in gallery shows pane, border, list, form, modal, and status-line samples on a character grid. Desktop shows two panes. A 360px width shows one pane and a tab bar. The theme is Phosphor Green.
+
+- Entry point: browser path `/gallery` after sign-in. Home page link `Gallery`.
+- Use:
+  1. Start the server and sign in (see "Authentication (M1)").
+  2. Open `/gallery`.
+  3. At a wide window, choose `Form` in the specimen list. Submit `cat`.
+  4. Choose `Modal`. Press `Open modal`. Press Escape.
+  5. Narrow the window to 360px. Use the `Gallery sections` tabs for the same steps.
+- Check:
+  - `curl -s -D - -o /dev/null http://127.0.0.1:3000/gallery` on a fresh database returns `303` and `location: /setup`.
+  - `npx vitest run src/lib/client/tui src/lib/server/auth/hook.test.ts` passes.
+  - `npx playwright test e2e/gallery.test.ts` passes.
+- Code and tests:
+  - Code: `src/lib/client/tui/`, `src/routes/gallery/+page.svelte`, link in `src/routes/+page.svelte`.
+  - Tests: `src/lib/client/tui/*.test.ts`, `src/lib/server/auth/hook.test.ts`, `e2e/gallery.test.ts`.
