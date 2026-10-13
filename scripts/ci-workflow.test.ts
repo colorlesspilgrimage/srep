@@ -20,6 +20,7 @@ const REPO_RUNS = new Set([
   'npx playwright install --with-deps chromium',
   'npm run db:generate',
   'git diff --exit-code -- drizzle',
+  'test -z "$(git status --porcelain=v1 --untracked-files=all -- drizzle)"',
 ]);
 
 const BLANK_TOKEN_LINES = [
@@ -168,6 +169,7 @@ describe('ci workflow safety', () => {
         'npx playwright install --with-deps chromium',
         'npm run db:generate',
         'git diff --exit-code -- drizzle',
+        'test -z "$(git status --porcelain=v1 --untracked-files=all -- drizzle)"',
       ].sort(),
     );
     for (const block of blocks) {
