@@ -1,13 +1,16 @@
 <script lang="ts">
   import './tui.css';
+  import './themes.css';
   import Form from './Form.svelte';
   import List from './List.svelte';
   import Modal from './Modal.svelte';
   import Pane from './Pane.svelte';
   import StatusLine from './StatusLine.svelte';
+  import { DEFAULT_THEME_ID, PREMADE_THEMES, themeById, themeClass } from './themes.js';
 
   // Contract: the gallery shell. One tree shows the side list or the tab bar.
   // The side list is not a second frame.
+  // The theme list is in the panes panel. A choice is not saved.
 
   const SECTIONS = [
     { id: 'panes', label: 'Panes' },
@@ -17,18 +20,40 @@
   ] as const;
 
   type SectionId = (typeof SECTIONS)[number]['id'];
+  type Props = { themeId: string };
 
   const SECTION_LABELS = SECTIONS.map((item) => item.label);
   const SAMPLE_ITEMS = ['Alpha', 'Beta', 'Gamma'];
-  const STATUS_HINTS = ['Esc close'];
+  const THEME_NAMES = PREMADE_THEMES.map((theme) => theme.name);
 
+  let { themeId }: Props = $props();
   let section = $state<SectionId>('panes');
   let sampleIndex = $state(0);
   let formValue = $state('');
   let modalOpen = $state(false);
   let openModalButton = $state<HTMLButtonElement | null>(null);
+  let pickedId = $state<string | null>(null);
 
   const sectionIndex = $derived(SECTIONS.findIndex((item) => item.id === section));
+  const active = $derived.by(() => {
+    const found = themeById(pickedId ?? themeId);
+    if (found !== undefined) {
+      return found;
+    }
+    const fallback = themeById(DEFAULT_THEME_ID);
+    if (fallback === undefined) {
+      throw new Error('bad_theme');
+    }
+    return fallback;
+  });
+  const themeIndex = $derived.by(() => {
+    const index = PREMADE_THEMES.findIndex((theme) => theme.id === active.id);
+    if (index < 0) {
+      return 0;
+    }
+    return index;
+  });
+  const STATUS_HINTS = $derived(['Esc close', active.name]);
 
   function chooseSection(index: number): void {
     const next = SECTIONS[index];
@@ -53,9 +78,16 @@
     modalOpen = false;
     openModalButton?.focus();
   }
+
+  function chooseTheme(index: number): void {
+    const next = PREMADE_THEMES[index];
+    if (next !== undefined) {
+      pickedId = next.id;
+    }
+  }
 </script>
 
-<div class="tui-root tui-theme-phosphor-green">
+<div class="tui-root {themeClass(active.id)}">
   <main>
     <h1>Gallery</h1>
     <div class="tui-tabbar" role="tablist" aria-label="Gallery sections">
@@ -89,6 +121,12 @@
           hidden={section !== 'panes'}
         >
           <Pane label="Sample pane" title="Pane">Pane body</Pane>
+          <List
+            label="Themes"
+            items={THEME_NAMES}
+            selectedIndex={themeIndex}
+            onSelect={chooseTheme}
+          />
         </div>
         <div
           id="tui-panel-list"

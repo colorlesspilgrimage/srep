@@ -1,0 +1,133 @@
+/* Pre-made theme colors. Phosphor Green stays in tui.css. */
+
+.tui-theme-amber-crt {
+  --tui-bg: #1a0e00;
+  --tui-fg: #ffb000;
+  --tui-dim: #c48400;
+  --tui-accent: #ffe14a;
+  --tui-good: #ffd27a;
+  --tui-warn: #ff9a3c;
+  --tui-bad: #ff6b4a;
+  --tui-border: #8a5a00;
+  --tui-selection: #3d2400;
+}
+
+.tui-theme-solarized-dark {
+  --tui-bg: #002b36;
+  --tui-fg: #839496;
+  --tui-dim: #7f9095;
+  --tui-accent: #2aa198;
+  --tui-good: #859900;
+  --tui-warn: #b58900;
+  --tui-bad: #e56462;
+  --tui-border: #657b83;
+  --tui-selection: #062f3a;
+}
+
+.tui-theme-solarized-light {
+  --tui-bg: #fdf6e3;
+  --tui-fg: #586e75;
+  --tui-dim: #697373;
+  --tui-accent: #2076b3;
+  --tui-good: #697800;
+  --tui-warn: #8f6c00;
+  --tui-bad: #d5312e;
+  --tui-border: #657b83;
+  --tui-selection: #f0ebda;
+}
+
+.tui-theme-gruvbox-dark {
+  --tui-bg: #282828;
+  --tui-fg: #ebdbb2;
+  --tui-dim: #a89984;
+  --tui-accent: #83a598;
+  --tui-good: #b8bb26;
+  --tui-warn: #fabd2f;
+  --tui-bad: #fb533f;
+  --tui-border: #7c6f64;
+  --tui-selection: #3c3836;
+}
+
+.tui-theme-gruvbox-light {
+  --tui-bg: #fbf1c7;
+  --tui-fg: #3c3836;
+  --tui-dim: #665c54;
+  --tui-accent: #076678;
+  --tui-good: #75700e;
+  --tui-warn: #976311;
+  --tui-bad: #9d0006;
+  --tui-border: #7c6f64;
+  --tui-selection: #ebdbb2;
+}
+
+.tui-theme-nord {
+  --tui-bg: #2e3440;
+  --tui-fg: #d8dee9;
+  --tui-dim: #81a1c1;
+  --tui-accent: #88c0d0;
+  --tui-good: #a3be8c;
+  --tui-warn: #ebcb8b;
+  --tui-bad: #cf888f;
+  --tui-border: #5e81ac;
+  --tui-selection: #434c5e;
+}
+
+.tui-theme-dracula {
+  --tui-bg: #282a36;
+  --tui-fg: #f8f8f2;
+  --tui-dim: #8390b7;
+  --tui-accent: #bd93f9;
+  --tui-good: #50fa7b;
+  --tui-warn: #f1fa8c;
+  --tui-bad: #ff5555;
+  --tui-border: #6272a4;
+  --tui-selection: #44475a;
+}
+
+.tui-theme-monokai {
+  --tui-bg: #272822;
+  --tui-fg: #f8f8f2;
+  --tui-dim: #918e7e;
+  --tui-accent: #66d9ef;
+  --tui-good: #a6e22e;
+  --tui-warn: #e6db74;
+  --tui-bad: #fa4988;
+  --tui-border: #75715e;
+  --tui-selection: #49483e;
+}
+
+.tui-theme-tokyo-night {
+  --tui-bg: #1a1b26;
+  --tui-fg: #a9b1d6;
+  --tui-dim: #9aa5ce;
+  --tui-accent: #7aa2f7;
+  --tui-good: #9ece6a;
+  --tui-warn: #e0af68;
+  --tui-bad: #f7768e;
+  --tui-border: #606680;
+  --tui-selection: #24283b;
+}
+
+.tui-theme-vt100-white-on-black {
+  --tui-bg: #000000;
+  --tui-fg: #ffffff;
+  --tui-dim: #b3b3b3;
+  --tui-accent: #ffffff;
+  --tui-good: #ffffff;
+  --tui-warn: #ffffff;
+  --tui-bad: #ffffff;
+  --tui-border: #8c8c8c;
+  --tui-selection: #1a1a1a;
+}
+
+.tui-theme-high-contrast {
+  --tui-bg: #000000;
+  --tui-fg: #ffffff;
+  --tui-dim: #e6e6e6;
+  --tui-accent: #ffff00;
+  --tui-good: #00ff00;
+  --tui-warn: #ffcc00;
+  --tui-bad: #ff5e5e;
+  --tui-border: #ffffff;
+  --tui-selection: #000080;
+}
