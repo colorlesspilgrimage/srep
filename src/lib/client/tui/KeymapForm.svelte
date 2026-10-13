@@ -4,6 +4,7 @@
     PALETTE_CLOSE,
     PALETTE_OPEN,
     PALETTE_OPEN_COLON,
+    captureKeyEffect,
     chordFromEvent,
     remap,
     type ActionId,
@@ -81,17 +82,14 @@
     status = '';
   }
 
-  function onCaptureKey(event: KeyboardEvent): void {
-    if (capturing === null || event.target !== cancelButton) {
-      return;
-    }
+  function takeChord(event: KeyboardEvent, action: ActionId): void {
     const chord = chordFromEvent(event);
     event.preventDefault();
     if (chord === null) {
       return;
     }
     event.stopPropagation();
-    const next = remap(currentMap(), capturing, chord);
+    const next = remap(currentMap(), action, chord);
     if (typeof next === 'string') {
       status = 'That key is already used.';
       return;
@@ -99,6 +97,21 @@
     onChange(next);
     endCapture();
     status = '';
+  }
+
+  function onCaptureKey(event: KeyboardEvent): void {
+    if (capturing === null || event.target !== cancelButton) {
+      return;
+    }
+    const effect = captureKeyEffect(event.key);
+    if (effect === 'pass') {
+      return;
+    }
+    if (effect === 'cancel') {
+      cancel();
+      return;
+    }
+    takeChord(event, capturing);
   }
 
   async function save(): Promise<void> {

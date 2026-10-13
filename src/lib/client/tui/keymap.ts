@@ -49,6 +49,10 @@ export type ChordEvent = {
 
 export type PaletteAction = 'open' | 'close' | 'none';
 
+export type CaptureKeyEffect = 'pass' | 'cancel' | 'chord';
+
+const CANCEL_PASS_KEYS = new Set(['Tab', 'Enter', ' ']);
+
 export type PaletteState = {
   modalOpen: boolean;
   paletteOpen: boolean;
@@ -204,6 +208,17 @@ export function remap(map: KeybindMap, actionId: string, chord: string): Keybind
     return 'duplicate_chord';
   }
   return { ...map, [actionId]: canonical };
+}
+
+// Tab, Enter, and Space stay with the Cancel button. Escape restores the draft.
+export function captureKeyEffect(key: string): CaptureKeyEffect {
+  if (key === 'Escape') {
+    return 'cancel';
+  }
+  if (CANCEL_PASS_KEYS.has(key)) {
+    return 'pass';
+  }
+  return 'chord';
 }
 
 export function chordFromEvent(event: ChordEvent): string | null {

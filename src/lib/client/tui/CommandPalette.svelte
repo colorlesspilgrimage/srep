@@ -30,6 +30,43 @@
     onRun(name);
     onClose();
   }
+
+  function optionIndex(target: EventTarget | null): number | null {
+    if (!(target instanceof HTMLElement) || target.getAttribute('role') !== 'option') {
+      return null;
+    }
+    const list = target.closest('[role="listbox"]');
+    if (list === null) {
+      return null;
+    }
+    const options = list.querySelectorAll('[role="option"]');
+    const index = Array.prototype.indexOf.call(options, target);
+    if (index < 0) {
+      return null;
+    }
+    return index;
+  }
+
+  function bindRowEnter(node: HTMLElement): { destroy: () => void } {
+    function onKey(event: KeyboardEvent): void {
+      if (event.key !== 'Enter') {
+        return;
+      }
+      const index = optionIndex(event.target);
+      if (index === null) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      choose(index);
+    }
+    node.addEventListener('keydown', onKey, true);
+    return {
+      destroy(): void {
+        node.removeEventListener('keydown', onKey, true);
+      },
+    };
+  }
 </script>
 
 {#if open}
@@ -38,6 +75,7 @@
     role="dialog"
     aria-modal="true"
     aria-labelledby="tui-command-title"
+    use:bindRowEnter
   >
     <h2 id="tui-command-title">Commands</h2>
     <label for="tui-command-filter">Command</label>

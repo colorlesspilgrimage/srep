@@ -146,6 +146,67 @@ async function narrowFit(): Promise<void> {
   expect(fit).toBe(true);
 }
 
+async function enterFocusedRow(): Promise<void> {
+  await openAt(1440, 900);
+  await page.keyboard.press('Control+k');
+  const field = page.getByRole('textbox', { name: 'Command' });
+  await field.fill('show');
+  const list = page.getByRole('listbox', { name: 'Commands' });
+  await expect(list.getByRole('option')).toHaveCount(5);
+  const form = list.getByRole('option', { name: 'Show Form', exact: true });
+  await form.focus();
+  await expect(form).toBeFocused();
+  await form.press('Enter');
+  await expect(commands()).toBeHidden();
+  await expect(page.getByRole('textbox', { name: 'Value' })).toBeVisible();
+}
+
+async function beginOpenChange(): Promise<void> {
+  await openAt(1440, 900);
+  await page.getByRole('option', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Change Open palette', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Cancel change' })).toBeFocused();
+}
+
+function openChordText() {
+  return page.getByText('Open palette Ctrl+K', { exact: true });
+}
+
+async function tabLeavesCancel(): Promise<void> {
+  await beginOpenChange();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Cancel change' })).not.toBeFocused();
+  await expect(page.getByRole('button', { name: 'Save keys' })).toBeFocused();
+  await expect(openChordText()).toBeVisible();
+}
+
+async function enterActivatesCancel(): Promise<void> {
+  await beginOpenChange();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Cancel change' })).toHaveCount(0);
+  await expect(openChordText()).toBeVisible();
+  await expect(page.getByRole('status', { name: 'Key save status' })).toHaveCount(0);
+}
+
+async function spaceActivatesCancel(): Promise<void> {
+  await beginOpenChange();
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('button', { name: 'Cancel change' })).toHaveCount(0);
+  await expect(openChordText()).toBeVisible();
+  await expect(page.getByRole('status', { name: 'Key save status' })).toHaveCount(0);
+}
+
+async function escapeRestoresDraft(): Promise<void> {
+  await beginOpenChange();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Cancel change' })).toHaveCount(0);
+  await expect(openChordText()).toBeVisible();
+  await expect(page.getByRole('status', { name: 'Key save status' })).toHaveCount(0);
+  await page.reload();
+  await page.waitForFunction(() => document.body.classList.contains('tui-page'));
+  await expect(statusLine()).toContainText('Ctrl+K palette');
+}
+
 async function saveAltK(): Promise<void> {
   await openAt(1440, 900);
   await page.getByRole('option', { name: 'Settings', exact: true }).click();
@@ -173,6 +234,11 @@ test.describe.serial('gallery keys', () => {
   test('status line shows Ctrl+K palette, Esc close, and Phosphor Green', defaultHints);
   test('Ctrl+K opens the command palette and Escape closes it', openAndClose);
   test('Show Settings opens the settings pane', showSettings);
+  test('Enter runs the focused command when the filter has many rows', enterFocusedRow);
+  test('Tab leaves Cancel change and does not store Tab', tabLeavesCancel);
+  test('Enter activates Cancel change and keeps the chord', enterActivatesCancel);
+  test('Space activates Cancel change and keeps the chord', spaceActivatesCancel);
+  test('Escape cancels the key change and does not write', escapeRestoresDraft);
   test('colon does not open the palette from the sample field', colonInField);
   test('the sample modal still closes with Escape', modalEscape);
   test('360px page does not scroll sideways', narrowFit);

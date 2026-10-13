@@ -6,6 +6,7 @@ import {
   PALETTE_OPEN,
   PALETTE_OPEN_COLON,
   canonicalizeChord,
+  captureKeyEffect,
   chordFromEvent,
   closeHint,
   commandsFor,
@@ -59,6 +60,15 @@ function state(patch: {
     targetIsField: patch.targetIsField ?? false,
     binds: patch.binds ?? DEFAULT_KEYBINDS,
   };
+}
+
+function cancelKeysStayOnTheButton(): void {
+  expect(captureKeyEffect('Tab')).toBe('pass');
+  expect(captureKeyEffect('Enter')).toBe('pass');
+  expect(captureKeyEffect(' ')).toBe('pass');
+  expect(captureKeyEffect('Escape')).toBe('cancel');
+  expect(captureKeyEffect('k')).toBe('chord');
+  expect(captureKeyEffect('Alt')).toBe('chord');
 }
 
 describe('keymap chords', () => {
@@ -148,6 +158,7 @@ describe('keymap chords', () => {
     expect(paletteKeyAction(ctrlK, state({ paletteOpen: true }))).toBe('none');
   });
 
+  it('Tab, Enter, and Space stay on Cancel, and Escape cancels', cancelKeysStayOnTheButton);
   it('canonical chords match themselves', () => {
     fc.assert(
       fc.property(

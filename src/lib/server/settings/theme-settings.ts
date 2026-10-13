@@ -23,11 +23,10 @@ export async function putThemeSettings(
   return { ok: true, id };
 }
 
-export async function getThemeSettings(
-  store: ThemeSettingsStore,
+export function interpretTheme(
+  stored: unknown,
   logger: ThemeSettingsLogger,
-): Promise<Result<{ id: string }>> {
-  const stored = await store.getThemeValue();
+): Result<{ id: string }> {
   if (stored === undefined) {
     return { ok: true, id: DEFAULT_THEME_ID };
   }
@@ -37,4 +36,11 @@ export async function getThemeSettings(
     return fail(500, 'settings_corrupt');
   }
   return { ok: true, id: parsed.data.id };
+}
+
+export async function getThemeSettings(
+  store: ThemeSettingsStore,
+  logger: ThemeSettingsLogger,
+): Promise<Result<{ id: string }>> {
+  return interpretTheme(await store.getThemeValue(), logger);
 }
