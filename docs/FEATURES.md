@@ -200,7 +200,7 @@ Node 22.17 is the minimum. drizzle-kit is pinned to 0.31.11. The esbuild overrid
 
 ## Migration generate
 
-`npm run db:generate` compares the schema with the current migration folders. An unchanged schema does not write a new migration.
+`npm run db:generate` compares the schema with the current migration folders. An unchanged schema does not write a new migration. The generate scripts set `TSX_DISABLE_CACHE` to 1.
 
 - Entry point: `npm run db:generate`.
 - Use:
@@ -213,5 +213,5 @@ Node 22.17 is the minimum. drizzle-kit is pinned to 0.31.11. The esbuild overrid
   - `git diff --exit-code -- drizzle` exits 0.
   - `npx vitest run scripts/db-generate.test.ts` exits 0.
 - Code and tests:
-  - Code: `package.json`, `package-lock.json`, `.github/workflows/ci.yml`.
+  - Code: `package.json`, `package-lock.json`, `.github/workflows/ci.yml`, `scripts/db-generate.mjs`.
   - Tests: `scripts/db-generate.test.ts`, `scripts/toolchain-pin.test.ts`, `scripts/toolchain-pin-edge.test.ts`, `scripts/ci-workflow.test.ts`.
