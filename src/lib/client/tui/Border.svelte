@@ -16,16 +16,24 @@
   const mobileBottom = $derived(frameBottom(MOBILE_COLUMNS));
 </script>
 
+{#snippet frameLine(mode: string, text: string)}
+  <div class="tui-frame-line tui-only-{mode}" aria-hidden="true">{text}</div>
+{/snippet}
+
+{#snippet frameBar(mode: string)}
+  <span class="tui-frame-bar tui-only-{mode}" aria-hidden="true">{VERTICAL}</span>
+{/snippet}
+
 <div class="tui-frame" role="group">
-  <div class="tui-frame-line tui-only-desktop" aria-hidden="true">{desktopTop}</div>
-  <div class="tui-frame-line tui-only-mobile" aria-hidden="true">{mobileTop}</div>
+  {@render frameLine('desktop', desktopTop)}
+  {@render frameLine('mobile', mobileTop)}
   <div class="tui-frame-row">
-    <span class="tui-frame-bar tui-only-desktop" aria-hidden="true">{VERTICAL}</span>
-    <span class="tui-frame-bar tui-only-mobile" aria-hidden="true">{VERTICAL}</span>
+    {@render frameBar('desktop')}
+    {@render frameBar('mobile')}
     <div class="tui-frame-slot">{@render children()}</div>
-    <span class="tui-frame-bar tui-only-desktop" aria-hidden="true">{VERTICAL}</span>
-    <span class="tui-frame-bar tui-only-mobile" aria-hidden="true">{VERTICAL}</span>
+    {@render frameBar('desktop')}
+    {@render frameBar('mobile')}
   </div>
-  <div class="tui-frame-line tui-only-desktop" aria-hidden="true">{desktopBottom}</div>
-  <div class="tui-frame-line tui-only-mobile" aria-hidden="true">{mobileBottom}</div>
+  {@render frameLine('desktop', desktopBottom)}
+  {@render frameLine('mobile', mobileBottom)}
 </div>

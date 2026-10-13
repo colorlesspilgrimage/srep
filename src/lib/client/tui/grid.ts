@@ -1,5 +1,4 @@
 // Contract: character-grid frames and the desktop or mobile layout mode.
-// Box lines use U+250C, U+2510, U+2514, U+2518, U+2500, and U+2502.
 
 export const DESKTOP_COLUMNS = 80;
 export const MOBILE_COLUMNS = 32;

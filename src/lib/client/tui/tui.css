@@ -97,12 +97,16 @@ body.tui-page {
   display: none;
 }
 
-.tui-root button {
-  margin-right: 0;
+.tui-root button,
+.tui-form input[type='text'] {
   font: inherit;
   color: var(--tui-fg);
   background: var(--tui-bg);
   border: 1px solid var(--tui-border);
+}
+
+.tui-root button {
+  margin-right: 0;
 }
 
 .tui-root [aria-selected='true'] {
@@ -139,10 +143,6 @@ body.tui-page {
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
-  font: inherit;
-  color: var(--tui-fg);
-  background: var(--tui-bg);
-  border: 1px solid var(--tui-border);
 }
 
 .tui-modal {
