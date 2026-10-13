@@ -180,3 +180,20 @@ Playwright stores a gallery screenshot for every pre-made theme at 360px and at 
 - Code and tests:
   - Code: `src/lib/client/tui/visual-shots.ts`.
   - Tests: `src/lib/client/tui/visual-shots.test.ts`, `e2e/gallery-visual.test.ts`, and the PNG files Playwright writes beside that test.
+
+## Toolchain maintenance (M4 slice 6)
+
+Node 22.17 is the minimum. drizzle-kit is pinned to 1.0.0-beta.1. npm audit reports no advisory.
+
+- Entry point: `package.json` field `engines`, and `.github/workflows/ci.yml`.
+- Use:
+  1. Install Node 22.23.3 and put its bin directory first on PATH.
+  2. Run `npm ci`.
+  3. Run `npm audit`.
+- Check:
+  - `node -v` prints v22.23.3, or another Node 22 version that is 22.17.0 or later.
+  - `npm audit` exits 0.
+  - `npx vitest run scripts/toolchain-pin.test.ts` exits 0.
+- Code and tests:
+  - Code: `package.json`, `package-lock.json`, `.github/workflows/ci.yml`, `CONTRIBUTING.md`.
+  - Tests: `scripts/toolchain-pin.test.ts`.
