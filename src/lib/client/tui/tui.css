@@ -112,6 +112,8 @@ body.tui-page {
 .tui-root [aria-selected='true'] {
   background: var(--tui-selection);
   color: var(--tui-fg);
+  /* The selection fill is close to the page background. This bar shows the selected state. */
+  box-shadow: inset 0 0 0 2px var(--tui-fg);
 }
 
 .tui-root :focus {
