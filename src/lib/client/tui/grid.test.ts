@@ -53,6 +53,14 @@ describe('frames', () => {
     expect(fitTitle('A<b>\nB', 80)).toBe('AbB');
   });
 
+  it('fitTitle strips a markup string before frameTop', () => {
+    const nasty = '<img src=x onerror=alert(1)>\n"\'`${}\\/\u0000';
+    const fitted = fitTitle(nasty, 80);
+    expect(fitted).toBe('img srcx onerroralert1');
+    expect(fitted).not.toMatch(/[<>]/);
+    expect(frameTop(80, fitted)).toHaveLength(80);
+  });
+
   it('frame lines have length columns for a legal title', () => {
     const titleChar = fc.constantFrom('a', 'Z', '0', ' ', '-');
     const input = fc.integer({ min: 8, max: 120 }).chain((columns) =>
@@ -69,6 +77,19 @@ describe('frames', () => {
           frameTop(columns, title).length === columns && frameBottom(columns).length === columns
         );
       }),
+      { seed: 1, numRuns: 100 },
+    );
+  });
+
+  it('fitTitle lets frameTop accept any string at a legal width', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 8, max: 120 }),
+        fc.string({ maxLength: 200 }),
+        (columns, title) => {
+          return frameTop(columns, fitTitle(title, columns)).length === columns;
+        },
+      ),
       { seed: 1, numRuns: 100 },
     );
   });

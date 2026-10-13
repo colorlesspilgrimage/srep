@@ -71,8 +71,20 @@ export function meetsContrast(ratio: number, minimum: number): boolean {
   return ratio >= minimum;
 }
 
+function contrastOrNull(a: string, b: string): number | null {
+  try {
+    return contrastRatio(a, b);
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'bad_hex') {
+      return null;
+    }
+    throw error;
+  }
+}
+
 function notePair(failures: string[], label: string, a: string, b: string, minimum: number): void {
-  if (!meetsContrast(contrastRatio(a, b), minimum)) {
+  const ratio = contrastOrNull(a, b);
+  if (ratio === null || !meetsContrast(ratio, minimum)) {
     failures.push(label);
   }
 }
