@@ -1,5 +1,8 @@
 <script lang="ts">
+  import { acceptFormValue, FORM_VALUE_MAX, formIdsOk } from './form-value.js';
+
   // Contract: one text field. An empty value does not call onSubmit.
+  // A value longer than 80 characters does not call onSubmit. The form uses POST.
 
   type Props = {
     idPrefix: string;
@@ -12,30 +15,30 @@
   let value = $state('');
   let error = $state('');
 
-  const fieldsOk = $derived(/^[a-z]{1,16}$/.test(idPrefix) && /^[a-z0-9-]{1,32}$/.test(name));
+  const fieldsOk = $derived(formIdsOk(idPrefix, name));
   const inputId = $derived(`tui-form-${idPrefix}-${name}`);
   const errorId = $derived(`${inputId}-error`);
 
   function submitForm(event: SubmitEvent): void {
     event.preventDefault();
-    const trimmed = value.trim();
-    if (trimmed === '') {
-      error = 'Enter a value.';
+    const result = acceptFormValue(value);
+    if (!result.ok) {
+      error = result.error;
       return;
     }
     error = '';
-    onSubmit(trimmed);
+    onSubmit(result.value);
   }
 </script>
 
 {#if fieldsOk}
-  <form class="tui-form" onsubmit={submitForm}>
+  <form class="tui-form" method="post" onsubmit={submitForm}>
     <label for={inputId}>Value</label>
     <input
       id={inputId}
       type="text"
       {name}
-      maxlength="80"
+      maxlength={FORM_VALUE_MAX}
       autocomplete="off"
       bind:value
       aria-invalid={error !== ''}

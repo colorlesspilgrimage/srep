@@ -232,6 +232,49 @@ describe('page redirects', () => {
     expect(resolve).toHaveBeenCalled();
   });
 
+  it('does not render an encoded gallery path, a slash, or HEAD', async () => {
+    h = await createHarness();
+    const cases: [string, string][] = [
+      ['HEAD', '/gallery'],
+      ['GET', '/gallery/'],
+      ['GET', '/%67allery'],
+    ];
+    for (const [method, path] of cases) {
+      const result = await run(path, { method });
+      expect(result.response.status).toBe(303);
+      expect(result.response.headers.get('location')).toBe('/setup');
+      expect(result.resolve).not.toHaveBeenCalled();
+    }
+  });
+
+  it('rejects a cross-site POST to /gallery before the page runs', async () => {
+    h = await createHarness();
+    await doSetup(h);
+    const missing = await run('/gallery', { method: 'POST' });
+    expect(missing.response.status).toBe(403);
+    expect(await missing.response.json()).toEqual({ error: 'bad_origin' });
+    expect(missing.resolve).not.toHaveBeenCalled();
+    const evil = await run('/gallery', {
+      method: 'POST',
+      headers: { origin: 'http://evil.example' },
+    });
+    expect(evil.response.status).toBe(403);
+    expect(evil.resolve).not.toHaveBeenCalled();
+    const same = await run('/gallery', { method: 'POST', headers: { origin: ORIGIN } });
+    expect(same.response.status).toBe(303);
+    expect(same.response.headers.get('location')).toBe('/login');
+    expect(same.resolve).not.toHaveBeenCalled();
+  });
+
+  it('renders an encoded gallery path when the session is valid', async () => {
+    h = await createHarness();
+    const { cookie } = await signedIn();
+    const { response, resolve } = await run('/%67allery', { cookie });
+    expect(response.status).toBe(200);
+    expect(resolve).toHaveBeenCalled();
+    expect(response.headers.get('location')).toBeNull();
+  });
+
   it('keeps the /healthz cache-control header', async () => {
     h = await createHarness();
     const resolve = async () =>

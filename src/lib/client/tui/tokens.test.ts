@@ -42,8 +42,19 @@ describe('contrastRatio', () => {
     expect(meetsContrast(2.999, 3)).toBe(false);
   });
 
+  it('the focus color meets the non-text minimum on the background', () => {
+    expect(meetsContrast(contrastRatio(PHOSPHOR_GREEN.accent, PHOSPHOR_GREEN.bg), 3)).toBe(true);
+  });
+
   it('themeContrastFailures(PHOSPHOR_GREEN) is empty', () => {
     expect(themeContrastFailures(PHOSPHOR_GREEN)).toEqual([]);
+  });
+
+  it('themeContrastFailures reports a bad hex and does not throw', () => {
+    const bad: ThemeTokens = { ...PHOSPHOR_GREEN, fg: 'not-a-color' };
+    expect(() => themeContrastFailures(bad)).not.toThrow();
+    expect(themeContrastFailures(bad)).toContain('fg on bg');
+    expect(themeContrastFailures(bad)).not.toEqual([]);
   });
 
   it('themeContrastFailures reports a text pair and the border pair', () => {

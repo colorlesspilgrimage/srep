@@ -1,5 +1,8 @@
 <script lang="ts">
+  import { listKeyIndex } from './list-state.js';
+
   // Contract: a listbox. Arrow keys stop at the ends. They do not wrap.
+  // Enter selects only a real row.
 
   type Props = {
     label: string;
@@ -10,47 +13,13 @@
 
   let { label, items, selectedIndex, onSelect }: Props = $props();
 
-  function selectClamped(index: number): void {
-    const last = items.length - 1;
-    if (index < 0) {
-      onSelect(0);
-      return;
-    }
-    if (index > last) {
-      onSelect(last);
-      return;
-    }
-    onSelect(index);
-  }
-
   function onListKey(event: KeyboardEvent): void {
-    if (items.length === 0) {
+    const next = listKeyIndex(items.length, selectedIndex, event.key);
+    if (next === null) {
       return;
     }
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      selectClamped(selectedIndex + 1);
-      return;
-    }
-    if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      selectClamped(selectedIndex - 1);
-      return;
-    }
-    if (event.key === 'Home') {
-      event.preventDefault();
-      selectClamped(0);
-      return;
-    }
-    if (event.key === 'End') {
-      event.preventDefault();
-      selectClamped(items.length - 1);
-      return;
-    }
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      onSelect(selectedIndex);
-    }
+    event.preventDefault();
+    onSelect(next);
   }
 </script>
 

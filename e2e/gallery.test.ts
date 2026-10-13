@@ -27,7 +27,8 @@ test.describe.serial('gallery shell', () => {
 
   async function openGallery(width: number, height: number): Promise<void> {
     await page.setViewportSize({ width, height });
-    await page.goto('/gallery');
+    const response = await page.goto('/gallery');
+    expect(response?.headers()['cache-control'] ?? '').toContain('no-store');
     await page.waitForFunction(() => document.body.classList.contains('tui-page'));
     await expect(page.getByRole('heading', { name: 'Gallery', level: 1 })).toBeVisible();
   }
