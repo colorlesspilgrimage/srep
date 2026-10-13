@@ -1,22 +1,31 @@
 <script lang="ts">
   import './tui.css';
   import './themes.css';
+  import { apiFetch } from '#lib/client/api.js';
   import Form from './Form.svelte';
   import List from './List.svelte';
   import Modal from './Modal.svelte';
   import Pane from './Pane.svelte';
+  import SettingsPane from './SettingsPane.svelte';
   import StatusLine from './StatusLine.svelte';
+  import {
+    beginThemeSave,
+    finishThemeSave,
+    statusAfterChoice,
+    themeSaveMatches,
+  } from './theme-save-state.js';
   import { DEFAULT_THEME_ID, PREMADE_THEMES, themeById, themeClass } from './themes.js';
 
   // Contract: the gallery shell. One tree shows the side list or the tab bar.
   // The side list is not a second frame.
-  // The theme list is in the panes panel. A choice is not saved.
+  // The Themes list does not save. Only Save theme writes the choice.
 
   const SECTIONS = [
     { id: 'panes', label: 'Panes' },
     { id: 'list', label: 'List' },
     { id: 'form', label: 'Form' },
     { id: 'modal', label: 'Modal' },
+    { id: 'settings', label: 'Settings' },
   ] as const;
 
   type SectionId = (typeof SECTIONS)[number]['id'];
@@ -33,6 +42,9 @@
   let modalOpen = $state(false);
   let openModalButton = $state<HTMLButtonElement | null>(null);
   let pickedId = $state<string | null>(null);
+  let statusText = $state('');
+  let saveSerial = $state(0);
+  let savePending = $state(false);
 
   const sectionIndex = $derived(SECTIONS.findIndex((item) => item.id === section));
   const active = $derived.by(() => {
@@ -81,8 +93,34 @@
 
   function chooseTheme(index: number): void {
     const next = PREMADE_THEMES[index];
-    if (next !== undefined) {
-      pickedId = next.id;
+    if (next === undefined) {
+      return;
+    }
+    const nextState = statusAfterChoice({ serial: saveSerial, statusText }, active.id, next.id);
+    saveSerial = nextState.serial;
+    statusText = nextState.statusText;
+    pickedId = next.id;
+  }
+
+  async function saveTheme(): Promise<void> {
+    if (savePending) {
+      return;
+    }
+    const id = active.id;
+    const started = beginThemeSave({ serial: saveSerial, statusText });
+    saveSerial = started.state.serial;
+    savePending = true;
+    try {
+      const result = await apiFetch<{ id: string }>('/api/settings/theme', {
+        method: 'PUT',
+        body: { id },
+      });
+      const saved = themeSaveMatches(result.ok ? result.body : null, id);
+      const finished = finishThemeSave({ serial: saveSerial, statusText }, started.serial, saved);
+      saveSerial = finished.serial;
+      statusText = finished.statusText;
+    } finally {
+      savePending = false;
     }
   }
 </script>
@@ -167,6 +205,21 @@
           >
             Modal body
           </Modal>
+        </div>
+        <div
+          id="tui-panel-settings"
+          role="tabpanel"
+          aria-labelledby="tui-tab-settings"
+          hidden={section !== 'settings'}
+        >
+          <SettingsPane
+            items={THEME_NAMES}
+            selectedIndex={themeIndex}
+            onSelect={chooseTheme}
+            onSave={saveTheme}
+            {savePending}
+            {statusText}
+          />
         </div>
       </div>
     </div>

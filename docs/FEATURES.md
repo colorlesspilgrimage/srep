@@ -119,3 +119,22 @@ The gallery can show 12 pre-made themes. The choice is not saved. Each theme pas
 - Code and tests:
   - Code: `src/lib/client/tui/themes.ts`, `src/lib/client/tui/themes.css`, `src/lib/client/tui/GalleryShell.svelte`, `src/routes/gallery/+page.server.ts`, `src/routes/gallery/+page.svelte`.
   - Tests: `src/lib/client/tui/themes.test.ts`, `e2e/gallery-themes.test.ts`.
+
+## TUI theme settings (M4 slice 3)
+
+A signed-in user can preview a theme in the gallery Settings pane and save it. The next visit paints that theme in the first HTML.
+
+- Entry point: browser path `/gallery` after sign-in. Tab or list item `Settings`. API `GET` and `PUT /api/settings/theme`.
+- Use:
+  1. Start the server and sign in (see "Authentication (M1)").
+  2. Open `/gallery`.
+  3. Open `Settings`. Choose `Nord`. The colors change before you save.
+  4. Press `Save theme`.
+  5. Reload `/gallery`. The theme is still Nord.
+- Check:
+  - `curl -s -o /dev/null -w '%{http_code}\n' -X PUT http://127.0.0.1:3000/api/settings/theme -H 'content-type: application/json' -d '{"id":"nord"}'` prints `401`.
+  - `npx vitest run src/lib/client/tui src/lib/server/settings src/routes/gallery src/routes/api/settings/theme` passes.
+  - `npm run test:e2e` passes.
+- Code and tests:
+  - Code: `src/lib/server/settings/theme-key.ts`, `src/lib/server/settings/theme-store.ts`, `src/lib/server/settings/theme-store.sqlite.ts`, `src/lib/server/settings/theme-store.pg.ts`, `src/lib/server/settings/theme-settings.ts`, `src/routes/api/settings/theme/+server.ts`, `src/lib/client/tui/SettingsPane.svelte`, `src/lib/client/tui/GalleryShell.svelte`, `src/routes/gallery/+page.server.ts`.
+  - Tests: `src/lib/server/settings/theme-settings.test.ts`, `src/lib/server/settings/theme-store.race.test.ts`, `src/routes/api/settings/theme/server.test.ts`, `src/routes/gallery/cache-headers.test.ts`, `e2e/gallery-settings.test.ts`.
