@@ -18,10 +18,12 @@ export function createPgThemeStore(db: PostgresJsDatabase): ThemeSettingsStore {
     },
 
     async putThemeValue(value) {
+      // Store only the id. Extra fields must not stay in the row (CWE-915).
+      const stored = { id: value.id };
       await db
         .insert(appSettings)
-        .values({ key: THEME_SETTINGS_KEY, value })
-        .onConflictDoUpdate({ target: appSettings.key, set: { value } });
+        .values({ key: THEME_SETTINGS_KEY, value: stored })
+        .onConflictDoUpdate({ target: appSettings.key, set: { value: stored } });
     },
   };
 }
