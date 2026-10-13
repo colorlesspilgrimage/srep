@@ -8,6 +8,7 @@ import {
   PALETTE_OPEN,
   PALETTE_OPEN_COLON,
   canonicalizeChord,
+  copyKeybindMap,
   isReservedChord,
   type ActionId,
   type KeybindMap,
@@ -28,11 +29,7 @@ export type KeybindSettingsLogger = {
 };
 
 function copyDefault(): KeybindMap {
-  return {
-    [PALETTE_OPEN]: DEFAULT_KEYBINDS[PALETTE_OPEN],
-    [PALETTE_OPEN_COLON]: DEFAULT_KEYBINDS[PALETTE_OPEN_COLON],
-    [PALETTE_CLOSE]: DEFAULT_KEYBINDS[PALETTE_CLOSE],
-  };
+  return copyKeybindMap(DEFAULT_KEYBINDS);
 }
 
 function canonicalMap(input: Record<ActionId, string>): KeybindMap {

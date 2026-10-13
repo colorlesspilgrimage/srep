@@ -6,6 +6,7 @@
     PALETTE_OPEN_COLON,
     captureKeyEffect,
     chordFromEvent,
+    copyKeybindMap,
     remap,
     type ActionId,
     type KeybindMap,
@@ -38,11 +39,7 @@
   let cancelButton = $state<HTMLButtonElement | null>(null);
 
   function currentMap(): KeybindMap {
-    return {
-      [PALETTE_OPEN]: map[PALETTE_OPEN],
-      [PALETTE_OPEN_COLON]: map[PALETTE_OPEN_COLON],
-      [PALETTE_CLOSE]: map[PALETTE_CLOSE],
-    };
+    return copyKeybindMap(map);
   }
 
   function focusOnMount(node: HTMLButtonElement): void {
