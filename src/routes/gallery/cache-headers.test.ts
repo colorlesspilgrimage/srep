@@ -1,10 +1,34 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { getThemeSettings } = vi.hoisted(() => ({
+  getThemeSettings: vi.fn(),
+}));
+
+vi.mock('#lib/server/settings/theme-settings.js', () => ({
+  getThemeSettings,
+}));
+
+vi.mock('#lib/server/db/index.js', () => ({
+  getDb: () => ({ dialect: 'sqlite', db: {} }),
+}));
+
+vi.mock('#lib/server/logger.js', () => ({
+  getLogger: () => ({ error: () => undefined }),
+}));
+
 import { load } from './+page.server.js';
 import { galleryCacheHeaders } from './cache-headers.js';
 
-function loadGallery(search: string): { headers: Headers; page: ReturnType<typeof load> } {
+beforeEach(() => {
+  getThemeSettings.mockReset();
+  getThemeSettings.mockResolvedValue({ ok: true, id: 'phosphor-green' });
+});
+
+async function loadGallery(
+  search: string,
+): Promise<{ headers: Headers; page: Awaited<ReturnType<typeof load>> }> {
   const headers = new Headers();
-  const page = load({
+  const page = await load({
     setHeaders(value: Record<string, string>) {
       for (const [name, header] of Object.entries(value)) {
         headers.set(name, header);
@@ -21,19 +45,28 @@ describe('gallery cache headers', () => {
     expect(galleryCacheHeaders().vary).toBe('Cookie');
   });
 
-  it('the gallery load sets that header', () => {
-    const result = loadGallery('');
+  it('the gallery load sets that header', async () => {
+    const result = await loadGallery('');
     expectSafePage(result, 'phosphor-green');
+    expect(getThemeSettings).toHaveBeenCalledOnce();
   });
 
-  it('the gallery load maps a catalog theme query', () => {
-    const result = loadGallery('?theme=nord');
+  it('the gallery load maps a catalog theme query', async () => {
+    const result = await loadGallery('?theme=nord');
     expectSafePage(result, 'nord');
+    expect(getThemeSettings).not.toHaveBeenCalled();
   });
 
-  it('the gallery load rejects a theme query that is not a catalog id', () => {
-    const result = loadGallery('?theme=%3Cscript%3E');
+  it('the gallery load rejects a theme query that is not a catalog id', async () => {
+    const result = await loadGallery('?theme=%3Cscript%3E');
     expectSafePage(result, 'phosphor-green');
+    expect(getThemeSettings).not.toHaveBeenCalled();
+  });
+
+  it('an empty query uses the saved theme', async () => {
+    getThemeSettings.mockResolvedValue({ ok: true, id: 'nord' });
+    const result = await loadGallery('');
+    expectSafePage(result, 'nord');
   });
 });
 
@@ -70,7 +103,7 @@ const REJECTED_SEARCH = [
 ];
 
 function expectSafePage(
-  result: { headers: Headers; page: ReturnType<typeof load> },
+  result: { headers: Headers; page: Awaited<ReturnType<typeof load>> },
   themeId: string,
 ): void {
   expect(result.headers.get('cache-control')).toBe('no-store');
@@ -87,16 +120,16 @@ function expectSafePage(
 }
 
 describe('gallery theme query attacks', () => {
-  it.each(REJECTED_SEARCH)('rejects %s', (search) => {
-    expectSafePage(loadGallery(search), 'phosphor-green');
+  it.each(REJECTED_SEARCH)('rejects %s', async (search) => {
+    expectSafePage(await loadGallery(search), 'phosphor-green');
   });
 
-  it('uses the first theme value when the query repeats', () => {
-    expectSafePage(loadGallery('?theme=nord&theme=%3Cscript%3E'), 'nord');
-    expectSafePage(loadGallery('?theme=%3Cscript%3E&theme=nord'), 'phosphor-green');
+  it('uses the first theme value when the query repeats', async () => {
+    expectSafePage(await loadGallery('?theme=nord&theme=%3Cscript%3E'), 'nord');
+    expectSafePage(await loadGallery('?theme=%3Cscript%3E&theme=nord'), 'phosphor-green');
   });
 
-  it('accepts a percent-encoded catalog id', () => {
-    expectSafePage(loadGallery('?theme=%6eord'), 'nord');
+  it('accepts a percent-encoded catalog id', async () => {
+    expectSafePage(await loadGallery('?theme=%6eord'), 'nord');
   });
 });

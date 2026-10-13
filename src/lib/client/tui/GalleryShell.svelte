@@ -1,22 +1,25 @@
 <script lang="ts">
   import './tui.css';
   import './themes.css';
+  import { apiFetch } from '#lib/client/api.js';
   import Form from './Form.svelte';
   import List from './List.svelte';
   import Modal from './Modal.svelte';
   import Pane from './Pane.svelte';
+  import SettingsPane from './SettingsPane.svelte';
   import StatusLine from './StatusLine.svelte';
   import { DEFAULT_THEME_ID, PREMADE_THEMES, themeById, themeClass } from './themes.js';
 
   // Contract: the gallery shell. One tree shows the side list or the tab bar.
   // The side list is not a second frame.
-  // The theme list is in the panes panel. A choice is not saved.
+  // The Themes list does not save. Only Save theme writes the choice.
 
   const SECTIONS = [
     { id: 'panes', label: 'Panes' },
     { id: 'list', label: 'List' },
     { id: 'form', label: 'Form' },
     { id: 'modal', label: 'Modal' },
+    { id: 'settings', label: 'Settings' },
   ] as const;
 
   type SectionId = (typeof SECTIONS)[number]['id'];
@@ -33,6 +36,7 @@
   let modalOpen = $state(false);
   let openModalButton = $state<HTMLButtonElement | null>(null);
   let pickedId = $state<string | null>(null);
+  let statusText = $state('');
 
   const sectionIndex = $derived(SECTIONS.findIndex((item) => item.id === section));
   const active = $derived.by(() => {
@@ -84,6 +88,14 @@
     if (next !== undefined) {
       pickedId = next.id;
     }
+  }
+
+  async function saveTheme(): Promise<void> {
+    const result = await apiFetch<{ id: string }>('/api/settings/theme', {
+      method: 'PUT',
+      body: { id: active.id },
+    });
+    statusText = result.ok ? 'Saved.' : 'Could not save the theme.';
   }
 </script>
 
@@ -167,6 +179,20 @@
           >
             Modal body
           </Modal>
+        </div>
+        <div
+          id="tui-panel-settings"
+          role="tabpanel"
+          aria-labelledby="tui-tab-settings"
+          hidden={section !== 'settings'}
+        >
+          <SettingsPane
+            items={THEME_NAMES}
+            selectedIndex={themeIndex}
+            onSelect={chooseTheme}
+            onSave={saveTheme}
+            {statusText}
+          />
         </div>
       </div>
     </div>
