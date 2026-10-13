@@ -167,6 +167,11 @@ Playwright stores a gallery screenshot for every pre-made theme at 360px and at 
   1. Run `npm ci`.
   2. Run `npx playwright install --with-deps chromium`.
   3. Run `npx playwright test e2e/gallery-visual.test.ts`.
+  4. Refresh the PNG files with `npm run test:e2e:visual-baselines`.
+     That command runs the official Playwright noble image for the pinned Playwright version.
+     The image matches Ubuntu 24.04 after `npx playwright install --with-deps chromium`.
+     The gallery font stack resolves to Liberation Mono there.
+     A machine that has Cascadia Mono does not match those pixels.
 - Check:
   - The command exits 0.
   - `e2e/gallery-visual.test.ts-snapshots/` contains 24 PNG files.
