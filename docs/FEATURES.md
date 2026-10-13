@@ -84,7 +84,7 @@ FSRS scheduling with learning steps, a day-rollover clock, daily limits, a queue
 
 ## TUI gallery shell (M4 slice 1)
 
-A signed-in gallery shows pane, border, list, form, modal, and status-line samples on a character grid. Desktop shows two panes. A 360px width shows one pane and a tab bar. The theme is Phosphor Green.
+A signed-in gallery shows pane, border, list, form, modal, and status-line samples on a character grid. Desktop shows two panes. A 360px width shows one pane and a tab bar. The default theme is Phosphor Green. The Themes list can show every pre-made theme.
 
 - Entry point: browser path `/gallery` after sign-in. Home page link `Gallery`.
 - Use:
@@ -100,3 +100,22 @@ A signed-in gallery shows pane, border, list, form, modal, and status-line sampl
 - Code and tests:
   - Code: `src/lib/client/tui/`, `src/routes/gallery/+page.svelte`, link in `src/routes/+page.svelte`.
   - Tests: `src/lib/client/tui/*.test.ts`, `src/lib/server/auth/hook.test.ts`, `e2e/gallery.test.ts`.
+
+## TUI themes and contrast (M4 slice 2)
+
+The gallery can show 12 pre-made themes. The choice is not saved. Each theme passes WCAG 2.2 AA contrast. High Contrast text also passes 7:1.
+
+- Entry point: browser path `/gallery` after sign-in. Optional query `theme` with a catalog id, for example `/gallery?theme=nord`.
+- Use:
+  1. Start the server and sign in (see "Authentication (M1)").
+  2. Open `/gallery`.
+  3. In the `Themes` list, choose `Nord`.
+  4. Open `/gallery?theme=solarized-light`.
+  5. Reload `/gallery` with no query. The theme is Phosphor Green again.
+- Check:
+  - `curl -s -D - -o /dev/null 'http://127.0.0.1:3000/gallery?theme=nord'` on a fresh database returns `303` and `location: /setup`.
+  - `npx vitest run src/lib/client/tui src/routes/gallery` passes.
+  - `npx playwright test e2e/gallery.test.ts e2e/gallery-themes.test.ts` passes.
+- Code and tests:
+  - Code: `src/lib/client/tui/themes.ts`, `src/lib/client/tui/themes.css`, `src/lib/client/tui/GalleryShell.svelte`, `src/routes/gallery/+page.server.ts`, `src/routes/gallery/+page.svelte`.
+  - Tests: `src/lib/client/tui/themes.test.ts`, `e2e/gallery-themes.test.ts`.
