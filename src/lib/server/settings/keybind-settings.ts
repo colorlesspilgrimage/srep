@@ -8,6 +8,7 @@ import {
   PALETTE_OPEN,
   PALETTE_OPEN_COLON,
   canonicalizeChord,
+  isReservedChord,
   type ActionId,
   type KeybindMap,
 } from '#lib/client/tui/keymap.js';
@@ -47,6 +48,14 @@ function chordsConflict(map: KeybindMap): boolean {
   return new Set(values).size !== values.length;
 }
 
+function hasReservedChord(map: KeybindMap): boolean {
+  return (
+    isReservedChord(map[PALETTE_OPEN]) ||
+    isReservedChord(map[PALETTE_OPEN_COLON]) ||
+    isReservedChord(map[PALETTE_CLOSE])
+  );
+}
+
 function isBadChord(error: unknown): boolean {
   return error instanceof Error && error.message === 'bad_chord';
 }
@@ -69,7 +78,7 @@ export function interpretKeybinds(
   }
   try {
     const keybinds = canonicalMap(parsed.data);
-    if (chordsConflict(keybinds)) {
+    if (chordsConflict(keybinds) || hasReservedChord(keybinds)) {
       return logCorrupt(logger);
     }
     return { ok: true, keybinds };
@@ -105,7 +114,7 @@ export async function putKeybindSettings(
     }
     throw error;
   }
-  if (chordsConflict(keybinds)) {
+  if (chordsConflict(keybinds) || hasReservedChord(keybinds)) {
     return fail(400, 'bad_request');
   }
   await store.putKeybindValue(keybinds);

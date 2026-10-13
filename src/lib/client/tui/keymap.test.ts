@@ -10,6 +10,7 @@ import {
   chordFromEvent,
   closeHint,
   commandsFor,
+  elementIsTextField,
   eventMatches,
   openHint,
   paletteKeyAction,
@@ -156,6 +157,81 @@ describe('keymap chords', () => {
     expect(paletteKeyAction(event({ key: 'Escape' }), state({ paletteOpen: true }))).toBe('close');
     expect(paletteKeyAction(event({ key: 'Escape' }), state({}))).toBe('none');
     expect(paletteKeyAction(ctrlK, state({ paletteOpen: true }))).toBe('none');
+  });
+
+  it('does not match a non-ASCII letter to an ASCII chord', () => {
+    expect(eventMatches('I', event({ key: 'ı' }))).toBe(false);
+    expect(eventMatches('Ctrl+I', event({ key: 'ı', ctrlKey: true }))).toBe(false);
+    expect(eventMatches('S', event({ key: 'ſ' }))).toBe(false);
+    expect(eventMatches('I', event({ key: 'i' }))).toBe(true);
+    expect(eventMatches('I', event({ key: 'I' }))).toBe(true);
+  });
+
+  it('a character chord does not run in a text field', () => {
+    const binds: KeybindMap = {
+      ...DEFAULT_KEYBINDS,
+      [PALETTE_OPEN]: 'K',
+      [PALETTE_CLOSE]: 'J',
+    };
+    expect(paletteKeyAction(event({ key: 'k' }), state({ binds, targetIsField: true }))).toBe(
+      'none',
+    );
+    expect(paletteKeyAction(event({ key: 'k' }), state({ binds }))).toBe('open');
+    const shiftBinds: KeybindMap = { ...DEFAULT_KEYBINDS, [PALETTE_OPEN]: 'Shift+K' };
+    const shiftK = event({ key: 'K', shiftKey: true });
+    expect(paletteKeyAction(shiftK, state({ binds: shiftBinds, targetIsField: true }))).toBe(
+      'none',
+    );
+    expect(paletteKeyAction(shiftK, state({ binds: shiftBinds }))).toBe('open');
+    const altBinds: KeybindMap = { ...DEFAULT_KEYBINDS, [PALETTE_OPEN]: 'Alt+K' };
+    expect(
+      paletteKeyAction(
+        event({ key: 'k', altKey: true }),
+        state({ binds: altBinds, targetIsField: true }),
+      ),
+    ).toBe('open');
+    expect(
+      paletteKeyAction(
+        event({ key: 'j' }),
+        state({ binds, paletteOpen: true, targetIsField: true }),
+      ),
+    ).toBe('none');
+    expect(paletteKeyAction(event({ key: 'j' }), state({ binds, paletteOpen: true }))).toBe(
+      'close',
+    );
+    expect(
+      paletteKeyAction(event({ key: 'Escape' }), state({ paletteOpen: true, targetIsField: true })),
+    ).toBe('close');
+  });
+
+  it('the colon chord does not run while the palette is open', () => {
+    expect(paletteKeyAction(event({ key: ':' }), state({ paletteOpen: true }))).toBe('none');
+    expect(
+      paletteKeyAction(event({ key: ':' }), state({ paletteOpen: true, targetIsField: true })),
+    ).toBe('none');
+  });
+
+  it('remap rejects a browser or OS chord and keeps Ctrl+K', () => {
+    expect(remap(DEFAULT_KEYBINDS, PALETTE_OPEN, 'Ctrl+W')).toBe('reserved_chord');
+    expect(remap(DEFAULT_KEYBINDS, PALETTE_OPEN, 'Ctrl+Shift+W')).toBe('reserved_chord');
+    expect(remap(DEFAULT_KEYBINDS, PALETTE_OPEN, 'Meta+Q')).toBe('reserved_chord');
+    expect(remap(DEFAULT_KEYBINDS, PALETTE_OPEN, 'Ctrl+1')).toBe('reserved_chord');
+    expect(remap(DEFAULT_KEYBINDS, PALETTE_OPEN, 'Ctrl+Tab')).toBe('reserved_chord');
+    expect(remap(DEFAULT_KEYBINDS, PALETTE_CLOSE, 'Ctrl+F')).toBe('reserved_chord');
+    expect(remap(DEFAULT_KEYBINDS, PALETTE_OPEN, 'Ctrl+K')).toEqual(DEFAULT_KEYBINDS);
+    expect(remap(DEFAULT_KEYBINDS, PALETTE_OPEN, 'Alt+W')).toEqual({
+      ...DEFAULT_KEYBINDS,
+      [PALETTE_OPEN]: 'Alt+W',
+    });
+  });
+
+  it('a content editable node is a text field', () => {
+    expect(elementIsTextField('DIV', true)).toBe(true);
+    expect(elementIsTextField('INPUT', false)).toBe(true);
+    expect(elementIsTextField('TEXTAREA', false)).toBe(true);
+    expect(elementIsTextField('SELECT', false)).toBe(true);
+    expect(elementIsTextField('DIV', false)).toBe(false);
+    expect(elementIsTextField('BUTTON', false)).toBe(false);
   });
 
   it('Tab, Enter, and Space stay on Cancel, and Escape cancels', cancelKeysStayOnTheButton);

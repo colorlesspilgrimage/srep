@@ -11,7 +11,13 @@
   import Pane from './Pane.svelte';
   import SettingsPane from './SettingsPane.svelte';
   import StatusLine from './StatusLine.svelte';
-  import { closeHint, openHint, paletteKeyAction, type KeybindMap } from './keymap.js';
+  import {
+    closeHint,
+    elementIsTextField,
+    openHint,
+    paletteKeyAction,
+    type KeybindMap,
+  } from './keymap.js';
   import {
     beginThemeSave,
     finishThemeSave,
@@ -127,8 +133,7 @@
     if (!(target instanceof HTMLElement)) {
       return false;
     }
-    const tag = target.tagName;
-    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+    return elementIsTextField(target.tagName, target.isContentEditable);
   }
 
   function onGalleryKey(event: KeyboardEvent): void {
@@ -145,6 +150,7 @@
       return;
     }
     event.preventDefault();
+    event.stopPropagation();
     paletteOpen = action === 'open';
   }
 
