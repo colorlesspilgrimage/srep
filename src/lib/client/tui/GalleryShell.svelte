@@ -1,13 +1,23 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import './tui.css';
   import './themes.css';
   import { apiFetch } from '#lib/client/api.js';
+  import CommandPalette from './CommandPalette.svelte';
   import Form from './Form.svelte';
+  import KeymapForm from './KeymapForm.svelte';
   import List from './List.svelte';
   import Modal from './Modal.svelte';
   import Pane from './Pane.svelte';
   import SettingsPane from './SettingsPane.svelte';
   import StatusLine from './StatusLine.svelte';
+  import {
+    closeHint,
+    elementIsTextField,
+    openHint,
+    paletteKeyAction,
+    type KeybindMap,
+  } from './keymap.js';
   import {
     beginThemeSave,
     finishThemeSave,
@@ -29,13 +39,21 @@
   ] as const;
 
   type SectionId = (typeof SECTIONS)[number]['id'];
-  type Props = { themeId: string };
+  type Props = { themeId: string; keybinds: KeybindMap };
+
+  const COMMAND_SECTIONS: Record<string, SectionId> = {
+    'Show Panes': 'panes',
+    'Show List': 'list',
+    'Show Form': 'form',
+    'Show Modal': 'modal',
+    'Show Settings': 'settings',
+  };
 
   const SECTION_LABELS = SECTIONS.map((item) => item.label);
   const SAMPLE_ITEMS = ['Alpha', 'Beta', 'Gamma'];
   const THEME_NAMES = PREMADE_THEMES.map((theme) => theme.name);
 
-  let { themeId }: Props = $props();
+  let { themeId, keybinds }: Props = $props();
   let section = $state<SectionId>('panes');
   let sampleIndex = $state(0);
   let formValue = $state('');
@@ -45,6 +63,11 @@
   let statusText = $state('');
   let saveSerial = $state(0);
   let savePending = $state(false);
+  let draft = $state<KeybindMap | null>(null);
+  let paletteOpen = $state(false);
+  let keyCapture = $state(false);
+
+  const binds = $derived(draft ?? keybinds);
 
   const sectionIndex = $derived(SECTIONS.findIndex((item) => item.id === section));
   const active = $derived.by(() => {
@@ -65,7 +88,11 @@
     }
     return index;
   });
-  const STATUS_HINTS = $derived(['Esc close', active.name]);
+  const STATUS_HINTS = $derived([
+    openHint(binds['palette.open']),
+    closeHint(binds['palette.close']),
+    active.name,
+  ]);
 
   function chooseSection(index: number): void {
     const next = SECTIONS[index];
@@ -101,6 +128,65 @@
     statusText = nextState.statusText;
     pickedId = next.id;
   }
+
+  function isField(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) {
+      return false;
+    }
+    return elementIsTextField(target.tagName, target.isContentEditable);
+  }
+
+  function onGalleryKey(event: KeyboardEvent): void {
+    if (keyCapture) {
+      return;
+    }
+    const action = paletteKeyAction(event, {
+      modalOpen,
+      paletteOpen,
+      binds,
+      targetIsField: isField(event.target),
+    });
+    if (action === 'none') {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    paletteOpen = action === 'open';
+  }
+
+  function runCommand(name: string): void {
+    const next = COMMAND_SECTIONS[name];
+    if (next !== undefined) {
+      section = next;
+    }
+  }
+
+  function closePalette(): void {
+    paletteOpen = false;
+  }
+
+  function applyBinds(next: KeybindMap): void {
+    draft = next;
+  }
+
+  function setKeyCapture(active: boolean): void {
+    keyCapture = active;
+  }
+
+  async function saveKeys(next: KeybindMap): Promise<boolean> {
+    const result = await apiFetch<{ keybinds: KeybindMap }>('/api/settings/keybinds', {
+      method: 'PUT',
+      body: next,
+    });
+    return result.ok;
+  }
+
+  onMount(() => {
+    window.addEventListener('keydown', onGalleryKey, true);
+    return () => {
+      window.removeEventListener('keydown', onGalleryKey, true);
+    };
+  });
 
   async function saveTheme(): Promise<void> {
     if (savePending) {
@@ -220,9 +306,16 @@
             {savePending}
             {statusText}
           />
+          <KeymapForm
+            map={binds}
+            onChange={applyBinds}
+            onSave={saveKeys}
+            onCapturing={setKeyCapture}
+          />
         </div>
       </div>
     </div>
   </main>
+  <CommandPalette open={paletteOpen} onClose={closePalette} onRun={runCommand} />
   <StatusLine mode="GALLERY" hints={STATUS_HINTS} />
 </div>

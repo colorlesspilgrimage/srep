@@ -1,0 +1,15 @@
+/* The palette and the key form stay inside the gallery width. */
+
+.tui-palette,
+.tui-keymap {
+  max-width: 100%;
+}
+
+.tui-palette input[type='text'],
+.tui-keymap button,
+.tui-palette button {
+  box-sizing: border-box;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

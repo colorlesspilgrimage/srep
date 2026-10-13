@@ -10,7 +10,11 @@ import {
   type DomainHarness,
 } from '#lib/server/domain/test-support/harness.js';
 import { THEME_SETTINGS_KEY } from '#lib/server/settings/theme-key.js';
-import { getThemeSettings, putThemeSettings } from '#lib/server/settings/theme-settings.js';
+import {
+  getThemeSettings,
+  interpretTheme,
+  putThemeSettings,
+} from '#lib/server/settings/theme-settings.js';
 import { getThemeStore } from '#lib/server/settings/theme-store.js';
 
 // Contract: the saved theme id. A bad id is refused. A bad stored value is not repaired.
@@ -165,6 +169,22 @@ async function propertyPut(): Promise<void> {
   );
 }
 
+async function interpretStoredTheme(): Promise<void> {
+  await openStore();
+  const logger = { error: vi.fn() };
+  expect(interpretTheme(undefined, logger)).toEqual({ ok: true, id: 'phosphor-green' });
+  expect(logger.error).not.toHaveBeenCalled();
+  expect(interpretTheme({ id: 'nord' }, logger)).toEqual({ ok: true, id: 'nord' });
+  expect(interpretTheme({ id: 'nope' }, logger)).toEqual({
+    ok: false,
+    status: 500,
+    error: 'settings_corrupt',
+  });
+  expect(interpretTheme({ id: 'nord', extra: true }, logger).ok).toBe(false);
+  expect(logger.error).toHaveBeenCalledWith({ key: 'theme' });
+  expect(JSON.stringify(logger.error.mock.calls)).not.toContain('nope');
+}
+
 async function corruptString(): Promise<void> {
   const { db, store } = await openStore();
   db.insert(appSettings).values({ key: THEME_SETTINGS_KEY, value: 'nord' }).run();
@@ -190,4 +210,5 @@ describe('theme settings', () => {
     corruptId,
   );
   it('returns 500 when the stored value is a JSON string', corruptString);
+  it('parses a stored theme without a second copy of the checks', interpretStoredTheme);
 });

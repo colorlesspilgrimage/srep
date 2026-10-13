@@ -17,4 +17,4 @@
 
 <svelte:head><title>srep gallery</title></svelte:head>
 
-<GalleryShell themeId={data.themeId} />
+<GalleryShell themeId={data.themeId} keybinds={data.keybinds} />
