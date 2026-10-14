@@ -2,6 +2,8 @@
 // Input: CLI flags and SREP_DATABASE_URL. Output: median and p95 lines.
 // The clock is frozen. Warmup calls are dropped. Values are not shell text.
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { pathToFileURL } from 'node:url';
 import { drizzle as drizzlePostgres } from 'drizzle-orm/postgres-js';
@@ -121,6 +123,21 @@ function attachSqliteCounter(db: BetterSQLite3Database, counter: Counter): void 
     }
     return stmt;
   };
+}
+
+// A bench may delete only a database under the temp directory (CWE-73).
+export function benchSqlitePathAllowed(file: string): boolean {
+  if (file === ':memory:') {
+    return true;
+  }
+  const root = path.resolve(os.tmpdir());
+  let resolved = path.resolve(file);
+  try {
+    resolved = fs.realpathSync(resolved);
+  } catch {
+    // The path is absent. The lexical path is the check.
+  }
+  return resolved !== root && resolved.startsWith(`${root}${path.sep}`);
 }
 
 function removeSqliteFiles(file: string): void {
@@ -327,6 +344,10 @@ export async function runBench(
     const config = parseConfig({ SREP_DATABASE_URL: url });
     const counter: Counter = { statements: 0, app: 0 };
     if (config.database.dialect === 'sqlite') {
+      if (!benchSqlitePathAllowed(config.database.path)) {
+        console.error('bench sqlite path must stay in the temp directory');
+        return 1;
+      }
       removeSqliteFiles(config.database.path);
       handle = createDb(config);
     } else {

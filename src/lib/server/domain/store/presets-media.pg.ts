@@ -54,6 +54,7 @@ export function createPgPresetMediaStore(db: PostgresJsDatabase): PresetMediaSto
         await tx.insert(deckPreset).values(presetValues(seed.preset)).onConflictDoNothing();
         await seedNoteTypes(tx, seed);
       });
+      dropCacheSlot(db, 'presets');
     },
 
     async listPresets() {

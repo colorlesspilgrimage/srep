@@ -17,15 +17,41 @@ import type {
 
 type Exec = Pick<PostgresJsDatabase, 'select' | 'insert' | 'update' | 'delete' | 'execute'>;
 
-function num(value: unknown): number {
-  return Number(value);
+const CARD_STATES = new Set(['new', 'learning', 'review', 'relearning', 'suspended', 'buried']);
+const SCHED_STATES = new Set(['new', 'learning', 'review', 'relearning']);
+const NEW_ORDERS = new Set(['added', 'random']);
+
+function finite(value: unknown): number | undefined {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value !== 'string' || value.trim() === '') {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function finiteList(value: unknown): number[] | undefined {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const out: number[] = [];
+  for (const item of value) {
+    const parsed = finite(item);
+    if (parsed === undefined) {
+      return undefined;
+    }
+    out.push(parsed);
+  }
+  return out;
 }
 
 function numOrNull(value: unknown): number | null {
   if (value === null || value === undefined) {
     return null;
   }
-  return Number(value);
+  return finite(value) ?? null;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
@@ -40,24 +66,49 @@ function cardFromJson(value: unknown): CardRow | undefined {
   if (row === undefined || typeof row.id !== 'string') {
     return undefined;
   }
+  if (!CARD_STATES.has(String(row.state)) || !SCHED_STATES.has(String(row.sched_state))) {
+    return undefined;
+  }
+  const ordinal = finite(row.ordinal);
+  const due = finite(row.due);
+  const stability = finite(row.stability);
+  const difficulty = finite(row.difficulty);
+  const reps = finite(row.reps);
+  const lapses = finite(row.lapses);
+  const position = finite(row.position);
+  const flags = finite(row.flags);
+  const learningStep = finite(row.learning_step);
+  if (
+    ordinal === undefined ||
+    due === undefined ||
+    stability === undefined ||
+    difficulty === undefined ||
+    reps === undefined ||
+    lapses === undefined ||
+    position === undefined ||
+    flags === undefined ||
+    learningStep === undefined
+  ) {
+    return undefined;
+  }
   return {
     id: row.id,
     noteId: String(row.note_id),
     templateId: String(row.template_id),
-    ordinal: num(row.ordinal),
+    ordinal,
     deckId: row.deck_id === null || row.deck_id === undefined ? null : String(row.deck_id),
     state: row.state as CardRow['state'],
-    due: num(row.due),
-    stability: num(row.stability),
-    difficulty: num(row.difficulty),
+    due,
+    stability,
+    difficulty,
     lastReview: numOrNull(row.last_review),
-    reps: num(row.reps),
-    lapses: num(row.lapses),
-    position: num(row.position),
+    reps,
+    lapses,
+    position,
     buriedUntil: numOrNull(row.buried_until),
-    flags: num(row.flags),
+    flags,
     schedState: row.sched_state as CardRow['schedState'],
-    learningStep: num(row.learning_step),
+    learningStep,
   };
 }
 
@@ -66,16 +117,35 @@ function presetFromJson(value: unknown): PresetRow | undefined {
   if (row === undefined || typeof row.id !== 'string') {
     return undefined;
   }
+  const newPerDay = finite(row.new_per_day);
+  const reviewsPerDay = finite(row.reviews_per_day);
+  const desiredRetention = finite(row.desired_retention);
+  const maxInterval = finite(row.max_interval);
+  const learningSteps = finiteList(row.learning_steps);
+  const relearningSteps = finiteList(row.relearning_steps);
+  const fsrsParams = Array.isArray(row.fsrs_params) ? finiteList(row.fsrs_params) : null;
+  if (
+    newPerDay === undefined ||
+    reviewsPerDay === undefined ||
+    desiredRetention === undefined ||
+    maxInterval === undefined ||
+    learningSteps === undefined ||
+    relearningSteps === undefined ||
+    fsrsParams === undefined ||
+    !NEW_ORDERS.has(String(row.new_order))
+  ) {
+    return undefined;
+  }
   return {
     id: row.id,
     name: String(row.name),
-    newPerDay: num(row.new_per_day),
-    reviewsPerDay: num(row.reviews_per_day),
-    desiredRetention: num(row.desired_retention),
-    learningSteps: Array.isArray(row.learning_steps) ? row.learning_steps.map(num) : [],
-    relearningSteps: Array.isArray(row.relearning_steps) ? row.relearning_steps.map(num) : [],
-    maxInterval: num(row.max_interval),
-    fsrsParams: Array.isArray(row.fsrs_params) ? row.fsrs_params.map(num) : null,
+    newPerDay,
+    reviewsPerDay,
+    desiredRetention,
+    learningSteps,
+    relearningSteps,
+    maxInterval,
+    fsrsParams,
     burySiblings: row.bury_siblings === true,
     newOrder: row.new_order as PresetRow['newOrder'],
   };
@@ -127,8 +197,7 @@ async function readAnswerContext(tx: Exec, cardId: string): Promise<AnswerContex
   if (loaded === undefined || loaded.deckId === null || preset === undefined) {
     return undefined;
   }
-  const maxAt = row.max_at;
-  const lastReviewedAtMax = maxAt === null || maxAt === undefined ? null : Number(maxAt);
+  const lastReviewedAtMax = numOrNull(row.max_at);
   return {
     card: loaded,
     deckPreset: preset,

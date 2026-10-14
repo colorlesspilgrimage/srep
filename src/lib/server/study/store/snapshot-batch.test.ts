@@ -6,6 +6,7 @@ import { addNote } from '#lib/server/domain/store/suite-support.js';
 import { shuffleKey } from '#lib/server/study/core/queue-choice.js';
 import { PG_READ_SNAPSHOT } from '#lib/server/study/store/read-snapshot.pg.js';
 import { readPgSnapshotBatch, type PgBatchTx } from '#lib/server/study/store/snapshot-batch.pg.js';
+import { assembleSnapshots } from '#lib/server/study/store/snapshot-batch-shape.js';
 import { readPgSnapshots } from '#lib/server/study/store/snapshot.pg.js';
 import {
   addDeckRow,
@@ -199,6 +200,29 @@ describe('postgres snapshot batch', () => {
       newHead: { cardId: 'fresh', due: 6, position: 3 },
     });
     expect(await readPgSnapshotBatch(tx, { ...input, deckIds: [] })).toEqual([]);
+  });
+});
+
+describe('snapshot batch bad numbers', () => {
+  it('turns a non-finite count into zero', () => {
+    const [row] = assembleSnapshots(['d1'], {
+      done: [{ deck_id: 'd1', state_before: 'new', n: 'nope' }],
+      learning: [{ deck_id: 'd1', due_now: 'Infinity', today: '1', next_due: 'bad' }],
+      learningHeads: [],
+      reviewCounts: [{ deck_id: 'd1', n: '1e999' }],
+      reviewHeads: [],
+      newCounts: [{ deck_id: 'd1', n: '' }],
+      newHeads: [{ deck_id: 'd1', card_id: 'c', due: 'nope', position: '2' }],
+    });
+    expect(row).toMatchObject({
+      newDone: 0,
+      learningDueCount: 0,
+      learningTodayCount: 1,
+      nextLearningDue: null,
+      reviewDueCount: 0,
+      newCount: 0,
+      newHead: { cardId: 'c', due: 0, position: 2 },
+    });
   });
 });
 

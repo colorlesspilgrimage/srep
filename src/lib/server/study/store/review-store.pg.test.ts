@@ -180,6 +180,33 @@ describe('postgres review store stub', () => {
     expect(await store.answerCard('gone', () => answerPlan([]))).toBe('not_found');
     stub.pushContext({ card: 'bad', preset: presetJson(true, true), siblings: [], max_at: null });
     expect(await store.answerCard('bad', () => answerPlan([]))).toBe('not_found');
+    const badDue = cardJson('card-1');
+    badDue.due = 'nope';
+    stub.pushContext({
+      card: badDue,
+      preset: presetJson(true, true),
+      siblings: [],
+      max_at: null,
+    });
+    expect(await store.answerCard('nan-due', () => answerPlan([]))).toBe('not_found');
+    const badState = cardJson('card-1');
+    badState.state = 'pwned';
+    stub.pushContext({
+      card: badState,
+      preset: presetJson(true, true),
+      siblings: [],
+      max_at: null,
+    });
+    expect(await store.answerCard('bad-state', () => answerPlan([]))).toBe('not_found');
+    const huge = presetJson(true, true);
+    huge.new_per_day = 'Infinity';
+    stub.pushContext({
+      card: cardJson('card-1'),
+      preset: huge,
+      siblings: [],
+      max_at: null,
+    });
+    expect(await store.answerCard('huge-quota', () => answerPlan([]))).toBe('not_found');
     stub.pushContext({
       card: cardJson('card-1', null),
       preset: presetJson(true, true),

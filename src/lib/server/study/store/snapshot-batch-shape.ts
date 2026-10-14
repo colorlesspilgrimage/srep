@@ -17,14 +17,16 @@ export type BatchParts = {
 };
 
 function num(value: unknown): number {
-  return Number(value ?? 0);
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function numOrNull(value: unknown): number | null {
   if (value === null || value === undefined) {
     return null;
   }
-  return Number(value);
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function text(row: SqlRow, key: string): string {
