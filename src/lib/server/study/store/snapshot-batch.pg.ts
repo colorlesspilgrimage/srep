@@ -7,17 +7,13 @@ import type { SQL } from 'drizzle-orm';
 import type { DeckSnapshot } from '#lib/server/study/core/queue-choice.js';
 import type { StudySnapshotInput } from '#lib/server/study/store/study-store-types.js';
 import {
+  batchFilters,
   countSql,
   doneSql,
-  freshFilter,
-  freshOrder,
   headSql,
-  idList,
-  learningFilter,
   learningOrder,
   learningSql,
   pgShuffleKey,
-  reviewFilter,
   reviewOrder,
   windowHeadSql,
 } from '#lib/server/study/store/snapshot-batch-sql.js';
@@ -45,19 +41,17 @@ export async function readPgSnapshotBatch(
   if (input.deckIds.length === 0) {
     return [];
   }
-  const ids = idList(input.deckIds);
   const decks = input.deckIds;
-  const fresh = freshFilter();
-  const review = reviewFilter(input.window.endMs);
-  const learning = learningFilter(input.nowMs);
-  const shuffle = freshOrder(input.shuffleDeckIds, pgShuffleKey());
-  const done = asRows(await tx.execute(doneSql(ids, input)));
-  const learned = asRows(await tx.execute(learningSql(ids, input)));
-  const learningHeads = asRows(await tx.execute(windowHeadSql(ids, learning, learningOrder())));
-  const reviewCounts = asRows(await tx.execute(countSql(ids, review)));
-  const reviewHeads = asRows(await tx.execute(headSql(decks, review, reviewOrder())));
-  const newCounts = asRows(await tx.execute(countSql(ids, fresh)));
-  const newHeads = asRows(await tx.execute(headSql(decks, fresh, shuffle)));
+  const filters = batchFilters(input, pgShuffleKey());
+  const done = asRows(await tx.execute(doneSql(filters.ids, input)));
+  const learned = asRows(await tx.execute(learningSql(filters.ids, input)));
+  const learningHeads = asRows(
+    await tx.execute(windowHeadSql(filters.ids, filters.learning, learningOrder())),
+  );
+  const reviewCounts = asRows(await tx.execute(countSql(filters.ids, filters.review)));
+  const reviewHeads = asRows(await tx.execute(headSql(decks, filters.review, reviewOrder())));
+  const newCounts = asRows(await tx.execute(countSql(filters.ids, filters.fresh)));
+  const newHeads = asRows(await tx.execute(headSql(decks, filters.fresh, filters.shuffle)));
   return assembleSnapshots(input.deckIds, {
     done,
     learning: learned,

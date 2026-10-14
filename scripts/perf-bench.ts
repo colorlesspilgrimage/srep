@@ -212,11 +212,14 @@ function answerJob(study: StudyDeps, seeded: SeedResult): () => Promise<void> {
     if (cardId === undefined) {
       throw new Error('no new card');
     }
-    const result = await answer(study, { cardId, rating: 3, reps: 0, elapsedMs: 1000 });
-    if (!result.ok) {
-      throw new Error(result.error);
-    }
+    throwIfFailed(await answer(study, { cardId, rating: 3, reps: 0, elapsedMs: 1000 }));
   };
+}
+
+function throwIfFailed(result: { ok: true } | { ok: false; error: string }): void {
+  if (!result.ok) {
+    throw new Error(result.error);
+  }
 }
 
 async function runJob(
@@ -247,32 +250,20 @@ async function measure(
   const deckId = seeded.deckIds[0] ?? '';
   const noteId = seeded.noteIds[0] ?? '';
   await runJob('getNext all decks', counter, args, postgres, async () => {
-    const result = await getNext(study, {});
-    if (!result.ok) {
-      throw new Error(result.error);
-    }
+    throwIfFailed(await getNext(study, {}));
   });
   await runJob('getNext one deck', counter, args, postgres, async () => {
-    const result = await getNext(study, { deckId });
-    if (!result.ok) {
-      throw new Error(result.error);
-    }
+    throwIfFailed(await getNext(study, { deckId }));
   });
   await runJob('answer', counter, args, postgres, answerJob(study, seeded));
   await runJob('listDecks', counter, args, postgres, async () => {
     await listDecks(domain);
   });
   await runJob('getNote', counter, args, postgres, async () => {
-    const result = await getNote(domain, noteId);
-    if (!result.ok) {
-      throw new Error(result.error);
-    }
+    throwIfFailed(await getNote(domain, noteId));
   });
   await runJob('gallery settings', counter, args, postgres, async () => {
-    const result = await readGallerySettings(handle, null);
-    if (!result.ok) {
-      throw new Error(result.error);
-    }
+    throwIfFailed(await readGallerySettings(handle, null));
   });
 }
 
