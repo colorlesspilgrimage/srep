@@ -135,6 +135,7 @@ function removeSqliteFiles(file: string): void {
 function openPostgres(url: string, counter: Counter): DbHandle {
   const client = postgres(url, {
     max: 5,
+    connect_timeout: 5,
     onnotice: () => {},
     debug: (_connection, query) => {
       noteDriverQuery(counter, String(query));
@@ -258,6 +259,19 @@ async function measure(
   });
 }
 
+export function benchMedia(): DomainDeps['media'] {
+  return {
+    async write() {},
+    async read() {
+      return null;
+    },
+  };
+}
+
+export function benchLogger(): StudyDeps['logger'] {
+  return { error() {} };
+}
+
 async function prepare(
   handle: DbHandle,
   args: BenchArgs,
@@ -266,12 +280,7 @@ async function prepare(
   const store = getDomainStore(handle);
   const domain: DomainDeps = {
     store,
-    media: {
-      async write() {},
-      async read() {
-        return null;
-      },
-    },
+    media: benchMedia(),
     now: () => BENCH_NOW_MS,
     random: seededRandom(),
     limits: { mediaMaxBytes: 1024 },
@@ -283,7 +292,7 @@ async function prepare(
     domain: store,
     now: () => BENCH_NOW_MS,
     random: seededRandom(),
-    logger: { error() {} },
+    logger: benchLogger(),
   };
   return { study, domain, seeded };
 }

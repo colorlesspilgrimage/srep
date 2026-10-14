@@ -8,7 +8,7 @@ import {
   listDecks,
   updateDeck,
 } from '#lib/server/domain/decks.js';
-import { createNote, getNote } from '#lib/server/domain/notes.js';
+import { createNote, getNote, moveCards } from '#lib/server/domain/notes.js';
 import { createPreset } from '#lib/server/domain/presets.js';
 import {
   createDomainHarness,
@@ -176,6 +176,13 @@ describe('deleteDeck', () => {
     });
     const note = await getNote(h.deps, noteId);
     expect(note.ok && note.note.cards[0]?.deckId).toBe(x.id);
+    const cardId = note.ok ? note.note.cards[0]?.id : undefined;
+    expect(await moveCards(h.deps, { cardIds: [cardId ?? UNKNOWN], deckId: x.id })).toEqual({
+      ok: true,
+    });
+    expect(await moveCards(h.deps, { cardIds: [UNKNOWN], deckId: x.id })).toMatchObject({
+      status: 404,
+    });
   });
 
   it('trashes the notes', async () => {

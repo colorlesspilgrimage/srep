@@ -11,6 +11,8 @@ import { DEFAULT_STUDY_SETTINGS } from '#lib/server/study/core/types.js';
 import {
   BENCH_NOW_MS,
   benchDatabaseUrl,
+  benchLogger,
+  benchMedia,
   isPostgresUrl,
   noteDriverQuery,
   parseBenchArgs,
@@ -101,6 +103,25 @@ describe('bench stats', () => {
     const seeded = await seedBench(handle, 1, 1, BENCH_NOW_MS, window);
     expect(seeded.cards).toBe(1);
     expect(executed.length).toBeGreaterThan(0);
+  });
+
+  it('runs the silent helpers and a memory bench', async () => {
+    expect(await benchMedia().read('x')).toBeNull();
+    await benchMedia().write('x', Buffer.alloc(0));
+    benchLogger().error({ key: 'study' }, 'quiet');
+    expect(
+      await runBench(['--decks', '1', '--notes-per-deck', '5', '--warmup', '1', '--runs', '1'], {
+        SREP_DATABASE_URL: 'sqlite::memory:',
+      }),
+    ).toBe(0);
+  });
+
+  it('returns 1 when postgres cannot be reached', async () => {
+    expect(
+      await runBench(['--decks', '1', '--notes-per-deck', '1', '--warmup', '1', '--runs', '1'], {
+        SREP_DATABASE_URL: 'postgres://127.0.0.1:1/srep',
+      }),
+    ).toBe(1);
   });
 
   it('runs a one-deck sqlite bench', async () => {

@@ -2,17 +2,23 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { sql } from 'drizzle-orm';
+import { getTableConfig as pgTableConfig } from 'drizzle-orm/pg-core';
+import { getTableConfig as sqliteTableConfig } from 'drizzle-orm/sqlite-core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { seededRandom } from '#lib/server/auth/test-support/harness.js';
 import { parseConfig } from '#lib/server/config.js';
 import { createDb } from '#lib/server/db/client.js';
 import { runMigrations } from '#lib/server/db/migrate.js';
+import { BASIC_ID } from '#lib/server/domain/builtin.js';
+import * as pgSchema from '#lib/server/db/schema/pg.js';
+import * as sqliteSchema from '#lib/server/db/schema/sqlite.js';
 import { createDeck, listDecks } from '#lib/server/domain/decks.js';
 import type { DomainDeps } from '#lib/server/domain/deps.js';
 import { createPreset, deletePreset, updatePreset } from '#lib/server/domain/presets.js';
+import { createNote } from '#lib/server/domain/notes.js';
 import { seedDomain } from '#lib/server/domain/seed.js';
 import { getDomainStore } from '#lib/server/domain/store/store.js';
-import { execSql } from '#lib/server/domain/store/suite-support.js';
+import { countRows, execSql, insertReviewLog } from '#lib/server/domain/store/suite-support.js';
 import {
   createDomainHarness,
   type DomainHarness,
@@ -172,6 +178,13 @@ describe('read cache', () => {
     });
     expect(await harness.store.getMediaBySha('abc')).toMatchObject({ sha256: 'abc' });
     expect(await harness.store.findMissingMedia(['abc', 'missing'])).toEqual(['missing']);
+    const spare = await createPreset(harness.deps, { ...PRESET_INPUT, name: 'Spare' });
+    if (!spare.ok) {
+      throw new Error(spare.error);
+    }
+    expect(await harness.store.deletePresetUnlessUsed(spare.preset.id)).toBe('deleted');
+    expect(await harness.store.deletePresetUnlessUsed(spare.preset.id)).toBe('not_found');
+    expect(await harness.store.updatePreset({ ...spare.preset, name: 'Gone' })).toBe('not_found');
   });
 
   it('reloads decks when the sqlite file stamp changes', async () => {
@@ -221,5 +234,81 @@ describe('read cache', () => {
     expect(await readCached(nul, 'theme', async () => 't')).toBe('t');
     await other.close();
     await handle.close();
+  });
+
+  it('builds the index config for both schemas', () => {
+    for (const value of Object.values(sqliteSchema)) {
+      if (typeof value === 'object' && value !== null) {
+        const config = sqliteTableConfig(value as never);
+        for (const key of config.foreignKeys) {
+          key.getName();
+        }
+      }
+    }
+    for (const value of Object.values(pgSchema)) {
+      if (typeof value === 'object' && value !== null) {
+        const config = pgTableConfig(value as never);
+        for (const key of config.foreignKeys) {
+          key.getName();
+        }
+      }
+    }
+  });
+
+  it('returns 500 for a bad theme row and a bad keybind row', async () => {
+    const harness = await open();
+    await execSql(
+      harness,
+      sql`insert into app_settings (key, value) values ('theme', '{"id":"nope"}')`,
+    );
+    expect(await readGallerySettings(harness.handle, null)).toMatchObject({
+      error: 'settings_corrupt',
+    });
+    await execSql(harness, sql`delete from app_settings where key = 'theme'`);
+    await execSql(
+      harness,
+      sql`insert into app_settings (key, value) values ('keybinds', '{"nope":1}')`,
+    );
+    expect(await readGallerySettings(harness.handle, null)).toMatchObject({
+      error: 'settings_corrupt',
+    });
+    expect(await readGallerySettings(harness.handle, 'nord')).toMatchObject({
+      error: 'settings_corrupt',
+    });
+  });
+
+  it('counts rows on sqlite and on a postgres stub', async () => {
+    const harness = await open();
+    const deck = await createDeck(harness.deps, { name: 'Logged' });
+    if (!deck.ok) {
+      throw new Error(deck.error);
+    }
+    const note = await createNote(harness.deps, {
+      noteTypeId: BASIC_ID,
+      deckId: deck.deck.id,
+      fields: ['front', 'back'],
+      tags: [],
+    });
+    if (!note.ok) {
+      throw new Error(note.error);
+    }
+    const cardId = note.note.cards[0]?.id;
+    if (cardId === undefined) {
+      throw new Error('missing card');
+    }
+    await insertReviewLog(harness, 'log-1', cardId);
+    expect(await countRows(harness, 'review_log')).toBe(1);
+    const fake = {
+      handle: {
+        dialect: 'postgres' as const,
+        db: {
+          async execute() {
+            return [{ n: 4 }];
+          },
+        },
+      },
+    } as unknown as DomainHarness;
+    await execSql(fake, sql`select 1`);
+    expect(await countRows(fake, 'deck')).toBe(4);
   });
 });
