@@ -66,6 +66,7 @@ export function createSqlitePresetMediaStore(db: BetterSQLite3Database): PresetM
         tx.insert(deckPreset).values(presetValues(seed.preset)).onConflictDoNothing().run();
         seedNoteTypes(tx, seed);
       });
+      dropCacheSlot(db, 'presets');
     },
 
     async listPresets() {

@@ -185,10 +185,10 @@ describe('postgres preset cache drops', () => {
     const next: PresetRow = { ...BUILTIN_PRESET, id: 'p2', name: 'Fast', fsrsParams: [1] };
     stub.push([{ id: 'other' }]);
     expect(await store.insertPreset(next)).toBe('name_taken');
-    expect(cacheSlotVersion(stub.db, 'presets')).toBe(0);
+    expect(cacheSlotVersion(stub.db, 'presets')).toBe(1);
     stub.push([]);
     expect(await store.insertPreset(next)).toBe('ok');
-    expect(cacheSlotVersion(stub.db, 'presets')).toBe(1);
+    expect(cacheSlotVersion(stub.db, 'presets')).toBe(2);
     stub.failNext({ code: '23505' });
     stub.push([]);
     expect(await store.insertPreset(next)).toBe('name_taken');
@@ -295,7 +295,7 @@ describe('postgres transaction stamp', () => {
     expect(selects.length).toBe(warm + 1);
     missing = true;
     await store.listDecks();
-    expect(selects.length).toBe(warm + 1);
+    expect(selects.length).toBe(warm + 2);
   });
 
   it('reads xact_commit once for two slots at the same time', async () => {

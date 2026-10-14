@@ -13,6 +13,7 @@ import {
   benchDatabaseUrl,
   benchLogger,
   benchMedia,
+  benchSqlitePathAllowed,
   isPostgresUrl,
   noteDriverQuery,
   parseBenchArgs,
@@ -114,6 +115,24 @@ describe('bench stats', () => {
         SREP_DATABASE_URL: 'sqlite::memory:',
       }),
     ).toBe(0);
+  });
+
+  it('does not delete a sqlite file outside the temp directory', async () => {
+    const file = path.join(process.cwd(), `srep-bench-guard-${process.pid}.db`);
+    const outside = path.join(process.cwd(), `srep-bench-real-${process.pid}.db`);
+    fs.writeFileSync(file, 'keep');
+    fs.writeFileSync(outside, 'keep');
+    files.push(file, outside);
+    const link = path.join(os.tmpdir(), `srep-bench-link-${process.pid}.db`);
+    fs.symlinkSync(outside, link);
+    files.push(link);
+    expect(benchSqlitePathAllowed(file)).toBe(false);
+    expect(benchSqlitePathAllowed(link)).toBe(false);
+    expect(benchSqlitePathAllowed(':memory:')).toBe(true);
+    const code = await runBench(['--decks', '1'], { SREP_DATABASE_URL: `sqlite:${file}` });
+    expect(code).toBe(1);
+    expect(fs.readFileSync(file, 'utf8')).toBe('keep');
+    expect(fs.readFileSync(outside, 'utf8')).toBe('keep');
   });
 
   it('returns 1 when postgres cannot be reached', async () => {

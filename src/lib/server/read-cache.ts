@@ -2,11 +2,16 @@
 // The key is the Drizzle database object. Two handles do not share rows.
 // A read copies the version, loads when the slot is empty, and stores
 // only when that version is still current.
+// The file stamp and xact_commit are read before the load and after it.
+// A change blocks the store, so a new token cannot keep old rows.
+// A stored row is a clone. A caller cannot change the stored row.
+// A failed load does not fill the slot.
 // Call dropCacheSlot on the next line after commit. Do not await between them.
 // A failed write does not call dropCacheSlot.
 // Do not call readCached inside an open write transaction.
 // SQLite hits compare the database file and its -wal file.
 // Postgres hits read xact_commit for current_database(). A change clears every slot.
+// A missing xact_commit does not count as fresh.
 import fs from 'node:fs';
 import { sql } from 'drizzle-orm';
 
@@ -157,17 +162,13 @@ async function readXact(db: ExecuteDb): Promise<string | null> {
 
 // This session does not see its own commits in xact_commit. Another session does.
 // An equal value keeps the rows. A different value clears every slot.
+// A missing value is not fresh (CWE-345).
 async function readFresh(cache: DbCache, db: ExecuteDb): Promise<boolean> {
   const seen = await readXact(db);
   if (seen === null || cache.xact === null) {
-    if (seen !== null) {
-      cache.xact = seen;
-    }
-    return true;
+    return false;
   }
-  const fresh = seen === cache.xact;
-  cache.xact = seen;
-  return fresh;
+  return seen === cache.xact;
 }
 
 async function postgresFresh(cache: DbCache, db: object): Promise<boolean> {
@@ -198,11 +199,45 @@ function clearSlots(cache: DbCache): void {
   }
 }
 
-function expose<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return [...value] as T;
+function isolate<T>(value: T): { ok: true; value: T } | { ok: false } {
+  if (typeof value !== 'object' || value === null) {
+    return { ok: true, value };
   }
-  return value;
+  try {
+    return { ok: true, value: structuredClone(value) };
+  } catch {
+    return { ok: false };
+  }
+}
+
+function hitValue<T>(value: T): T {
+  const hit = isolate(value);
+  return hit.ok ? hit.value : value;
+}
+
+function stampsStable(before: Stamp | null, after: Stamp | null): boolean {
+  if (before === null || after === null) {
+    return before === after;
+  }
+  return sameStamp(before, after);
+}
+
+function canStore(
+  db: object,
+  version: number,
+  slot: Slot,
+  stampBefore: Stamp | null,
+  stampAfter: Stamp | null,
+  xactBefore: string | null,
+  xactAfter: string | null,
+): boolean {
+  if (slot.version !== version || !stampsStable(stampBefore, stampAfter)) {
+    return false;
+  }
+  if (!isPostgres(db)) {
+    return true;
+  }
+  return xactAfter !== null && xactBefore === xactAfter;
 }
 
 function invalidateStamp(slot: Slot, db: object): void {
@@ -215,6 +250,39 @@ function invalidateStamp(slot: Slot, db: object): void {
   slot.stamp = null;
 }
 
+async function prepareSlot(cache: DbCache, slot: Slot, db: object): Promise<void> {
+  invalidateStamp(slot, db);
+  if (slot.filled && !(await postgresFresh(cache, db))) {
+    clearSlots(cache);
+  }
+}
+
+async function fillSlot<T>(
+  cache: DbCache,
+  slot: Slot,
+  db: object,
+  load: () => Promise<T>,
+): Promise<T> {
+  const version = slot.version;
+  const stampBefore = fileStamp(db);
+  const xactBefore = isPostgres(db) ? await readXact(db) : null;
+  const value = await load();
+  const stampAfter = fileStamp(db);
+  const xactAfter = isPostgres(db) ? await readXact(db) : null;
+  const copy = isolate(value);
+  const store = canStore(db, version, slot, stampBefore, stampAfter, xactBefore, xactAfter);
+  if (copy.ok && store) {
+    slot.value = copy.value;
+    slot.filled = true;
+    slot.stamp = stampAfter;
+    if (xactAfter !== null) {
+      cache.xact = xactAfter;
+    }
+    return hitValue(slot.value as T);
+  }
+  return copy.ok ? copy.value : value;
+}
+
 export async function readCached<T>(
   db: object,
   name: CacheSlot,
@@ -222,24 +290,9 @@ export async function readCached<T>(
 ): Promise<T> {
   const cache = cacheFor(db);
   const slot = cache.slots[name];
-  invalidateStamp(slot, db);
-  if (slot.filled && !(await postgresFresh(cache, db))) {
-    clearSlots(cache);
-  }
+  await prepareSlot(cache, slot, db);
   if (slot.filled) {
-    return expose(slot.value as T);
+    return hitValue(slot.value as T);
   }
-  const version = slot.version;
-  const value = await load();
-  const stamp = fileStamp(db);
-  const xact = isPostgres(db) ? await readXact(db) : null;
-  if (slot.version === version) {
-    slot.value = value;
-    slot.filled = true;
-    slot.stamp = stamp;
-    if (xact !== null) {
-      cache.xact = xact;
-    }
-  }
-  return expose(value);
+  return fillSlot(cache, slot, db, load);
 }
