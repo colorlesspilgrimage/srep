@@ -17,6 +17,7 @@ import {
   type StudyHarness,
 } from '#lib/server/study/test-support/harness.js';
 import { queryRows } from '#lib/server/study/test-support/simulation-checks.js';
+import './store/review-store.pg.test.js';
 
 const MIN = 60_000;
 const DAY = 86_400_000;
@@ -24,7 +25,7 @@ const UNKNOWN = '123e4567-e89b-42d3-a456-426614174000';
 
 let h: StudyHarness;
 afterEach(async () => {
-  await h.close();
+  await h?.close();
 });
 
 const answerCard = (cardId: string, rating: number, reps: number, elapsedMs = 2500) =>

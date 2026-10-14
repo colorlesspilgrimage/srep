@@ -35,6 +35,7 @@ import { getStudyStore } from '#lib/server/study/store/store.js';
 import { getSettings, updateSettings } from '#lib/server/study/study-settings.js';
 import type { StudyDeps } from '#lib/server/study/deps.js';
 import './read-cache.pg.test.js';
+import './read-cache.live.test.js';
 
 // Contract: one process cache per database object.
 // A second read does not select. A write or execSql shows the new row.

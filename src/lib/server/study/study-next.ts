@@ -47,12 +47,11 @@ async function studyScope(
   deps: StudyDeps,
   deckId: string | undefined,
 ): Promise<{ decks: DeckRow[]; quotas: DeckQuota[] } | null> {
-  const all = await deps.domain.listDecks();
+  const [all, presets] = await Promise.all([deps.domain.listDecks(), deps.domain.listPresets()]);
   if (deckId !== undefined && !all.some((d) => d.id === deckId)) {
     return null;
   }
   const ids = new Set(deckId === undefined ? all.map((d) => d.id) : subtreeIds(all, deckId));
-  const presets = await deps.domain.listPresets();
   const decks: DeckRow[] = [];
   const quotas: DeckQuota[] = [];
   for (const deck of all) {

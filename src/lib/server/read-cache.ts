@@ -28,6 +28,7 @@ type Slot = {
 type DbCache = {
   slots: Record<CacheSlot, Slot>;
   xact: string | null;
+  flight: Promise<boolean> | null;
 };
 
 type PgRows = { length: number; [index: number]: Record<string, unknown> };
@@ -50,7 +51,7 @@ function emptyCache(): DbCache {
     theme: emptySlot(),
     keybinds: emptySlot(),
   };
-  return { slots, xact: null };
+  return { slots, xact: null, flight: null };
 }
 
 function cacheFor(db: object): DbCache {
@@ -81,13 +82,19 @@ export function dropAllCache(db: object): void {
   }
 }
 
+function clientOf(db: object): unknown {
+  return (db as { $client?: unknown }).$client;
+}
+
+// better-sqlite3 sets $client to the file object. postgres.js sets $client to a
+// function whose name is "sql". That name is not a database file.
 function sqliteFile(db: object): string | null {
-  const client = (db as { $client?: { name?: unknown } }).$client;
-  const name = client?.name;
-  if (typeof name !== 'string') {
+  const client = clientOf(db);
+  if (typeof client !== 'object' || client === null) {
     return null;
   }
-  if (name.length === 0 || name === ':memory:' || name.includes('\0')) {
+  const name = (client as { name?: unknown }).name;
+  if (typeof name !== 'string' || name.length === 0 || name === ':memory:' || name.includes('\0')) {
     return null;
   }
   return name;
@@ -134,7 +141,7 @@ function stampChanged(slot: Slot, db: object): boolean {
 
 function isPostgres(db: object): db is ExecuteDb {
   const execute = (db as { execute?: unknown }).execute;
-  return sqliteFile(db) === null && typeof execute === 'function';
+  return typeof clientOf(db) === 'function' && typeof execute === 'function';
 }
 
 async function readXact(db: ExecuteDb): Promise<string | null> {
@@ -148,10 +155,9 @@ async function readXact(db: ExecuteDb): Promise<string | null> {
   return null;
 }
 
-async function postgresFresh(cache: DbCache, db: object): Promise<boolean> {
-  if (!isPostgres(db)) {
-    return true;
-  }
+// This session does not see its own commits in xact_commit. Another session does.
+// An equal value keeps the rows. A different value clears every slot.
+async function readFresh(cache: DbCache, db: ExecuteDb): Promise<boolean> {
   const seen = await readXact(db);
   if (seen === null || cache.xact === null) {
     if (seen !== null) {
@@ -159,9 +165,27 @@ async function postgresFresh(cache: DbCache, db: object): Promise<boolean> {
     }
     return true;
   }
-  const fresh = BigInt(seen) === BigInt(cache.xact) + 1n;
+  const fresh = seen === cache.xact;
   cache.xact = seen;
   return fresh;
+}
+
+async function postgresFresh(cache: DbCache, db: object): Promise<boolean> {
+  if (!isPostgres(db)) {
+    return true;
+  }
+  if (cache.flight !== null) {
+    return cache.flight;
+  }
+  const run = readFresh(cache, db);
+  cache.flight = run;
+  try {
+    return await run;
+  } finally {
+    if (cache.flight === run) {
+      cache.flight = null;
+    }
+  }
 }
 
 function clearSlots(cache: DbCache): void {

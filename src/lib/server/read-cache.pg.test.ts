@@ -6,7 +6,7 @@ import { deckRow } from '#lib/server/domain/store/suite-support.js';
 import { createPgDeckStore } from '#lib/server/domain/store/decks.pg.js';
 import { createPgPresetMediaStore } from '#lib/server/domain/store/presets-media.pg.js';
 import type { DeckRow, MediaRow, PresetRow } from '#lib/server/domain/store/store-types.js';
-import { cacheSlotVersion } from '#lib/server/read-cache.js';
+import { cacheSlotVersion, readCached } from '#lib/server/read-cache.js';
 import { createPgKeybindStore } from '#lib/server/settings/keybind-store.pg.js';
 import { createPgThemeStore } from '#lib/server/settings/theme-store.pg.js';
 import { createPgStudySettingsStore } from '#lib/server/study/store/settings-store.pg.js';
@@ -266,17 +266,19 @@ describe('postgres settings cache drops', () => {
 });
 
 describe('postgres transaction stamp', () => {
-  it('keeps a hit when xact_commit grows by one and reloads on a jump', async () => {
-    let commit = 0n;
+  it('keeps a hit while xact_commit stays and reloads when it changes', async () => {
+    let commit = 5n;
     let missing = false;
     const selects: number[] = [];
     const db = {
+      $client: function sql() {
+        return undefined;
+      },
       select() {
         selects.push(1);
         return chain(Promise.resolve([{ id: 'a', path: 'A' }]));
       },
       async execute() {
-        commit += 1n;
         if (missing) {
           return [{}];
         }
@@ -288,11 +290,30 @@ describe('postgres transaction stamp', () => {
     const warm = selects.length;
     await store.listDecks();
     expect(selects.length).toBe(warm);
-    commit += 10n;
+    commit += 1n;
     await store.listDecks();
     expect(selects.length).toBe(warm + 1);
     missing = true;
     await store.listDecks();
     expect(selects.length).toBe(warm + 1);
+  });
+
+  it('reads xact_commit once for two slots at the same time', async () => {
+    let checks = 0;
+    const db = {
+      $client: function sql() {
+        return undefined;
+      },
+      async execute() {
+        checks += 1;
+        return [{ xact_commit: '4' }];
+      },
+    };
+    const load = async () => ['row'];
+    await readCached(db, 'decks', load);
+    await readCached(db, 'presets', load);
+    const before = checks;
+    await Promise.all([readCached(db, 'decks', load), readCached(db, 'presets', load)]);
+    expect(checks - before).toBe(1);
   });
 });
