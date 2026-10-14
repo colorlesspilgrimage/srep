@@ -65,7 +65,14 @@ export function countSql(ids: SQL, filter: SQL): SQL {
     group by ${card.deckId}`;
 }
 
-export function headSql(ids: SQL, filter: SQL, order: SQL): SQL {
+export function deckSource(ids: string[]): SQL {
+  return sql.join(
+    ids.map((id) => sql`select ${id} as deck_id`),
+    sql` union all `,
+  );
+}
+
+export function windowHeadSql(ids: SQL, filter: SQL, order: SQL): SQL {
   return sql`select deck_id, card_id, due, position from (
       select ${card.deckId} as deck_id, ${card.id} as card_id, ${card.due} as due,
         ${card.position} as position,
@@ -75,6 +82,19 @@ export function headSql(ids: SQL, filter: SQL, order: SQL): SQL {
       where ${live(ids, filter)}
     ) ranked
     where rn = 1`;
+}
+
+export function headSql(deckIds: string[], filter: SQL, order: SQL): SQL {
+  return sql`select d.deck_id as deck_id, head.id as card_id, head.due as due, head.position as position
+    from (${deckSource(deckIds)}) d
+    inner join ${card} head on head.id = (
+      select ${card.id}
+      from ${card}
+      inner join ${note} on ${note.id} = ${card.noteId}
+      where ${card.deckId} = d.deck_id and ${note.deletedAt} is null and ${filter}
+      order by ${order}
+      limit 1
+    )`;
 }
 
 export function learningFilter(nowMs: number): SQL {
@@ -98,7 +118,15 @@ export function reviewOrder(): SQL {
 }
 
 export function newOrder(shuffleIds: string[], shuffleKey: SQL): SQL {
-  const gate = shuffleIds.length === 0 ? sql`0` : sql`${card.deckId} in (${idList(shuffleIds)})`;
+  const gate = sql`${card.deckId} in (${idList(shuffleIds)})`;
   const first = sql`case when ${gate} then ${shuffleKey} else ${card.position} end`;
   return sql`${first} asc, ${card.position} asc, ${card.id} asc`;
+}
+
+// Added order is position, then id. Skip the shuffle expression.
+export function freshOrder(shuffleIds: string[], shuffleKey: SQL): SQL {
+  if (shuffleIds.length === 0) {
+    return sql`${card.position} asc, ${card.id} asc`;
+  }
+  return newOrder(shuffleIds, shuffleKey);
 }

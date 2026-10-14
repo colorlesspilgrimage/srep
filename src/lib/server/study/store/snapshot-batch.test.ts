@@ -209,7 +209,7 @@ function rowsFor(text: string) {
   if (text.includes('due_now')) {
     return [{ deck_id: 'd1', due_now: '1', today: '2', next_due: '9' }];
   }
-  if (text.includes('row_number')) {
+  if (text.includes('row_number') || text.includes('limit 1')) {
     if (text.includes("'learning'")) {
       return [{ deck_id: 'd1', card_id: 'learn', due: '4', position: '1' }];
     }

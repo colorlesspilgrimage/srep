@@ -10,12 +10,12 @@ import {
   countSql,
   doneSql,
   freshFilter,
+  freshOrder,
   headSql,
   idList,
   learningFilter,
   learningOrder,
   learningSql,
-  newOrder,
   reviewFilter,
   reviewOrder,
   sqliteShuffleKey,
@@ -35,14 +35,15 @@ export function readSqliteSnapshotBatch(
   const fresh = freshFilter();
   const review = reviewFilter(input.window.endMs);
   const learning = learningFilter(input.nowMs);
-  const shuffle = newOrder(input.shuffleDeckIds, sqliteShuffleKey());
-  return assembleSnapshots(input.deckIds, {
+  const shuffle = freshOrder(input.shuffleDeckIds, sqliteShuffleKey());
+  const decks = input.deckIds;
+  return assembleSnapshots(decks, {
     done: tx.all(doneSql(ids, input)),
     learning: tx.all(learningSql(ids, input)),
-    learningHeads: tx.all(headSql(ids, learning, learningOrder())),
+    learningHeads: tx.all(headSql(decks, learning, learningOrder())),
     reviewCounts: tx.all(countSql(ids, review)),
-    reviewHeads: tx.all(headSql(ids, review, reviewOrder())),
+    reviewHeads: tx.all(headSql(decks, review, reviewOrder())),
     newCounts: tx.all(countSql(ids, fresh)),
-    newHeads: tx.all(headSql(ids, fresh, shuffle)),
+    newHeads: tx.all(headSql(decks, fresh, shuffle)),
   });
 }

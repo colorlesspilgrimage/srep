@@ -89,7 +89,7 @@ function pgHandle(
       config: unknown,
     ) {
       configs.push(config);
-      return fn(tx);
+      return fn({ select: () => chain(rows.shift()) });
     },
   };
   return {

@@ -1,0 +1,2 @@
+CREATE INDEX "card_new_pos_idx" ON "card" USING btree ("deck_id","state","position","id");--> statement-breakpoint
+CREATE INDEX "card_review_due_idx" ON "card" USING btree ("deck_id","state","due","position","id");

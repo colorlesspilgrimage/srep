@@ -10,15 +10,16 @@ import {
   countSql,
   doneSql,
   freshFilter,
+  freshOrder,
   headSql,
   idList,
   learningFilter,
   learningOrder,
   learningSql,
-  newOrder,
   pgShuffleKey,
   reviewFilter,
   reviewOrder,
+  windowHeadSql,
 } from '#lib/server/study/store/snapshot-batch-sql.js';
 import { assembleSnapshots, type SqlRow } from '#lib/server/study/store/snapshot-batch-shape.js';
 
@@ -45,17 +46,18 @@ export async function readPgSnapshotBatch(
     return [];
   }
   const ids = idList(input.deckIds);
+  const decks = input.deckIds;
   const fresh = freshFilter();
   const review = reviewFilter(input.window.endMs);
   const learning = learningFilter(input.nowMs);
-  const shuffle = newOrder(input.shuffleDeckIds, pgShuffleKey());
+  const shuffle = freshOrder(input.shuffleDeckIds, pgShuffleKey());
   const done = asRows(await tx.execute(doneSql(ids, input)));
   const learned = asRows(await tx.execute(learningSql(ids, input)));
-  const learningHeads = asRows(await tx.execute(headSql(ids, learning, learningOrder())));
+  const learningHeads = asRows(await tx.execute(windowHeadSql(ids, learning, learningOrder())));
   const reviewCounts = asRows(await tx.execute(countSql(ids, review)));
-  const reviewHeads = asRows(await tx.execute(headSql(ids, review, reviewOrder())));
+  const reviewHeads = asRows(await tx.execute(headSql(decks, review, reviewOrder())));
   const newCounts = asRows(await tx.execute(countSql(ids, fresh)));
-  const newHeads = asRows(await tx.execute(headSql(ids, fresh, shuffle)));
+  const newHeads = asRows(await tx.execute(headSql(decks, fresh, shuffle)));
   return assembleSnapshots(input.deckIds, {
     done,
     learning: learned,
