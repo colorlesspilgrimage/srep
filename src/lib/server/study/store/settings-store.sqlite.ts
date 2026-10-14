@@ -2,6 +2,7 @@
 import { eq } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { appSettings } from '#lib/server/db/schema/sqlite.js';
+import { dropCacheSlot, readCached } from '#lib/server/read-cache.js';
 import {
   STUDY_SETTINGS_KEY,
   type StudySettingsStore,
@@ -10,12 +11,14 @@ import {
 export function createSqliteStudySettingsStore(db: BetterSQLite3Database): StudySettingsStore {
   return {
     async getStudySettings() {
-      const row = db
-        .select({ value: appSettings.value })
-        .from(appSettings)
-        .where(eq(appSettings.key, STUDY_SETTINGS_KEY))
-        .get();
-      return row?.value;
+      return readCached(db, 'study', async () => {
+        const row = db
+          .select({ value: appSettings.value })
+          .from(appSettings)
+          .where(eq(appSettings.key, STUDY_SETTINGS_KEY))
+          .get();
+        return row?.value;
+      });
     },
 
     async putStudySettings(value) {
@@ -23,6 +26,7 @@ export function createSqliteStudySettingsStore(db: BetterSQLite3Database): Study
         .values({ key: STUDY_SETTINGS_KEY, value })
         .onConflictDoUpdate({ target: appSettings.key, set: { value } })
         .run();
+      dropCacheSlot(db, 'study');
     },
   };
 }

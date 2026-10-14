@@ -7,6 +7,7 @@ import { isPgUniqueViolation } from '#lib/server/domain/store/errors.js';
 import { chunk } from '#lib/server/domain/store/shared.js';
 import type { DeckRow } from '#lib/server/domain/store/store-types.js';
 import { card, deck, note } from '#lib/server/db/schema/pg.js';
+import { dropCacheSlot, readCached } from '#lib/server/read-cache.js';
 
 type Exec = Pick<PostgresJsDatabase, 'select' | 'insert' | 'update' | 'delete'>;
 
@@ -44,7 +45,7 @@ async function trashNotesOf(tx: Exec, ids: string[], now: number): Promise<void>
 export function createPgDeckStore(db: PostgresJsDatabase): DeckStore {
   return {
     async listDecks() {
-      return db.select().from(deck).orderBy(asc(deck.path));
+      return readCached(db, 'decks', async () => db.select().from(deck).orderBy(asc(deck.path)));
     },
 
     async getDeck(id) {
@@ -55,6 +56,7 @@ export function createPgDeckStore(db: PostgresJsDatabase): DeckStore {
     async insertDeck(row) {
       try {
         await db.insert(deck).values(row);
+        dropCacheSlot(db, 'decks');
         return 'ok';
       } catch (error) {
         if (isPgUniqueViolation(error)) {
@@ -66,15 +68,19 @@ export function createPgDeckStore(db: PostgresJsDatabase): DeckStore {
 
     async changeDecks(compute) {
       try {
-        return await db.transaction(async (tx) => {
-          const change = compute(await tx.select().from(deck));
-          if (change.ok) {
-            for (const row of change.updates) {
+        const change = await db.transaction(async (tx) => {
+          const next = compute(await tx.select().from(deck));
+          if (next.ok) {
+            for (const row of next.updates) {
               await tx.update(deck).set(row).where(eq(deck.id, row.id));
             }
           }
-          return change;
+          return next;
         });
+        if (change.ok && change.updates.length > 0) {
+          dropCacheSlot(db, 'decks');
+        }
+        return change;
       } catch (error) {
         if (isPgUniqueViolation(error)) {
           return fail(409, 'deck_name_taken');
@@ -95,18 +101,18 @@ export function createPgDeckStore(db: PostgresJsDatabase): DeckStore {
     },
 
     async deleteDeckTree(rootId, action, now) {
-      return db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx) => {
         const all = await tx.select().from(deck);
         const ids = subtreeIds(all, rootId);
         if (ids.length === 0) {
-          return 'not_found';
+          return 'not_found' as const;
         }
         if (action.kind === 'move') {
           if (!all.some((d) => d.id === action.targetDeckId)) {
-            return 'target_not_found';
+            return 'target_not_found' as const;
           }
           if (ids.includes(action.targetDeckId)) {
-            return 'target_in_subtree';
+            return 'target_in_subtree' as const;
           }
           for (const part of chunk(ids)) {
             await tx
@@ -118,8 +124,12 @@ export function createPgDeckStore(db: PostgresJsDatabase): DeckStore {
           await trashNotesOf(tx, ids, now);
         }
         await deleteDecks(tx, all, ids);
-        return 'ok';
+        return 'ok' as const;
       });
+      if (result !== 'not_found') {
+        dropCacheSlot(db, 'decks');
+      }
+      return result;
     },
   };
 }

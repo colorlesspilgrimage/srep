@@ -1,0 +1,1 @@
+CREATE INDEX "card_state_buried_idx" ON "card" USING btree ("state","buried_until");

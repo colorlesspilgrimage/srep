@@ -215,3 +215,23 @@ Node 22.17 is the minimum. drizzle-kit is pinned to 0.31.11. The esbuild overrid
 - Code and tests:
   - Code: `package.json`, `package-lock.json`, `.github/workflows/ci.yml`, `scripts/db-generate.mjs`.
   - Tests: `scripts/db-generate.test.ts`, `scripts/toolchain-pin.test.ts`, `scripts/toolchain-pin-edge.test.ts`, `scripts/ci-workflow.test.ts`.
+
+## Performance bench and bundle guard
+
+A repeatable bench times study next, answer, deck list, and note read. CI rejects a client JS gzip sum above 56000 bytes. Results and auth behavior stay the same.
+
+- Entry point: `npx tsx scripts/perf-bench.ts`. CI step `node scripts/bundle-budget.mjs` after `npm run build`.
+- Use:
+  1. Run the SETUP commands.
+  2. Run `npx tsx scripts/perf-bench.ts --decks 20 --notes-per-deck 500 --warmup 5 --runs 30`.
+  3. Read the median and p95 lines.
+  4. Run `npm run build`.
+  5. Run `node scripts/bundle-budget.mjs`.
+- Check:
+  - The bench exits 0.
+  - SQLite all-deck next median is 17 ms or less.
+  - The budget command exits 0 on a current build.
+  - `npx vitest run scripts/perf-bench-stats.test.ts scripts/bundle-budget.test.ts` exits 0.
+- Code and tests:
+  - Code: `src/lib/server/study/store/snapshot-batch.sqlite.ts`, `src/lib/server/study/store/snapshot-batch.pg.ts`, `src/lib/server/read-cache.ts`, `src/lib/client/sign-out.ts`, `scripts/perf-bench.ts`, `scripts/bundle-budget.mjs`.
+  - Tests: `src/lib/server/study/store/snapshot-batch.test.ts`, `src/lib/server/read-cache.test.ts`, `scripts/perf-bench-stats.test.ts`, `scripts/bundle-budget.test.ts`.

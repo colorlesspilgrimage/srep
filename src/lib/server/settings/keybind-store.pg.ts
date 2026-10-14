@@ -5,20 +5,23 @@ import { eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { copyKeybindMap } from '#lib/client/tui/keymap.js';
 import { appSettings } from '#lib/server/db/schema/pg.js';
+import { dropCacheSlot, readCached } from '#lib/server/read-cache.js';
 import { KEYBIND_SETTINGS_KEY } from '#lib/server/settings/keybind-key.js';
 import type { KeybindSettingsStore } from '#lib/server/settings/keybind-store.js';
 
 export function createPgKeybindStore(db: PostgresJsDatabase): KeybindSettingsStore {
   return {
     async getKeybindValue() {
-      const [row] = await db
-        .select({ value: appSettings.value })
-        .from(appSettings)
-        .where(eq(appSettings.key, KEYBIND_SETTINGS_KEY));
-      if (row === undefined) {
-        return null;
-      }
-      return row.value;
+      return readCached(db, 'keybinds', async () => {
+        const [row] = await db
+          .select({ value: appSettings.value })
+          .from(appSettings)
+          .where(eq(appSettings.key, KEYBIND_SETTINGS_KEY));
+        if (row === undefined) {
+          return null;
+        }
+        return row.value;
+      });
     },
 
     async putKeybindValue(value) {
@@ -28,6 +31,7 @@ export function createPgKeybindStore(db: PostgresJsDatabase): KeybindSettingsSto
         .insert(appSettings)
         .values({ key: KEYBIND_SETTINGS_KEY, value: stored })
         .onConflictDoUpdate({ target: appSettings.key, set: { value: stored } });
+      dropCacheSlot(db, 'keybinds');
     },
   };
 }

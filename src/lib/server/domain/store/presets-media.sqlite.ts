@@ -4,6 +4,7 @@ import { isSqliteUniqueViolation } from '#lib/server/domain/store/errors.js';
 import { chunk } from '#lib/server/domain/store/shared.js';
 import type { DomainStore, MediaRow, PresetRow } from '#lib/server/domain/store/store-types.js';
 import { cardTemplate, deck, deckPreset, media, noteType } from '#lib/server/db/schema/sqlite.js';
+import { dropCacheSlot, readCached } from '#lib/server/read-cache.js';
 
 type Exec = Pick<BetterSQLite3Database, 'select' | 'insert' | 'update' | 'delete'>;
 
@@ -68,7 +69,9 @@ export function createSqlitePresetMediaStore(db: BetterSQLite3Database): PresetM
     },
 
     async listPresets() {
-      return db.select().from(deckPreset).orderBy(asc(deckPreset.name)).all();
+      return readCached(db, 'presets', async () =>
+        db.select().from(deckPreset).orderBy(asc(deckPreset.name)).all(),
+      );
     },
 
     async getPreset(id) {
@@ -76,7 +79,7 @@ export function createSqlitePresetMediaStore(db: BetterSQLite3Database): PresetM
     },
 
     async insertPreset(row) {
-      return catchNameTaken(() =>
+      const result = catchNameTaken(() =>
         db.transaction((tx) => {
           if (nameTaken(tx, row.name, row.id)) {
             return 'name_taken' as const;
@@ -85,10 +88,14 @@ export function createSqlitePresetMediaStore(db: BetterSQLite3Database): PresetM
           return 'ok' as const;
         }),
       );
+      if (result === 'ok') {
+        dropCacheSlot(db, 'presets');
+      }
+      return result;
     },
 
     async updatePreset(row) {
-      return catchNameTaken(() =>
+      const result = catchNameTaken(() =>
         db.transaction((tx) => {
           if (tx.select().from(deckPreset).where(eq(deckPreset.id, row.id)).get() === undefined) {
             return 'not_found' as const;
@@ -100,19 +107,27 @@ export function createSqlitePresetMediaStore(db: BetterSQLite3Database): PresetM
           return 'ok' as const;
         }),
       );
+      if (result === 'ok') {
+        dropCacheSlot(db, 'presets');
+      }
+      return result;
     },
 
     async deletePresetUnlessUsed(id) {
-      return db.transaction((tx) => {
+      const result = db.transaction((tx) => {
         if (tx.select().from(deckPreset).where(eq(deckPreset.id, id)).get() === undefined) {
-          return 'not_found';
+          return 'not_found' as const;
         }
         if (tx.select({ id: deck.id }).from(deck).where(eq(deck.presetId, id)).get()) {
-          return 'in_use';
+          return 'in_use' as const;
         }
         tx.delete(deckPreset).where(eq(deckPreset.id, id)).run();
-        return 'deleted';
+        return 'deleted' as const;
       });
+      if (result === 'deleted') {
+        dropCacheSlot(db, 'presets');
+      }
+      return result;
     },
 
     async insertMediaIfAbsent(row) {

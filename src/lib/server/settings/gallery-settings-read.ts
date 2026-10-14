@@ -1,27 +1,22 @@
 // Contract: read the gallery theme and the key chords.
-// A null theme query reads both rows in one snapshot. A theme query reads only the chords.
-// A bad row is 500. This read does not write (CWE-362).
+// A null theme query reads the saved theme and the saved chords.
+// A theme query reads only the chords.
+// Both reads use the process cache. A bad row is 500.
+// This read does not write (CWE-362).
 
-import { eq } from 'drizzle-orm';
-import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { themeIdFromQuery } from '#lib/client/tui/themes.js';
 import type { KeybindMap } from '#lib/client/tui/keymap.js';
 import type { Result } from '#lib/server/auth/deps.js';
 import type { DbHandle } from '#lib/server/db/client.js';
-import { appSettings as pgSettings } from '#lib/server/db/schema/pg.js';
-import { appSettings as sqliteSettings } from '#lib/server/db/schema/sqlite.js';
 import { getLogger } from '#lib/server/logger.js';
-import { KEYBIND_SETTINGS_KEY } from '#lib/server/settings/keybind-key.js';
 import {
   getKeybindSettings,
   interpretKeybinds,
   type KeybindSettingsLogger,
 } from '#lib/server/settings/keybind-settings.js';
 import { getKeybindStore } from '#lib/server/settings/keybind-store.js';
-import { THEME_SETTINGS_KEY } from '#lib/server/settings/theme-key.js';
 import { interpretTheme, type ThemeSettingsLogger } from '#lib/server/settings/theme-settings.js';
-import { PG_READ_SNAPSHOT } from '#lib/server/study/store/read-snapshot.pg.js';
+import { getThemeStore } from '#lib/server/settings/theme-store.js';
 
 type Cells = { theme: unknown; keybinds: unknown };
 
@@ -30,41 +25,10 @@ export type GallerySettings = {
   keybinds: KeybindMap;
 };
 
-function readSqliteCells(db: BetterSQLite3Database): Cells {
-  return db.transaction((tx) => {
-    const theme = tx
-      .select({ value: sqliteSettings.value })
-      .from(sqliteSettings)
-      .where(eq(sqliteSettings.key, THEME_SETTINGS_KEY))
-      .get();
-    const keybinds = tx
-      .select({ value: sqliteSettings.value })
-      .from(sqliteSettings)
-      .where(eq(sqliteSettings.key, KEYBIND_SETTINGS_KEY))
-      .get();
-    return { theme: theme?.value, keybinds: keybinds?.value };
-  });
-}
-
-async function readPgCells(db: PostgresJsDatabase): Promise<Cells> {
-  return db.transaction(async (tx) => {
-    const [theme] = await tx
-      .select({ value: pgSettings.value })
-      .from(pgSettings)
-      .where(eq(pgSettings.key, THEME_SETTINGS_KEY));
-    const [keybinds] = await tx
-      .select({ value: pgSettings.value })
-      .from(pgSettings)
-      .where(eq(pgSettings.key, KEYBIND_SETTINGS_KEY));
-    return { theme: theme?.value, keybinds: keybinds?.value };
-  }, PG_READ_SNAPSHOT);
-}
-
 async function readCells(handle: DbHandle): Promise<Cells> {
-  if (handle.dialect === 'sqlite') {
-    return readSqliteCells(handle.db);
-  }
-  return readPgCells(handle.db);
+  const theme = await getThemeStore(handle).getThemeValue();
+  const keybinds = await getKeybindStore(handle).getKeybindValue();
+  return { theme, keybinds };
 }
 
 async function readSavedPair(

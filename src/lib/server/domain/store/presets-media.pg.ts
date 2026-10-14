@@ -5,6 +5,7 @@ import type { PresetMediaStore } from '#lib/server/domain/store/presets-media.sq
 import { chunk } from '#lib/server/domain/store/shared.js';
 import type { DomainStore, MediaRow, PresetRow } from '#lib/server/domain/store/store-types.js';
 import { cardTemplate, deck, deckPreset, media, noteType } from '#lib/server/db/schema/pg.js';
+import { dropCacheSlot, readCached } from '#lib/server/read-cache.js';
 
 type Exec = Pick<PostgresJsDatabase, 'select' | 'insert' | 'update' | 'delete'>;
 
@@ -56,7 +57,9 @@ export function createPgPresetMediaStore(db: PostgresJsDatabase): PresetMediaSto
     },
 
     async listPresets() {
-      return db.select().from(deckPreset).orderBy(asc(deckPreset.name));
+      return readCached(db, 'presets', async () =>
+        db.select().from(deckPreset).orderBy(asc(deckPreset.name)),
+      );
     },
 
     async getPreset(id) {
@@ -65,7 +68,7 @@ export function createPgPresetMediaStore(db: PostgresJsDatabase): PresetMediaSto
     },
 
     async insertPreset(row) {
-      return catchNameTaken(() =>
+      const result = await catchNameTaken(() =>
         db.transaction(async (tx) => {
           if (await nameTaken(tx, row.name, row.id)) {
             return 'name_taken' as const;
@@ -74,10 +77,14 @@ export function createPgPresetMediaStore(db: PostgresJsDatabase): PresetMediaSto
           return 'ok' as const;
         }),
       );
+      if (result === 'ok') {
+        dropCacheSlot(db, 'presets');
+      }
+      return result;
     },
 
     async updatePreset(row) {
-      return catchNameTaken(() =>
+      const result = await catchNameTaken(() =>
         db.transaction(async (tx) => {
           const found = await tx.select().from(deckPreset).where(eq(deckPreset.id, row.id));
           if (found.length === 0) {
@@ -90,13 +97,17 @@ export function createPgPresetMediaStore(db: PostgresJsDatabase): PresetMediaSto
           return 'ok' as const;
         }),
       );
+      if (result === 'ok') {
+        dropCacheSlot(db, 'presets');
+      }
+      return result;
     },
 
     async deletePresetUnlessUsed(id) {
-      return db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx) => {
         const found = await tx.select().from(deckPreset).where(eq(deckPreset.id, id));
         if (found.length === 0) {
-          return 'not_found';
+          return 'not_found' as const;
         }
         const used = await tx
           .select({ id: deck.id })
@@ -104,11 +115,15 @@ export function createPgPresetMediaStore(db: PostgresJsDatabase): PresetMediaSto
           .where(eq(deck.presetId, id))
           .limit(1);
         if (used.length > 0) {
-          return 'in_use';
+          return 'in_use' as const;
         }
         await tx.delete(deckPreset).where(eq(deckPreset.id, id));
-        return 'deleted';
+        return 'deleted' as const;
       });
+      if (result === 'deleted') {
+        dropCacheSlot(db, 'presets');
+      }
+      return result;
     },
 
     async insertMediaIfAbsent(row) {

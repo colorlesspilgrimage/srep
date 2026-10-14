@@ -60,8 +60,4 @@ export async function loginWith(kind: Kind): Promise<Outcome<null>> {
   return { ok: true, body: null };
 }
 
-// Ends the session on the server and forgets the CSRF token.
-export async function signOut(everywhere: boolean): Promise<void> {
-  await apiFetch(everywhere ? '/api/auth/logout-all' : '/api/auth/logout', { method: 'POST' });
-  setCsrfToken(null);
-}
+export { signOut } from '#lib/client/sign-out.js';

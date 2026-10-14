@@ -6,6 +6,7 @@ import { isSqliteUniqueViolation } from '#lib/server/domain/store/errors.js';
 import { chunk } from '#lib/server/domain/store/shared.js';
 import type { DeckRow, DomainStore } from '#lib/server/domain/store/store-types.js';
 import { card, deck, note } from '#lib/server/db/schema/sqlite.js';
+import { dropCacheSlot, readCached } from '#lib/server/read-cache.js';
 
 type Exec = Pick<BetterSQLite3Database, 'select' | 'insert' | 'update' | 'delete'>;
 
@@ -47,7 +48,9 @@ function trashNotesOf(tx: Exec, ids: string[], now: number): void {
 export function createSqliteDeckStore(db: BetterSQLite3Database): DeckStore {
   return {
     async listDecks() {
-      return db.select().from(deck).orderBy(asc(deck.path)).all();
+      return readCached(db, 'decks', async () =>
+        db.select().from(deck).orderBy(asc(deck.path)).all(),
+      );
     },
 
     async getDeck(id) {
@@ -57,6 +60,7 @@ export function createSqliteDeckStore(db: BetterSQLite3Database): DeckStore {
     async insertDeck(row) {
       try {
         db.insert(deck).values(row).run();
+        dropCacheSlot(db, 'decks');
         return 'ok';
       } catch (error) {
         if (isSqliteUniqueViolation(error)) {
@@ -68,15 +72,19 @@ export function createSqliteDeckStore(db: BetterSQLite3Database): DeckStore {
 
     async changeDecks(compute) {
       try {
-        return db.transaction((tx) => {
-          const change = compute(tx.select().from(deck).all());
-          if (change.ok) {
-            for (const row of change.updates) {
+        const change = db.transaction((tx) => {
+          const next = compute(tx.select().from(deck).all());
+          if (next.ok) {
+            for (const row of next.updates) {
               tx.update(deck).set(row).where(eq(deck.id, row.id)).run();
             }
           }
-          return change;
+          return next;
         });
+        if (change.ok && change.updates.length > 0) {
+          dropCacheSlot(db, 'decks');
+        }
+        return change;
       } catch (error) {
         if (isSqliteUniqueViolation(error)) {
           return fail(409, 'deck_name_taken');
@@ -97,18 +105,18 @@ export function createSqliteDeckStore(db: BetterSQLite3Database): DeckStore {
     },
 
     async deleteDeckTree(rootId, action, now) {
-      return db.transaction((tx) => {
+      const result = db.transaction((tx) => {
         const all = tx.select().from(deck).all();
         const ids = subtreeIds(all, rootId);
         if (ids.length === 0) {
-          return 'not_found';
+          return 'not_found' as const;
         }
         if (action.kind === 'move') {
           if (!all.some((d) => d.id === action.targetDeckId)) {
-            return 'target_not_found';
+            return 'target_not_found' as const;
           }
           if (ids.includes(action.targetDeckId)) {
-            return 'target_in_subtree';
+            return 'target_in_subtree' as const;
           }
           for (const part of chunk(ids)) {
             tx.update(card)
@@ -120,8 +128,12 @@ export function createSqliteDeckStore(db: BetterSQLite3Database): DeckStore {
           trashNotesOf(tx, ids, now);
         }
         deleteDecks(tx, all, ids);
-        return 'ok';
+        return 'ok' as const;
       });
+      if (result !== 'not_found') {
+        dropCacheSlot(db, 'decks');
+      }
+      return result;
     },
   };
 }
