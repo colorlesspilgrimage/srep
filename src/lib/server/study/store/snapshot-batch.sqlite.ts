@@ -7,16 +7,12 @@ import type { SQL } from 'drizzle-orm';
 import type { DeckSnapshot } from '#lib/server/study/core/queue-choice.js';
 import type { StudySnapshotInput } from '#lib/server/study/store/study-store-types.js';
 import {
+  batchFilters,
   countSql,
   doneSql,
-  freshFilter,
-  freshOrder,
   headSql,
-  idList,
-  learningFilter,
   learningOrder,
   learningSql,
-  reviewFilter,
   reviewOrder,
   sqliteShuffleKey,
 } from '#lib/server/study/store/snapshot-batch-sql.js';
@@ -31,19 +27,15 @@ export function readSqliteSnapshotBatch(
   if (input.deckIds.length === 0) {
     return [];
   }
-  const ids = idList(input.deckIds);
-  const fresh = freshFilter();
-  const review = reviewFilter(input.window.endMs);
-  const learning = learningFilter(input.nowMs);
-  const shuffle = freshOrder(input.shuffleDeckIds, sqliteShuffleKey());
   const decks = input.deckIds;
+  const filters = batchFilters(input, sqliteShuffleKey());
   return assembleSnapshots(decks, {
-    done: tx.all(doneSql(ids, input)),
-    learning: tx.all(learningSql(ids, input)),
-    learningHeads: tx.all(headSql(decks, learning, learningOrder())),
-    reviewCounts: tx.all(countSql(ids, review)),
-    reviewHeads: tx.all(headSql(decks, review, reviewOrder())),
-    newCounts: tx.all(countSql(ids, fresh)),
-    newHeads: tx.all(headSql(decks, fresh, shuffle)),
+    done: tx.all(doneSql(filters.ids, input)),
+    learning: tx.all(learningSql(filters.ids, input)),
+    learningHeads: tx.all(headSql(decks, filters.learning, learningOrder())),
+    reviewCounts: tx.all(countSql(filters.ids, filters.review)),
+    reviewHeads: tx.all(headSql(decks, filters.review, reviewOrder())),
+    newCounts: tx.all(countSql(filters.ids, filters.fresh)),
+    newHeads: tx.all(headSql(decks, filters.fresh, filters.shuffle)),
   });
 }

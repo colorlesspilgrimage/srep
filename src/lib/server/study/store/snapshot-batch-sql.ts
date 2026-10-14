@@ -15,16 +15,19 @@ export function idList(ids: string[]): SQL {
   );
 }
 
-export function sqliteShuffleKey(): SQL {
+function shuffleKey(castName: 'integer' | 'bigint'): SQL {
   const factor = sql.raw(String(SHUFFLE_MULTIPLIER));
   const modulus = sql.raw(String(SHUFFLE_MODULUS));
-  return sql`(cast(${card.position} as integer) * ${factor}) % ${modulus}`;
+  const castSql = sql.raw(castName);
+  return sql`(cast(${card.position} as ${castSql}) * ${factor}) % ${modulus}`;
+}
+
+export function sqliteShuffleKey(): SQL {
+  return shuffleKey('integer');
 }
 
 export function pgShuffleKey(): SQL {
-  const factor = sql.raw(String(SHUFFLE_MULTIPLIER));
-  const modulus = sql.raw(String(SHUFFLE_MODULUS));
-  return sql`(cast(${card.position} as bigint) * ${factor}) % ${modulus}`;
+  return shuffleKey('bigint');
 }
 
 export function doneSql(ids: SQL, input: StudySnapshotInput): SQL {
@@ -129,4 +132,14 @@ export function freshOrder(shuffleIds: string[], shuffleKey: SQL): SQL {
     return sql`${card.position} asc, ${card.id} asc`;
   }
   return newOrder(shuffleIds, shuffleKey);
+}
+
+export function batchFilters(input: StudySnapshotInput, key: SQL) {
+  return {
+    ids: idList(input.deckIds),
+    fresh: freshFilter(),
+    review: reviewFilter(input.window.endMs),
+    learning: learningFilter(input.nowMs),
+    shuffle: freshOrder(input.shuffleDeckIds, key),
+  };
 }

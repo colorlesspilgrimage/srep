@@ -1,16 +1,9 @@
 // Contract: process cache for deck, preset, and settings rows.
 // The key is the Drizzle database object. Two handles do not share rows.
-// A read copies the version, loads when the slot is empty, and stores
-// only when that version is still current.
-// The file stamp and xact_commit are read before the load and after it.
-// A change blocks the store, so a new token cannot keep old rows.
 // A stored row is a clone. A caller cannot change the stored row.
-// A failed load does not fill the slot.
 // Call dropCacheSlot on the next line after commit. Do not await between them.
 // A failed write does not call dropCacheSlot.
 // Do not call readCached inside an open write transaction.
-// SQLite hits compare the database file and its -wal file.
-// Postgres hits read xact_commit for current_database(). A change clears every slot.
 // A missing xact_commit does not count as fresh.
 import fs from 'node:fs';
 import { sql } from 'drizzle-orm';
@@ -73,12 +66,15 @@ export function cacheSlotVersion(db: object, name: CacheSlot): number {
   return caches.get(db)?.slots[name].version ?? 0;
 }
 
-export function dropCacheSlot(db: object, name: CacheSlot): void {
-  const slot = cacheFor(db).slots[name];
+function clearSlot(slot: Slot): void {
   slot.version += 1;
   slot.filled = false;
   slot.value = undefined;
   slot.stamp = null;
+}
+
+export function dropCacheSlot(db: object, name: CacheSlot): void {
+  clearSlot(cacheFor(db).slots[name]);
 }
 
 export function dropAllCache(db: object): void {
@@ -161,7 +157,6 @@ async function readXact(db: ExecuteDb): Promise<string | null> {
 }
 
 // This session does not see its own commits in xact_commit. Another session does.
-// An equal value keeps the rows. A different value clears every slot.
 // A missing value is not fresh (CWE-345).
 async function readFresh(cache: DbCache, db: ExecuteDb): Promise<boolean> {
   const seen = await readXact(db);
@@ -191,11 +186,7 @@ async function postgresFresh(cache: DbCache, db: object): Promise<boolean> {
 
 function clearSlots(cache: DbCache): void {
   for (const name of SLOTS) {
-    const slot = cache.slots[name];
-    slot.version += 1;
-    slot.filled = false;
-    slot.value = undefined;
-    slot.stamp = null;
+    clearSlot(cache.slots[name]);
   }
 }
 
@@ -244,10 +235,7 @@ function invalidateStamp(slot: Slot, db: object): void {
   if (!slot.filled || !stampChanged(slot, db)) {
     return;
   }
-  slot.version += 1;
-  slot.filled = false;
-  slot.value = undefined;
-  slot.stamp = null;
+  clearSlot(slot);
 }
 
 async function prepareSlot(cache: DbCache, slot: Slot, db: object): Promise<void> {

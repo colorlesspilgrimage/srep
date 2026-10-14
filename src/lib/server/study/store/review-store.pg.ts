@@ -183,9 +183,8 @@ function answerContextSql(cardId: string): SQL {
       (select max(${reviewLog.reviewedAt}) from ${reviewLog}) as max_at`;
 }
 
-// The card row is read FOR UPDATE: a suspend or bury locks card rows and does not take the
-// study lock, so without the row lock this answer could overwrite it (CWE-362).
-// One statement reads the card, the preset, the siblings, and the max review time.
+// A suspend or bury locks card rows and does not take the study lock.
+// FOR UPDATE stops this answer from writing over that lock (CWE-362).
 async function readAnswerContext(tx: Exec, cardId: string): Promise<AnswerContext | undefined> {
   const result = await tx.execute(answerContextSql(cardId));
   const row = result[0];
@@ -226,7 +225,7 @@ async function unbury(tx: Exec, ids: string[]): Promise<void> {
   }
 }
 
-// Runs inside the transaction after the study lock. Reverts the newest review and deletes its log row.
+// The caller holds the study lock before this function runs.
 async function undoNewestReview(
   tx: Exec,
   compute: (ctx: UndoContext) => UndoPlan,
