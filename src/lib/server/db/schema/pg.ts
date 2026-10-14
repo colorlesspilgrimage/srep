@@ -172,6 +172,9 @@ export const card = pgTable(
     uniqueIndex('card_note_template_ordinal_idx').on(t.noteId, t.templateId, t.ordinal),
     index('card_deck_state_due_idx').on(t.deckId, t.state, t.due),
     index('card_note_id_idx').on(t.noteId),
+    index('card_state_buried_idx').on(t.state, t.buriedUntil),
+    index('card_new_pos_idx').on(t.deckId, t.state, t.position, t.id),
+    index('card_review_due_idx').on(t.deckId, t.state, t.due, t.position, t.id),
   ],
 );
 

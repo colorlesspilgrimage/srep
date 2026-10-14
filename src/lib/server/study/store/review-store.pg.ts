@@ -1,9 +1,10 @@
 // Contract: the Postgres part of the StudyStore for one card: read, answer and undo.
 // Answer and undo take the study lock as the first statement of the transaction.
-import { and, asc, desc, eq, getTableColumns, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, inArray, sql, type SQL } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { card, deck, deckPreset, note, reviewLog } from '#lib/server/db/schema/pg.js';
 import { chunk } from '#lib/server/domain/store/shared.js';
+import type { CardRow, PresetRow } from '#lib/server/domain/store/store-types.js';
 import type { AnswerPlan, UndoPlan } from '#lib/server/study/core/answer-plan.js';
 import type { ReviewLogRow } from '#lib/server/study/core/types.js';
 import { readPgCardsById } from '#lib/server/study/store/card-state-store.pg.js';
@@ -16,37 +17,192 @@ import type {
 
 type Exec = Pick<PostgresJsDatabase, 'select' | 'insert' | 'update' | 'delete' | 'execute'>;
 
-// The card row is read FOR UPDATE: a suspend or bury locks card rows and does not take the
-// study lock, so without the row lock this answer could overwrite it (CWE-362).
+const CARD_STATES = new Set(['new', 'learning', 'review', 'relearning', 'suspended', 'buried']);
+const SCHED_STATES = new Set(['new', 'learning', 'review', 'relearning']);
+const NEW_ORDERS = new Set(['added', 'random']);
+
+function finite(value: unknown): number | undefined {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value !== 'string' || value.trim() === '') {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function finiteList(value: unknown): number[] | undefined {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const out: number[] = [];
+  for (const item of value) {
+    const parsed = finite(item);
+    if (parsed === undefined) {
+      return undefined;
+    }
+    out.push(parsed);
+  }
+  return out;
+}
+
+function numOrNull(value: unknown): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  return finite(value) ?? null;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Record<string, unknown>;
+}
+
+function cardFromJson(value: unknown): CardRow | undefined {
+  const row = asRecord(value);
+  if (row === undefined || typeof row.id !== 'string') {
+    return undefined;
+  }
+  if (!CARD_STATES.has(String(row.state)) || !SCHED_STATES.has(String(row.sched_state))) {
+    return undefined;
+  }
+  const ordinal = finite(row.ordinal);
+  const due = finite(row.due);
+  const stability = finite(row.stability);
+  const difficulty = finite(row.difficulty);
+  const reps = finite(row.reps);
+  const lapses = finite(row.lapses);
+  const position = finite(row.position);
+  const flags = finite(row.flags);
+  const learningStep = finite(row.learning_step);
+  if (
+    ordinal === undefined ||
+    due === undefined ||
+    stability === undefined ||
+    difficulty === undefined ||
+    reps === undefined ||
+    lapses === undefined ||
+    position === undefined ||
+    flags === undefined ||
+    learningStep === undefined
+  ) {
+    return undefined;
+  }
+  return {
+    id: row.id,
+    noteId: String(row.note_id),
+    templateId: String(row.template_id),
+    ordinal,
+    deckId: row.deck_id === null || row.deck_id === undefined ? null : String(row.deck_id),
+    state: row.state as CardRow['state'],
+    due,
+    stability,
+    difficulty,
+    lastReview: numOrNull(row.last_review),
+    reps,
+    lapses,
+    position,
+    buriedUntil: numOrNull(row.buried_until),
+    flags,
+    schedState: row.sched_state as CardRow['schedState'],
+    learningStep,
+  };
+}
+
+function presetFromJson(value: unknown): PresetRow | undefined {
+  const row = asRecord(value);
+  if (row === undefined || typeof row.id !== 'string') {
+    return undefined;
+  }
+  const newPerDay = finite(row.new_per_day);
+  const reviewsPerDay = finite(row.reviews_per_day);
+  const desiredRetention = finite(row.desired_retention);
+  const maxInterval = finite(row.max_interval);
+  const learningSteps = finiteList(row.learning_steps);
+  const relearningSteps = finiteList(row.relearning_steps);
+  const fsrsParams = Array.isArray(row.fsrs_params) ? finiteList(row.fsrs_params) : null;
+  if (
+    newPerDay === undefined ||
+    reviewsPerDay === undefined ||
+    desiredRetention === undefined ||
+    maxInterval === undefined ||
+    learningSteps === undefined ||
+    relearningSteps === undefined ||
+    fsrsParams === undefined ||
+    !NEW_ORDERS.has(String(row.new_order))
+  ) {
+    return undefined;
+  }
+  return {
+    id: row.id,
+    name: String(row.name),
+    newPerDay,
+    reviewsPerDay,
+    desiredRetention,
+    learningSteps,
+    relearningSteps,
+    maxInterval,
+    fsrsParams,
+    burySiblings: row.bury_siblings === true,
+    newOrder: row.new_order as PresetRow['newOrder'],
+  };
+}
+
+function siblingRows(value: unknown): CardRow[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const out: CardRow[] = [];
+  for (const item of value) {
+    const row = cardFromJson(item);
+    if (row !== undefined) {
+      out.push(row);
+    }
+  }
+  return out;
+}
+
+function answerContextSql(cardId: string): SQL {
+  return sql`with locked as (
+      select ${card}.* from ${card}
+      inner join ${note} on ${note.id} = ${card.noteId}
+      where ${card.id} = ${cardId} and ${note.deletedAt} is null
+      for update of ${card}
+    )
+    select
+      (select row_to_json(locked) from locked) as card,
+      (select row_to_json(${deckPreset}) from ${deck}
+        inner join ${deckPreset} on ${deckPreset.id} = ${deck.presetId}
+        where ${deck.id} = (select deck_id from locked)) as preset,
+      (select coalesce(json_agg(row_to_json(s) order by s.position), '[]'::json)
+        from ${card} s
+        where s.note_id = (select note_id from locked) and s.id <> ${cardId}) as siblings,
+      (select max(${reviewLog.reviewedAt}) from ${reviewLog}) as max_at`;
+}
+
+// A suspend or bury locks card rows and does not take the study lock.
+// FOR UPDATE stops this answer from writing over that lock (CWE-362).
 async function readAnswerContext(tx: Exec, cardId: string): Promise<AnswerContext | undefined> {
-  const [row] = await tx
-    .select(getTableColumns(card))
-    .from(card)
-    .innerJoin(note, eq(note.id, card.noteId))
-    .where(and(eq(card.id, cardId), isNull(note.deletedAt)))
-    .for('update', { of: card });
-  if (row === undefined || row.deckId === null) {
+  const result = await tx.execute(answerContextSql(cardId));
+  const row = result[0];
+  if (row === undefined) {
     return undefined;
   }
-  const [preset] = await tx
-    .select(getTableColumns(deckPreset))
-    .from(deck)
-    .innerJoin(deckPreset, eq(deckPreset.id, deck.presetId))
-    .where(eq(deck.id, row.deckId));
-  if (preset === undefined) {
+  const loaded = cardFromJson(row.card);
+  const preset = presetFromJson(row.preset);
+  if (loaded === undefined || loaded.deckId === null || preset === undefined) {
     return undefined;
   }
-  const siblings = await tx
-    .select()
-    .from(card)
-    .where(and(eq(card.noteId, row.noteId), ne(card.id, row.id)))
-    .orderBy(asc(card.position));
-  const [max] = await tx
-    .select({ value: sql<number | null>`max(${reviewLog.reviewedAt})` })
-    .from(reviewLog);
-  const lastReviewedAtMax =
-    max?.value === null || max?.value === undefined ? null : Number(max.value);
-  return { card: row, deckPreset: preset, siblings, lastReviewedAtMax };
+  const lastReviewedAtMax = numOrNull(row.max_at);
+  return {
+    card: loaded,
+    deckPreset: preset,
+    siblings: siblingRows(row.siblings),
+    lastReviewedAtMax,
+  };
 }
 
 async function applyAnswer(tx: Exec, cardId: string, plan: AnswerPlan): Promise<void> {
@@ -69,7 +225,7 @@ async function unbury(tx: Exec, ids: string[]): Promise<void> {
   }
 }
 
-// Runs inside the transaction after the study lock. Reverts the newest review and deletes its log row.
+// The caller holds the study lock before this function runs.
 async function undoNewestReview(
   tx: Exec,
   compute: (ctx: UndoContext) => UndoPlan,

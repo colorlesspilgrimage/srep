@@ -29,6 +29,13 @@
       "when": 1791832385953,
       "tag": "0003_equal_metal_master",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791986221208,
+      "tag": "0004_smart_ser_duncan",
+      "breakpoints": true
     }
   ]
 }

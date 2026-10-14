@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
-  import { signOut } from '#lib/client/ceremonies.js';
+  import { signOut } from '#lib/client/sign-out.js';
 
   async function logOut(): Promise<void> {
     await signOut(false);

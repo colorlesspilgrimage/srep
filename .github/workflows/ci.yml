@@ -47,6 +47,18 @@ jobs:
           GH_TOKEN: ''
           DOCKERHUB_USERNAME: ''
           DOCKERHUB_TOKEN: ''
+      - run: npm run build
+        env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          DOCKERHUB_USERNAME: ''
+          DOCKERHUB_TOKEN: ''
+      - run: node scripts/bundle-budget.mjs
+        env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          DOCKERHUB_USERNAME: ''
+          DOCKERHUB_TOKEN: ''
       - run: npm run db:generate
         env:
           GITHUB_TOKEN: ''

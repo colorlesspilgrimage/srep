@@ -4,18 +4,21 @@
 import { eq } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { appSettings } from '#lib/server/db/schema/sqlite.js';
+import { dropCacheSlot, readCached } from '#lib/server/read-cache.js';
 import { THEME_SETTINGS_KEY } from '#lib/server/settings/theme-key.js';
 import type { ThemeSettingsStore } from '#lib/server/settings/theme-store.js';
 
 export function createSqliteThemeStore(db: BetterSQLite3Database): ThemeSettingsStore {
   return {
     async getThemeValue() {
-      const row = db
-        .select({ value: appSettings.value })
-        .from(appSettings)
-        .where(eq(appSettings.key, THEME_SETTINGS_KEY))
-        .get();
-      return row?.value;
+      return readCached(db, 'theme', async () => {
+        const row = db
+          .select({ value: appSettings.value })
+          .from(appSettings)
+          .where(eq(appSettings.key, THEME_SETTINGS_KEY))
+          .get();
+        return row?.value;
+      });
     },
 
     async putThemeValue(value) {
@@ -25,6 +28,7 @@ export function createSqliteThemeStore(db: BetterSQLite3Database): ThemeSettings
         .values({ key: THEME_SETTINGS_KEY, value: stored })
         .onConflictDoUpdate({ target: appSettings.key, set: { value: stored } })
         .run();
+      dropCacheSlot(db, 'theme');
     },
   };
 }

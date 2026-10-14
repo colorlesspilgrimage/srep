@@ -2,6 +2,7 @@
 import { eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { appSettings } from '#lib/server/db/schema/pg.js';
+import { dropCacheSlot, readCached } from '#lib/server/read-cache.js';
 import {
   STUDY_SETTINGS_KEY,
   type StudySettingsStore,
@@ -10,11 +11,13 @@ import {
 export function createPgStudySettingsStore(db: PostgresJsDatabase): StudySettingsStore {
   return {
     async getStudySettings() {
-      const [row] = await db
-        .select({ value: appSettings.value })
-        .from(appSettings)
-        .where(eq(appSettings.key, STUDY_SETTINGS_KEY));
-      return row?.value;
+      return readCached(db, 'study', async () => {
+        const [row] = await db
+          .select({ value: appSettings.value })
+          .from(appSettings)
+          .where(eq(appSettings.key, STUDY_SETTINGS_KEY));
+        return row?.value;
+      });
     },
 
     async putStudySettings(value) {
@@ -22,6 +25,7 @@ export function createPgStudySettingsStore(db: PostgresJsDatabase): StudySetting
         .insert(appSettings)
         .values({ key: STUDY_SETTINGS_KEY, value })
         .onConflictDoUpdate({ target: appSettings.key, set: { value } });
+      dropCacheSlot(db, 'study');
     },
   };
 }

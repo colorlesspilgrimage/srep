@@ -4,17 +4,20 @@
 import { eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { appSettings } from '#lib/server/db/schema/pg.js';
+import { dropCacheSlot, readCached } from '#lib/server/read-cache.js';
 import { THEME_SETTINGS_KEY } from '#lib/server/settings/theme-key.js';
 import type { ThemeSettingsStore } from '#lib/server/settings/theme-store.js';
 
 export function createPgThemeStore(db: PostgresJsDatabase): ThemeSettingsStore {
   return {
     async getThemeValue() {
-      const [row] = await db
-        .select({ value: appSettings.value })
-        .from(appSettings)
-        .where(eq(appSettings.key, THEME_SETTINGS_KEY));
-      return row?.value;
+      return readCached(db, 'theme', async () => {
+        const [row] = await db
+          .select({ value: appSettings.value })
+          .from(appSettings)
+          .where(eq(appSettings.key, THEME_SETTINGS_KEY));
+        return row?.value;
+      });
     },
 
     async putThemeValue(value) {
@@ -24,6 +27,7 @@ export function createPgThemeStore(db: PostgresJsDatabase): ThemeSettingsStore {
         .insert(appSettings)
         .values({ key: THEME_SETTINGS_KEY, value: stored })
         .onConflictDoUpdate({ target: appSettings.key, set: { value: stored } });
+      dropCacheSlot(db, 'theme');
     },
   };
 }

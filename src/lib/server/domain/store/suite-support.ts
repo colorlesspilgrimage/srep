@@ -3,6 +3,7 @@ import { BASIC_CARD_ID, BASIC_ID, DEFAULT_PRESET_ID } from '#lib/server/domain/b
 import { pathOf } from '#lib/server/domain/core/deck-paths.js';
 import type { CardDraft, DeckRow, NoteRow } from '#lib/server/domain/store/store-types.js';
 import type { DomainHarness } from '#lib/server/domain/test-support/harness.js';
+import { dropAllCache } from '#lib/server/read-cache.js';
 
 export type MakeHarness = () => Promise<DomainHarness>;
 
@@ -56,9 +57,11 @@ export async function addNote(
 export async function execSql(h: DomainHarness, query: SQL): Promise<void> {
   if (h.handle.dialect === 'sqlite') {
     h.handle.db.run(query);
-  } else {
-    await h.handle.db.execute(query);
+    dropAllCache(h.handle.db);
+    return;
   }
+  await h.handle.db.execute(query);
+  dropAllCache(h.handle.db);
 }
 
 export async function countRows(h: DomainHarness, table: string): Promise<number> {

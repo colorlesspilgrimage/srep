@@ -12,7 +12,6 @@ import {
 import { KEYBIND_SETTINGS_KEY } from '#lib/server/settings/keybind-key.js';
 import { readGallerySettings } from '#lib/server/settings/gallery-settings-read.js';
 import { THEME_SETTINGS_KEY } from '#lib/server/settings/theme-key.js';
-import { PG_READ_SNAPSHOT } from '#lib/server/study/store/read-snapshot.pg.js';
 
 // Contract: the gallery read. A theme query does not rewrite the theme row.
 
@@ -69,6 +68,7 @@ function pgHandle(
   keyRow: StubRow,
 ): { handle: DbHandle; configs: unknown[] } {
   const configs: unknown[] = [];
+  const rows = [themeRowValue, keyRow];
   function chain(row: StubRow) {
     return {
       from() {
@@ -82,21 +82,14 @@ function pgHandle(
   }
   const db = {
     select() {
-      return chain(keyRow);
+      return chain(rows.shift());
     },
     transaction(
       fn: (tx: { select: () => ReturnType<typeof chain> }) => Promise<unknown>,
       config: unknown,
     ) {
       configs.push(config);
-      let count = 0;
-      const tx = {
-        select() {
-          count += 1;
-          return chain(count === 1 ? themeRowValue : keyRow);
-        },
-      };
-      return fn(tx);
+      return fn({ select: () => chain(rows.shift()) });
     },
   };
   return {
@@ -246,12 +239,12 @@ describe('gallery settings read', () => {
     });
   });
 
-  it('reads postgres rows in one snapshot', async () => {
+  it('reads postgres theme and keybind rows from the cache stores', async () => {
     const stored = { ...DEFAULT_KEYBINDS, [PALETTE_OPEN]: 'Alt+K' };
     const stub = pgHandle({ value: { id: 'nord' } }, { value: stored });
     const result = await readGallerySettings(stub.handle, null);
     expect(result).toEqual({ ok: true, themeId: 'nord', keybinds: stored });
-    expect(stub.configs).toEqual([PG_READ_SNAPSHOT]);
+    expect(stub.configs).toEqual([]);
     expect(pgSettings.key).toBeDefined();
   });
 });

@@ -62,8 +62,13 @@ async function checkContent(
 const checksumOf = (noteType: NoteTypeWithTemplates, fields: string[]): string =>
   fieldChecksum(fields[noteType.sortFieldIdx] ?? '');
 
-async function viewOf(deps: DomainDeps, noteType: NoteTypeWithTemplates, id: string): NoteResult {
-  const state = await deps.store.getNoteState(id);
+async function viewOf(
+  deps: DomainDeps,
+  noteType: NoteTypeWithTemplates,
+  id: string,
+  known?: NoteState,
+): NoteResult {
+  const state = known ?? (await deps.store.getNoteState(id));
   if (state === undefined) {
     return fail(404, 'not_found');
   }
@@ -169,8 +174,14 @@ export async function updateNote(deps: DomainDeps, id: string, patch: NotePatchI
 
 export async function getNote(deps: DomainDeps, id: string): NoteResult {
   const state = await deps.store.getNoteState(id);
-  const noteType = state && (await deps.store.getNoteType(state.note.noteTypeId));
-  return noteType === undefined ? fail(404, 'not_found') : viewOf(deps, noteType, id);
+  if (state === undefined) {
+    return fail(404, 'not_found');
+  }
+  const noteType = await deps.store.getNoteType(state.note.noteTypeId);
+  if (noteType === undefined) {
+    return fail(404, 'not_found');
+  }
+  return viewOf(deps, noteType, id, state);
 }
 
 export async function trashNote(deps: DomainDeps, id: string): Promise<Result<object>> {
