@@ -47,6 +47,24 @@ jobs:
           GH_TOKEN: ''
           DOCKERHUB_USERNAME: ''
           DOCKERHUB_TOKEN: ''
+      - run: npm run db:generate
+        env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          DOCKERHUB_USERNAME: ''
+          DOCKERHUB_TOKEN: ''
+      - run: git diff --exit-code -- drizzle
+        env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          DOCKERHUB_USERNAME: ''
+          DOCKERHUB_TOKEN: ''
+      - run: test -z "$(git status --porcelain=v1 --untracked-files=all -- drizzle)"
+        env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          DOCKERHUB_USERNAME: ''
+          DOCKERHUB_TOKEN: ''
 
   e2e-sqlite:
     runs-on: ubuntu-24.04

@@ -24,8 +24,8 @@
     "test:e2e": "playwright test",
     "test:e2e:visual-baselines": "node scripts/update-visual-baselines.mjs",
     "db:migrate": "tsx scripts/migrate.ts",
-    "db:generate:sqlite": "drizzle-kit generate --config drizzle.sqlite.config.ts",
-    "db:generate:pg": "drizzle-kit generate --config drizzle.pg.config.ts",
+    "db:generate:sqlite": "node scripts/db-generate.mjs sqlite",
+    "db:generate:pg": "node scripts/db-generate.mjs pg",
     "db:generate": "npm run db:generate:sqlite && npm run db:generate:pg",
     "srep": "tsx scripts/srep.ts",
     "domain:demo": "tsx scripts/domain-demo.ts",
@@ -50,7 +50,7 @@
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.5",
     "@vitest/coverage-v8": "^5.0.3",
-    "drizzle-kit": "1.0.0-beta.1",
+    "drizzle-kit": "0.31.11",
     "esbuild": "^0.28.2",
     "eslint": "^10.12.0",
     "eslint-config-prettier": "^10.1.8",
@@ -71,5 +71,8 @@
     "better-sqlite3@13.0.3": true,
     "esbuild@0.25.12": true,
     "esbuild@0.28.2": true
+  },
+  "overrides": {
+    "esbuild": "$esbuild"
   }
 }

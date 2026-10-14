@@ -8,11 +8,12 @@
 export const SETUP_NODE_SHA = 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020';
 export const NODE_VERSION_VALUE = "'>=22.17.0 <23.0.0'";
 export const ESBUILD_FIX = [0, 25, 0] as const;
-export const DRIZZLE_KIT_VERSION = '1.0.0-beta.1';
+export const DRIZZLE_KIT_VERSION = '0.31.11';
 export const DRIZZLE_KIT_RESOLVED =
-  'https://registry.npmjs.org/drizzle-kit/-/drizzle-kit-1.0.0-beta.1.tgz';
+  'https://registry.npmjs.org/drizzle-kit/-/drizzle-kit-0.31.11.tgz';
 export const DRIZZLE_KIT_INTEGRITY =
-  'sha512-jnbxiBeHcsVhBEyxm+MHMQTJcUGXf+JlK5RSPEw1WJeQXH4m+ETBmNXNiGNZhmT6ZPyeH7fdmsXJV+z4UiEK0Q==';
+  'sha512-YCYqxTLIB2OCqf6w9/Vef13baBVbwQIPcbT4Y56AfO6B9ajZhDhD8Jkveg/hJvT/iuMloKD/IYYkyMMNhr7Kqg==';
+export const ESBUILD_OVERRIDE = '$esbuild';
 export const ALLOWED_INSTALL_SCRIPTS = {
   'better-sqlite3@13.0.3': true,
   'esbuild@0.25.12': true,
@@ -196,14 +197,26 @@ export function installScriptApprovalFailures(
 
 export function forbiddenLockText(text: string): string[] {
   const failures: string[] = [];
-  if (text.includes('@esbuild-kit')) {
-    failures.push('@esbuild-kit');
-  }
   if (text.includes('esbuild-0.18.20')) {
     failures.push('esbuild-0.18.20');
   }
   if (text.includes('esbuild@0.18.20')) {
     failures.push('esbuild@0.18.20');
+  }
+  return failures;
+}
+
+// Fail when the root override does not follow the direct esbuild dependency.
+// A second key can select a different esbuild tarball.
+export function esbuildOverrideFailures(overrides: Record<string, string> | undefined): string[] {
+  const value = overrides ?? {};
+  const failures: string[] = [];
+  const keys = Object.keys(value);
+  if (value.esbuild !== ESBUILD_OVERRIDE) {
+    failures.push('overrides-esbuild');
+  }
+  if (keys.length !== 1 || keys[0] !== 'esbuild') {
+    failures.push(`overrides-keys:${keys.join(',')}`);
   }
   return failures;
 }

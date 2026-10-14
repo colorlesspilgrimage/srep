@@ -3,8 +3,10 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   DRIZZLE_KIT_VERSION,
+  ESBUILD_OVERRIDE,
   type LockPackage,
   drizzleKitPinFailures,
+  esbuildOverrideFailures,
   forbiddenLockText,
   installScriptApprovalFailures,
   setupNodePinFailures,
@@ -22,6 +24,7 @@ type PackageJson = {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
   allowScripts?: Record<string, boolean>;
+  overrides?: Record<string, string>;
 };
 
 type LockFile = {
@@ -48,10 +51,20 @@ describe('toolchain pins', () => {
     expect(packages['']?.engines?.node).toBe('>=22.17');
   });
 
-  it('pins drizzle-kit to the exact text 1.0.0-beta.1', () => {
+  it('pins drizzle-kit to the exact text 0.31.11', () => {
     expect(packageJson.devDependencies?.['drizzle-kit']).toBe(DRIZZLE_KIT_VERSION);
+    expect(packageJson.devDependencies?.['drizzle-kit']).toBe('0.31.11');
     expect(packageJson.dependencies?.['drizzle-kit']).toBeUndefined();
     expect(packages['']?.devDependencies?.['drizzle-kit']).toBe(DRIZZLE_KIT_VERSION);
+  });
+
+  it('sets overrides.esbuild to $esbuild and no other key', () => {
+    expect(packageJson.overrides).toEqual({ esbuild: ESBUILD_OVERRIDE });
+    expect(Object.keys(packageJson.overrides ?? {})).toEqual(['esbuild']);
+  });
+
+  it('accepts the package.json esbuild override', () => {
+    expect(esbuildOverrideFailures(packageJson.overrides)).toEqual([]);
   });
 
   it('allows install scripts only for the reviewed package versions', () => {
