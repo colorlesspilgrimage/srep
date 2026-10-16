@@ -221,6 +221,10 @@
 <AppShell themeId={data.themeId} keybinds={data.keybinds} modalOpen={deleteOpen} bind:paletteOpen>
   <main class="app-screen">
     <h1>srep</h1>
+    <p>
+      <a href={resolve('/security')}>Security</a>
+      <a href={resolve('/gallery')}>Gallery</a>
+    </p>
     <button type="button" onclick={logOut}>Log out</button>
     {#if message !== ''}
       <p role="alert">{message}</p>
