@@ -3,7 +3,7 @@ import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
 // Contract: deck list keys and counts. Tree keys use page.keyboard on three rows.
-// Domain rows stay across runs. A leftover Languages tree is removed first.
+// Domain rows stay across runs. This file uses fixed names, so it deletes root decks first.
 
 const CLIENT_IP = '198.51.100.40';
 const BASIC_ID = '00000000-0000-4000-8000-000000000011';
@@ -41,14 +41,14 @@ async function signIn(browser: Browser): Promise<void> {
   await page.getByLabel('Nickname').fill('Decks');
   await page.getByRole('button', { name: 'Create' }).click();
   await expect(page.getByText('Save these codes now. They are shown once.')).toBeVisible();
-  await removeLanguagesTree();
+  await removeRootDecks();
 }
 
-async function removeLanguagesTree(): Promise<void> {
+async function removeRootDecks(): Promise<void> {
   const listed = await page.request.get('/api/decks');
   const body: { decks: { id: string; name: string; parentId: string | null }[] } =
     await listed.json();
-  const roots = body.decks.filter((deck) => deck.parentId === null && deck.name === 'Languages');
+  const roots = body.decks.filter((deck) => deck.parentId === null);
   if (roots.length === 0) {
     return;
   }
