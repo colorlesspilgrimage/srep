@@ -10,5 +10,7 @@ describe('elapsedMs', () => {
     expect(elapsedMs(0, 3_600_001)).toBe(3_600_000);
     expect(elapsedMs(Number.NaN, 10)).toBe(0);
     expect(elapsedMs(10, Number.POSITIVE_INFINITY)).toBe(0);
+    expect(elapsedMs(Number.NEGATIVE_INFINITY, 10)).toBe(0);
+    expect(elapsedMs(-1e308, 1e308)).toBe(3_600_000);
   });
 });

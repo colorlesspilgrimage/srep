@@ -280,6 +280,11 @@ test.describe.serial('study screen', () => {
     await expect(card().locator('script')).toHaveCount(0);
     await expect(card()).toContainText('alert(1)');
     await page.keyboard.press('e');
+    await field.fill('<svg><script>alert(1)</script></svg><img src=x onerror=alert(1)>');
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(editDialog()).toBeHidden();
+    await expect(card().locator('script, svg, img, iframe, object, embed')).toHaveCount(0);
+    await page.keyboard.press('e');
     await field.fill('nope');
     await page.keyboard.press('Escape');
     await expect(editDialog()).toBeHidden();
@@ -331,6 +336,26 @@ test.describe.serial('study screen', () => {
     await good.click();
     await expect(page.getByText('Next card at')).toBeVisible();
     await page.setViewportSize({ width: 1440, height: 900 });
+  });
+
+  test('edit blocks suspend and undo and returns focus', async () => {
+    const deckId = await createDeck(page, 'Study Lock');
+    await addNote(page, deckId, 'gato', 'cat');
+    await addNote(page, deckId, 'perro', 'dog');
+    await openStudy(page, deckId);
+    const edit = page.getByRole('button', { name: 'Edit' });
+    await edit.click();
+    await expect(editDialog()).toBeVisible();
+    await expect(page.getByLabel('Field 1')).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Suspend' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
+    await page.keyboard.press('Shift+Tab');
+    await expect(editDialog().locator(':focus')).toHaveCount(1);
+    await page.keyboard.press('Escape');
+    await expect(editDialog()).toBeHidden();
+    await expect(edit).toBeFocused();
+    await expect(card()).toContainText('gato');
+    await expect(card()).not.toContainText('perro');
   });
 
   test('a bad deck id does not call the study API', async () => {

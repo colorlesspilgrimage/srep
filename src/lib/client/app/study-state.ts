@@ -1,5 +1,7 @@
 // Contract: pure study-screen state. The screen passes the clock and the reply.
 // applyNext stores raw card text. CardHtml sanitizes that text once at display.
+// An open edit blocks reveal, rate, undo, and suspend.
+// A save for another card is ignored. A stale success asks for a new load.
 // A done screen uses the last answer interval. No I/O.
 
 import { appMessageFor } from './app-messages.js';
@@ -107,14 +109,14 @@ export function applyNext(state: StudyState, reply: NextReply, now: number): Stu
 }
 
 export function reveal(state: StudyState): StudyState {
-  if (state.busy || state.phase.kind !== 'card' || state.phase.side === 'back') {
+  if (state.busy || state.editOpen || state.phase.kind !== 'card' || state.phase.side === 'back') {
     return state;
   }
   return { ...state, message: '', phase: { ...state.phase, side: 'back' } };
 }
 
 export function beginAction(state: StudyState): StudyState | null {
-  if (state.busy) {
+  if (state.busy || state.editOpen) {
     return null;
   }
   return { ...state, busy: true, message: '' };
@@ -178,4 +180,37 @@ export function applyEditedCard(state: StudyState, front: string, back: string):
     message: '',
     phase: { ...state.phase, card: { ...state.phase.card, front, back } },
   };
+}
+
+export type SaveResult =
+  | { kind: 'ignore' }
+  | { kind: 'reload'; state: StudyState }
+  | { kind: 'applied'; state: StudyState };
+
+export function applySaveResult(
+  state: StudyState,
+  cardId: string,
+  text: { front: string; back: string } | null,
+): SaveResult {
+  if (state.phase.kind === 'loading') {
+    return { kind: 'reload', state: closeEdit(state) };
+  }
+  if (state.phase.kind !== 'card' || state.phase.card.id !== cardId) {
+    return { kind: 'ignore' };
+  }
+  if (text === null) {
+    return { kind: 'reload', state: closeEdit(state) };
+  }
+  return { kind: 'applied', state: applyEditedCard(state, text.front, text.back) };
+}
+
+export function mutationFollowUp(
+  started: number,
+  current: number,
+  ok: boolean,
+): 'apply' | 'refresh' | 'drop' {
+  if (Number.isInteger(started) && started === current) {
+    return 'apply';
+  }
+  return ok ? 'refresh' : 'drop';
 }

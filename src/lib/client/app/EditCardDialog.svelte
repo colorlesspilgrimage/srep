@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { nextTrapIndex } from '#lib/client/tui/palette-focus.js';
   import { appMessageFor } from './app-messages.js';
   import { cardTextFromNote, parseNoteBody } from './study-parse.js';
@@ -8,7 +9,8 @@
   // Contract: edit the note fields for the open card.
   // GET and PATCH use the note id only after the UUID check inside the client.
   // Escape closes and does not save. Tab stays in the dialog.
-  // onSaved(null) means the card id is gone. The parent loads the next card.
+  // onSaved gets the card id from the moment Save was clicked.
+  // onSaved's text is null when that card id is gone. The parent loads the next card.
 
   type SavedText = { front: string; back: string };
 
@@ -16,7 +18,7 @@
     noteId: string;
     cardId: string;
     onClose: () => void;
-    onSaved: (text: SavedText | null) => void;
+    onSaved: (cardId: string, text: SavedText | null) => void;
   };
 
   let { noteId, cardId, onClose, onSaved }: Props = $props();
@@ -25,7 +27,14 @@
   let fields = $state<string[]>([]);
   let message = $state('');
   let busy = $state(false);
+  let alive = true;
   let dialog = $state<HTMLElement | null>(null);
+
+  onMount(() => {
+    return () => {
+      alive = false;
+    };
+  });
 
   const FOCUSABLE = [
     'a[href]',
@@ -46,9 +55,15 @@
     }
     return {
       destroy(): void {
-        if (returnFocus !== null && returnFocus.isConnected) {
-          returnFocus.focus();
+        const target = returnFocus;
+        if (target === null) {
+          return;
         }
+        queueMicrotask(() => {
+          if (target.isConnected) {
+            target.focus();
+          }
+        });
       },
     };
   }
@@ -162,19 +177,23 @@
     if (busy || fields.length === 0) {
       return;
     }
+    const savedCardId = cardId;
+    const savedNoteId = noteId;
+    const savedFields = fields.slice();
     busy = true;
-    const result = await client.patchNote(noteId, fields);
-    busy = false;
-    if (!result.ok) {
-      message = appMessageFor(result.error);
-      return;
+    const result = await client.patchNote(savedNoteId, savedFields);
+    const note = result.ok ? parseNoteBody(result.body) : null;
+    if (alive) {
+      busy = false;
+      if (!result.ok || note === null) {
+        message = appMessageFor(result.ok ? 'bad_request' : result.error);
+        return;
+      }
     }
-    const note = parseNoteBody(result.body);
     if (note === null) {
-      message = appMessageFor('bad_request');
       return;
     }
-    onSaved(cardTextFromNote(note, cardId));
+    onSaved(savedCardId, cardTextFromNote(note, savedCardId));
   }
 </script>
 
