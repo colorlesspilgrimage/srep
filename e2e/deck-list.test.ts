@@ -248,8 +248,13 @@ test.describe.serial('deck list', () => {
     await expect(selected()).toContainText('Languages');
     await page.keyboard.press('Escape');
     await expect(commands()).toBeHidden();
+    await expect(field).toBeFocused();
     await page.keyboard.press('Escape');
-    await focusTree();
+    await expect(field).not.toBeFocused();
+    await expect(selected()).toContainText('Languages');
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('tree', { name: 'Decks' })).toBeFocused();
     await page.keyboard.press('ArrowDown');
     await expect(selected()).toContainText('French');
     await page.keyboard.press('Enter');
