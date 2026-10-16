@@ -35,6 +35,8 @@ describe('move targets and selection', () => {
     expect(keptSelection(decks, 'b')).toBe('b');
     expect(keptSelection(decks, 'gone')).toBe('a');
     expect(keptSelection([], 'a')).toBeNull();
+    const cycle = [deck('a', 'b', 'A'), deck('b', 'a', 'B')];
+    expect(moveTargetIds(cycle, 'a')).toEqual([]);
   });
 
   it('expands the parent after a child create', () => {

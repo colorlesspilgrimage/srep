@@ -45,6 +45,14 @@ describe('visibleDeckRows', () => {
     const rows = [{ id: 'orphan', parentId: 'gone' }];
     expect(visibleDeckRows(rows, new Set())).toEqual(rows);
   });
+
+  it('hides a parent cycle', () => {
+    const rows = [
+      { id: 'a', parentId: 'b' },
+      { id: 'b', parentId: 'a' },
+    ];
+    expect(visibleDeckRows(rows, new Set(['a', 'b']))).toEqual([]);
+  });
 });
 
 describe('toggleExpanded and rowFromMove', () => {

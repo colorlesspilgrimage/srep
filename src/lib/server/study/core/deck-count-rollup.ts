@@ -78,10 +78,12 @@ function subtreeOf(
     return cached;
   }
   if (seen.has(id)) {
-    return own.get(id) ?? zeroCounts();
+    return zeroCounts();
   }
   seen.add(id);
-  let total = own.get(id) ?? zeroCounts();
+  // Every id here is a visible deck, so the map has a row.
+  const base = own.get(id) as CountTriple;
+  let total = { new: base.new, learning: base.learning, due: base.due };
   for (const child of children.get(id) ?? []) {
     total = addCounts(total, subtreeOf(child, own, children, memo, seen));
   }
@@ -101,7 +103,7 @@ export function rollupDeckCounts(
   return visible.map((deck) => ({
     id: deck.id,
     parentId: deck.parentId,
-    own: own.get(deck.id) ?? zeroCounts(),
+    own: own.get(deck.id) as CountTriple,
     subtree: subtreeOf(deck.id, own, children, memo, new Set()),
   }));
 }

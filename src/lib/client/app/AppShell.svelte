@@ -22,6 +22,7 @@
   // The theme class sits on tui-root. The tab bar uses tui-tabbar.
   // Palette keys match the gallery: capture phase on window.
   // keyCapture true ignores those keys. A fixed command path is the only navigation.
+  // Closing the palette returns focus to the element that had it.
 
   type Props = {
     themeId: string;
@@ -46,11 +47,31 @@
     closeHint(keybinds['palette.close']),
   ]);
 
+  let returnFocus: HTMLElement | null = null;
+
   function isField(target: EventTarget | null): boolean {
     if (!(target instanceof HTMLElement)) {
       return false;
     }
     return elementIsTextField(target.tagName, target.isContentEditable);
+  }
+
+  function rememberFocus(): void {
+    const active = document.activeElement;
+    returnFocus = active instanceof HTMLElement ? active : null;
+  }
+
+  function restoreFocus(): void {
+    const node = returnFocus;
+    returnFocus = null;
+    if (node === null || !node.isConnected) {
+      return;
+    }
+    queueMicrotask(() => {
+      if (node.isConnected) {
+        node.focus();
+      }
+    });
   }
 
   function onWindowKey(event: KeyboardEvent): void {
@@ -68,7 +89,14 @@
     }
     event.preventDefault();
     event.stopPropagation();
+    if (action === 'open') {
+      rememberFocus();
+    }
+    const wasOpen = paletteOpen;
     paletteOpen = action === 'open';
+    if (wasOpen && action === 'close') {
+      restoreFocus();
+    }
   }
 
   function runCommand(name: string): void {
@@ -88,6 +116,7 @@
 
   function closePalette(): void {
     paletteOpen = false;
+    restoreFocus();
   }
 
   function openDecks(): void {
@@ -95,12 +124,16 @@
   }
 
   function onTabKey(event: KeyboardEvent): void {
-    const list = event.currentTarget;
+    const tab = event.currentTarget;
+    if (!(tab instanceof HTMLElement)) {
+      return;
+    }
+    const list = tab.closest('[role="tablist"]');
     if (!(list instanceof HTMLElement)) {
       return;
     }
     const tabs = [...list.querySelectorAll<HTMLElement>('[role="tab"]')];
-    const current = Math.max(0, tabs.indexOf(document.activeElement as HTMLElement));
+    const current = Math.max(0, tabs.indexOf(tab));
     const next = tabKeyIndex(tabs.length, current, event.key);
     if (next === null) {
       return;
@@ -118,9 +151,16 @@
 </script>
 
 <div class="tui-root app-root {themeClass(themeId)}">
-  <div class="tui-tabbar" role="tablist" aria-label="App sections" onkeydown={onTabKey}>
+  <div class="tui-tabbar" role="tablist" aria-label="App sections">
     {#each NAV_ITEMS as item (item.id)}
-      <button type="button" class="app-tab" role="tab" aria-selected="true" onclick={openDecks}>
+      <button
+        type="button"
+        class="app-tab"
+        role="tab"
+        aria-selected="true"
+        onclick={openDecks}
+        onkeydown={onTabKey}
+      >
         {item.label}
       </button>
     {/each}

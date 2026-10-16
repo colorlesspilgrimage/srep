@@ -1,6 +1,6 @@
 // Contract: filter command names for the palette.
 // Compare with an ASCII lower fold only. Codes 65 to 90 become 97 to 122.
-// Do not use toLowerCase. A non-ASCII letter stays unchanged.
+// A non-ASCII letter stays unchanged. Locale case fold is not used.
 // An empty filter returns no rows.
 // No I/O.
 

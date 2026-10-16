@@ -26,5 +26,6 @@ describe('app nav', () => {
       expect(tabKeyIndex(3, 1, key)).toBeNull();
     }
     expect(tabKeyIndex(0, 0, 'Home')).toBeNull();
+    expect(tabKeyIndex(3, 1.5, 'ArrowRight')).toBe(1);
   });
 });
