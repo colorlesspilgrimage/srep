@@ -7,8 +7,6 @@
 
   // Contract: the command palette. Enter on a row runs that command and closes.
   // Arrow keys only move the row. This file does not call the network.
-  // Absent commands keep the gallery list. Present commands use the app filter.
-  // An empty filter shows no rows.
 
   type Props = {
     open: boolean;

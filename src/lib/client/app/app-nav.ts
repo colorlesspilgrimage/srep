@@ -7,14 +7,16 @@ export const NAV_ITEMS = [{ id: 'decks', label: 'Decks', href: '/' }] as const;
 
 export const APP_COMMANDS = ['Open Decks', 'Open Gallery', 'Open Security'] as const;
 
+type CommandPath = '/' | '/gallery' | '/security';
+
 // Own keys only. A name such as "constructor" must not read Object members (CWE-1321).
-const TARGETS = new Map<string, string>([
+const TARGETS = new Map<string, CommandPath>([
   ['Open Decks', '/'],
   ['Open Gallery', '/gallery'],
   ['Open Security', '/security'],
 ]);
 
-export function commandTarget(name: string): string | null {
+export function commandTarget(name: string): CommandPath | null {
   return TARGETS.get(name) ?? null;
 }
 
