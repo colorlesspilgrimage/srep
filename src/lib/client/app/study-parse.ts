@@ -4,7 +4,7 @@
 // No I/O.
 
 import { isDeckUuid } from './deck-id.js';
-import type { StudyRating } from './study-keys.js';
+import { STUDY_RATINGS, type StudyRating } from './study-keys.js';
 
 export type StudyCounts = { new: number; learning: number; review: number };
 
@@ -29,6 +29,13 @@ export type NoteBody = { fields: string[]; cards: NoteCardText[] };
 const MAX_FIELDS = 100;
 const MAX_FIELD_TEXT = 50_000;
 
+export function validNoteFields(fields: readonly string[]): boolean {
+  if (fields.length > MAX_FIELDS) {
+    return false;
+  }
+  return fields.every((field) => field.length <= MAX_FIELD_TEXT && !field.includes('\u0000'));
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -47,11 +54,19 @@ function readUuid(value: unknown): string | null {
   return value;
 }
 
-function readCount(value: unknown): number | null {
-  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+function readInteger(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isInteger(value)) {
     return null;
   }
   return value;
+}
+
+function readCount(value: unknown): number | null {
+  const count = readInteger(value);
+  if (count === null || count < 0) {
+    return null;
+  }
+  return count;
 }
 
 function readCounts(value: unknown): StudyCounts | null {
@@ -71,25 +86,31 @@ function readMinutes(value: unknown): number | null {
   if (!isRecord(value) || !('intervalMinutes' in value)) {
     return null;
   }
-  const minutes = value.intervalMinutes;
-  if (typeof minutes !== 'number' || !Number.isInteger(minutes)) {
-    return null;
-  }
-  return minutes;
+  return readInteger(value.intervalMinutes);
 }
 
 function readPreviews(value: unknown): Record<StudyRating, number> | null {
   if (!isRecord(value)) {
     return null;
   }
-  const one = readMinutes(value['1']);
-  const two = readMinutes(value['2']);
-  const three = readMinutes(value['3']);
-  const four = readMinutes(value['4']);
-  if (one === null || two === null || three === null || four === null) {
+  const previews = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  for (const rating of STUDY_RATINGS) {
+    const minutes = readMinutes(value[String(rating)]);
+    if (minutes === null) {
+      return null;
+    }
+    previews[rating] = minutes;
+  }
+  return previews;
+}
+
+function readSides(value: Record<string, unknown>): { front: string; back: string } | null {
+  const front = readString(value.front);
+  const back = readString(value.back);
+  if (front === null || back === null) {
     return null;
   }
-  return { 1: one, 2: two, 3: three, 4: four };
+  return { front, back };
 }
 
 function readCard(value: unknown): ParsedCard | null {
@@ -98,17 +119,16 @@ function readCard(value: unknown): ParsedCard | null {
   }
   const id = readUuid(value.id);
   const noteId = readUuid(value.noteId);
-  const front = readString(value.front);
-  const back = readString(value.back);
+  const sides = readSides(value);
   const previews = readPreviews(value.previews);
-  const reps = value.reps;
-  if (id === null || noteId === null || front === null || back === null || previews === null) {
+  const reps = readInteger(value.reps);
+  if (id === null || noteId === null || sides === null || previews === null || reps === null) {
     return null;
   }
-  if (typeof reps !== 'number' || !Number.isInteger(reps) || reps < 0) {
+  if (reps < 0) {
     return null;
   }
-  return { id, noteId, reps, front, back, previews };
+  return { id, noteId, reps, front: sides.front, back: sides.back, previews };
 }
 
 export function parseNextReply(body: unknown): NextReply | null {
@@ -138,19 +158,27 @@ export function parseNextReply(body: unknown): NextReply | null {
   return { status: 'card', card, counts };
 }
 
-function readFields(value: unknown): string[] | null {
+function readList<T>(value: unknown, readItem: (item: unknown) => T | null): T[] | null {
   if (!Array.isArray(value) || value.length > MAX_FIELDS) {
     return null;
   }
-  const fields: string[] = [];
+  const items: T[] = [];
   for (const item of value) {
-    const text = readString(item);
-    if (text === null || text.length > MAX_FIELD_TEXT) {
+    const parsed = readItem(item);
+    if (parsed === null) {
       return null;
     }
-    fields.push(text);
+    items.push(parsed);
   }
-  return fields;
+  return items;
+}
+
+function readField(item: unknown): string | null {
+  const text = readString(item);
+  if (text === null || text.length > MAX_FIELD_TEXT) {
+    return null;
+  }
+  return text;
 }
 
 function readNoteCard(value: unknown): NoteCardText | null {
@@ -158,35 +186,19 @@ function readNoteCard(value: unknown): NoteCardText | null {
     return null;
   }
   const id = readUuid(value.id);
-  const front = readString(value.front);
-  const back = readString(value.back);
-  if (id === null || front === null || back === null) {
+  const sides = readSides(value);
+  if (id === null || sides === null) {
     return null;
   }
-  return { id, front, back };
-}
-
-function readNoteCards(value: unknown): NoteCardText[] | null {
-  if (!Array.isArray(value) || value.length > MAX_FIELDS) {
-    return null;
-  }
-  const cards: NoteCardText[] = [];
-  for (const item of value) {
-    const card = readNoteCard(item);
-    if (card === null) {
-      return null;
-    }
-    cards.push(card);
-  }
-  return cards;
+  return { id, front: sides.front, back: sides.back };
 }
 
 export function parseNoteBody(body: unknown): NoteBody | null {
   if (!isRecord(body) || !isRecord(body.note)) {
     return null;
   }
-  const fields = readFields(body.note.fields);
-  const cards = readNoteCards(body.note.cards);
+  const fields = readList(body.note.fields, readField);
+  const cards = readList(body.note.cards, readNoteCard);
   if (fields === null || cards === null) {
     return null;
   }
@@ -208,9 +220,5 @@ export function readAnswerInterval(body: unknown): number | null {
   if (!isRecord(body) || !isRecord(body.review)) {
     return null;
   }
-  const minutes = body.review.intervalMinutes;
-  if (typeof minutes !== 'number' || !Number.isInteger(minutes)) {
-    return null;
-  }
-  return minutes;
+  return readInteger(body.review.intervalMinutes);
 }

@@ -25,15 +25,13 @@
   } from './study-state.js';
   import { createStudyClient } from './study-client.js';
   import { parseNextReply, readAnswerInterval } from './study-parse.js';
-  import { studyKeyAction, type StudyRating } from './study-keys.js';
+  import { STUDY_RATINGS, studyKeyAction, type StudyRating } from './study-keys.js';
   import { studyNextPath } from './study-paths.js';
 
   // Contract: the study screen. It reads deck from the query.
   // A bad deck id shows an error and does not call the API.
-  // Rate, undo, and suspend send one request at a time.
-  // An open edit blocks those actions.
-  // A reply from an older load is not applied to the new screen.
-  // Card text is rendered only by CardHtml.
+  // One rate, undo, or suspend runs at a time. An open edit blocks them.
+  // A reply from an older load is not applied. CardHtml is the only renderer.
 
   type Props = { paletteOpen: boolean };
 
@@ -43,6 +41,17 @@
   let screen = $state(initialStudyState());
   let deckParam: string | null = null;
   let generation = 0;
+
+  const RATE_NAMES: Record<StudyRating, string> = {
+    1: 'Again',
+    2: 'Hard',
+    3: 'Good',
+    4: 'Easy',
+  };
+
+  function rateButtonText(rating: StudyRating, interval: string): string {
+    return `${RATE_NAMES[rating]} ${interval}`;
+  }
 
   function countsOf(): { new: number; learning: number; review: number } | null {
     const phase = screen.phase;
@@ -75,34 +84,60 @@
     screen = applyNext(screen, reply, performance.now());
   }
 
+  function takeAction(): number | null {
+    const next = beginAction(screen);
+    if (next === null) {
+      return null;
+    }
+    const flight = generation;
+    screen = next;
+    return flight;
+  }
+
+  async function settle(flight: number, ok: boolean, onFail: () => void): Promise<boolean> {
+    const plan = mutationFollowUp(flight, generation, ok);
+    if (plan === 'drop') {
+      return false;
+    }
+    if (plan === 'refresh') {
+      await loadDeck(deckParam);
+      return false;
+    }
+    if (!ok) {
+      onFail();
+      return false;
+    }
+    return true;
+  }
+
   async function rate(rating: StudyRating): Promise<void> {
     if (screen.phase.kind !== 'card') {
       return;
     }
-    const next = beginAction(screen);
-    if (next === null) {
-      return;
-    }
-    const flight = generation;
     const card = screen.phase.card;
     const elapsed = rateElapsed(screen, performance.now());
-    screen = next;
+    const flight = takeAction();
+    if (flight === null) {
+      return;
+    }
     const result = await client.answer({
       cardId: card.id,
       rating,
       reps: card.reps,
       elapsedMs: elapsed,
     });
-    const plan = mutationFollowUp(flight, generation, result.ok);
-    if (plan === 'drop') {
+    if (!result.ok && result.status === 409) {
+      if (mutationFollowUp(flight, generation, false) !== 'drop') {
+        await loadDeck(deckParam);
+      }
       return;
     }
-    if (plan === 'refresh' || (result.ok === false && result.status === 409)) {
-      await loadDeck(deckParam);
-      return;
-    }
-    if (!result.ok) {
-      screen = failedAction(screen, result.error);
+    const apply = await settle(flight, result.ok, () => {
+      if (!result.ok) {
+        screen = failedAction(screen, result.error);
+      }
+    });
+    if (!apply || !result.ok) {
       return;
     }
     screen = rememberInterval(screen, readAnswerInterval(result.body));
@@ -110,53 +145,39 @@
   }
 
   async function undo(): Promise<void> {
-    const next = beginAction(screen);
-    if (next === null) {
+    const flight = takeAction();
+    if (flight === null) {
       return;
     }
-    const flight = generation;
-    screen = next;
     const result = await client.undo();
-    const plan = mutationFollowUp(flight, generation, result.ok);
-    if (plan === 'drop') {
-      return;
-    }
-    if (plan === 'refresh') {
+    const apply = await settle(flight, result.ok, () => {
+      if (!result.ok) {
+        screen = result.status === 404 ? nothingToUndo(screen) : failedAction(screen, result.error);
+      }
+    });
+    if (apply) {
       await loadDeck(deckParam);
-      return;
     }
-    if (!result.ok) {
-      screen = result.status === 404 ? nothingToUndo(screen) : failedAction(screen, result.error);
-      return;
-    }
-    await loadDeck(deckParam);
   }
 
   async function suspend(): Promise<void> {
     if (screen.phase.kind !== 'card') {
       return;
     }
-    const next = beginAction(screen);
-    if (next === null) {
-      return;
-    }
-    const flight = generation;
     const cardId = screen.phase.card.id;
-    screen = next;
+    const flight = takeAction();
+    if (flight === null) {
+      return;
+    }
     const result = await client.suspend(cardId);
-    const plan = mutationFollowUp(flight, generation, result.ok);
-    if (plan === 'drop') {
-      return;
-    }
-    if (plan === 'refresh') {
+    const apply = await settle(flight, result.ok, () => {
+      if (!result.ok) {
+        screen = failedAction(screen, result.error);
+      }
+    });
+    if (apply) {
       await loadDeck(deckParam);
-      return;
     }
-    if (!result.ok) {
-      screen = failedAction(screen, result.error);
-      return;
-    }
-    await loadDeck(deckParam);
   }
 
   function onSaved(cardId: string, text: { front: string; back: string } | null): void {
@@ -230,7 +251,12 @@
   });
 
   const counts = $derived(countsOf());
+  const locked = $derived(screen.busy || screen.editOpen);
 </script>
+
+{#snippet undoButton()}
+  <button type="button" disabled={locked} onclick={() => void undo()}>Undo</button>
+{/snippet}
 
 <main class="app-screen">
   <h1>Study</h1>
@@ -250,69 +276,30 @@
         text={screen.phase.side === 'front' ? screen.phase.card.front : screen.phase.card.back}
       />
       {#if screen.phase.side === 'front'}
-        <button
-          type="button"
-          disabled={screen.busy || screen.editOpen}
-          onclick={() => (screen = reveal(screen))}
-        >
+        <button type="button" disabled={locked} onclick={() => (screen = reveal(screen))}>
           Reveal
         </button>
       {:else}
         <div class="study-rate">
-          <button
-            type="button"
-            disabled={screen.busy || screen.editOpen}
-            onclick={() => void rate(1)}
-          >
-            Again {screen.phase.card.labels[1]}
-          </button>
-          <button
-            type="button"
-            disabled={screen.busy || screen.editOpen}
-            onclick={() => void rate(2)}
-          >
-            Hard {screen.phase.card.labels[2]}
-          </button>
-          <button
-            type="button"
-            disabled={screen.busy || screen.editOpen}
-            onclick={() => void rate(3)}
-          >
-            Good {screen.phase.card.labels[3]}
-          </button>
-          <button
-            type="button"
-            disabled={screen.busy || screen.editOpen}
-            onclick={() => void rate(4)}
-          >
-            Easy {screen.phase.card.labels[4]}
-          </button>
+          {#each STUDY_RATINGS as rating (rating)}
+            <button type="button" disabled={locked} onclick={() => void rate(rating)}>
+              {rateButtonText(rating, screen.phase.card.labels[rating])}
+            </button>
+          {/each}
         </div>
       {/if}
-      <button type="button" disabled={screen.busy || screen.editOpen} onclick={() => void undo()}
-        >Undo</button
-      >
-      <button type="button" disabled={screen.busy || screen.editOpen} onclick={() => void suspend()}
-        >Suspend</button
-      >
-      <button
-        type="button"
-        disabled={screen.busy || screen.editOpen}
-        onclick={() => (screen = openEdit(screen))}
-      >
+      {@render undoButton()}
+      <button type="button" disabled={locked} onclick={() => void suspend()}>Suspend</button>
+      <button type="button" disabled={locked} onclick={() => (screen = openEdit(screen))}>
         Edit
       </button>
     {:else if screen.phase.kind === 'wait'}
       <p>Next card at {screen.phase.untilText}</p>
-      <button type="button" disabled={screen.busy || screen.editOpen} onclick={() => void undo()}
-        >Undo</button
-      >
+      {@render undoButton()}
     {:else}
       <p>No cards left.</p>
       <p>Next due in {screen.phase.dueText}</p>
-      <button type="button" disabled={screen.busy || screen.editOpen} onclick={() => void undo()}
-        >Undo</button
-      >
+      {@render undoButton()}
     {/if}
   {/if}
 </main>
