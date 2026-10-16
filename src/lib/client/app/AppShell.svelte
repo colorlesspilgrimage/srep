@@ -119,8 +119,13 @@
     restoreFocus();
   }
 
+  // A click stays on this page when Decks is already open.
   function openDecks(): void {
-    void goto(resolve('/'));
+    const target = resolve('/');
+    if (window.location.pathname === target) {
+      return;
+    }
+    void goto(target);
   }
 
   function onTabKey(event: KeyboardEvent): void {
