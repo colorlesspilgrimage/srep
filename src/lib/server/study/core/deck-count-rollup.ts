@@ -3,6 +3,7 @@
 // Input: DeckSnapshot rows from one read.
 // An archived deck is left out. A deck with no snapshot counts as zero.
 // own new and own due come from remainingQuota. own learning is learningTodayCount.
+// A negative or non-finite count is shown as zero.
 // subtree is the deck plus every visible descendant.
 // A missing parent does not throw. A parent cycle does not throw.
 // Output: one record per visible deck, in input order.
@@ -39,6 +40,13 @@ function addCounts(left: CountTriple, right: CountTriple): CountTriple {
   };
 }
 
+function shownCount(value: number): number {
+  if (!Number.isFinite(value) || value < 0) {
+    return 0;
+  }
+  return value;
+}
+
 function ownCounts(deck: RollupDeck, snapshot: DeckSnapshot | undefined): CountTriple {
   if (snapshot === undefined) {
     return zeroCounts();
@@ -50,7 +58,11 @@ function ownCounts(deck: RollupDeck, snapshot: DeckSnapshot | undefined): CountT
     newOrder: 'added',
   };
   const left = remainingQuota(snapshot, quota);
-  return { new: left.newLeft, learning: snapshot.learningTodayCount, due: left.reviewLeft };
+  return {
+    new: shownCount(left.newLeft),
+    learning: shownCount(snapshot.learningTodayCount),
+    due: shownCount(left.reviewLeft),
+  };
 }
 
 function childIds(decks: readonly RollupDeck[]): Map<string, string[]> {

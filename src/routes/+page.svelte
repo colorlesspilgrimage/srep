@@ -8,6 +8,7 @@
   import DeckDetail from '#lib/client/app/DeckDetail.svelte';
   import DeckTree from '#lib/client/app/DeckTree.svelte';
   import DeleteDeckDialog from '#lib/client/app/DeleteDeckDialog.svelte';
+  import { withBusy } from '#lib/client/app/action-lock.js';
   import { appMessageFor } from '#lib/client/app/app-messages.js';
   import { createDeckClient } from '#lib/client/app/deck-api.js';
   import { loadDeckScreen } from '#lib/client/app/deck-actions.js';
@@ -91,18 +92,24 @@
     });
   });
 
+  function setBusy(value: boolean): void {
+    busy = value;
+  }
+
   async function runCreate(parentId: string | null): Promise<void> {
-    if (!ready || busy) {
-      return;
-    }
-    busy = true;
-    const result = await client.createDeck({ name, parentId });
-    busy = false;
-    if (!result.ok) {
-      message = appMessageFor(result.error);
-      return;
-    }
-    await reload(result.body.deck.id, parentId);
+    await withBusy(
+      () => busy,
+      setBusy,
+      ready,
+      async () => {
+        const result = await client.createDeck({ name, parentId });
+        if (!result.ok) {
+          message = appMessageFor(result.error);
+          return;
+        }
+        await reload(result.body.deck.id, parentId);
+      },
+    );
   }
 
   function onCreateRoot(): void {
@@ -117,17 +124,23 @@
   }
 
   async function onRename(): Promise<void> {
-    if (!ready || busy || selectedId === null) {
+    const id = selectedId;
+    if (id === null) {
       return;
     }
-    busy = true;
-    const result = await client.renameDeck(selectedId, name);
-    busy = false;
-    if (!result.ok) {
-      message = appMessageFor(result.error);
-      return;
-    }
-    await reload(selectedId, null);
+    await withBusy(
+      () => busy,
+      setBusy,
+      ready,
+      async () => {
+        const result = await client.renameDeck(id, name);
+        if (!result.ok) {
+          message = appMessageFor(result.error);
+          return;
+        }
+        await reload(id, null);
+      },
+    );
   }
 
   function isField(target: EventTarget | null): boolean {
@@ -203,7 +216,14 @@
 
   async function onDeleted(): Promise<void> {
     deleteOpen = false;
-    await reload(selectedId, null);
+    await withBusy(
+      () => busy,
+      setBusy,
+      true,
+      async () => {
+        await reload(selectedId, null);
+      },
+    );
   }
 
   function onName(value: string): void {

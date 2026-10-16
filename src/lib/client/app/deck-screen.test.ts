@@ -4,6 +4,7 @@ import {
   joinDeckViews,
   keptSelection,
   moveTargetIds,
+  shownCount,
   type CountRow,
   type DeckListRow,
 } from './deck-screen.js';
@@ -24,6 +25,18 @@ describe('joinDeckViews', () => {
       { id: 'a', parentId: null, name: 'Languages', subtree: { new: 1, learning: 2, due: 3 } },
       { id: 'c', parentId: 'a', name: 'Spanish', subtree: { new: 0, learning: 0, due: 0 } },
     ]);
+  });
+
+  it('shows zero for a negative count and for a non-number', () => {
+    expect(shownCount(-1)).toBe(0);
+    expect(shownCount(Number.NaN)).toBe(0);
+    expect(shownCount('1')).toBe(0);
+    const bad = [{ id: 'a', subtree: { new: -4, learning: '1', due: 2 } }] as unknown as CountRow[];
+    expect(joinDeckViews([deck('a', null, 'Languages')], bad)[0]?.subtree).toEqual({
+      new: 0,
+      learning: 0,
+      due: 2,
+    });
   });
 });
 

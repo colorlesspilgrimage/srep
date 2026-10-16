@@ -7,14 +7,15 @@ export const NAV_ITEMS = [{ id: 'decks', label: 'Decks', href: '/' }] as const;
 
 export const APP_COMMANDS = ['Open Decks', 'Open Gallery', 'Open Security'] as const;
 
-const TARGETS: Readonly<Record<string, string>> = {
-  'Open Decks': '/',
-  'Open Gallery': '/gallery',
-  'Open Security': '/security',
-};
+// Own keys only. A name such as "constructor" must not read Object members (CWE-1321).
+const TARGETS = new Map<string, string>([
+  ['Open Decks', '/'],
+  ['Open Gallery', '/gallery'],
+  ['Open Security', '/security'],
+]);
 
 export function commandTarget(name: string): string | null {
-  return TARGETS[name] ?? null;
+  return TARGETS.get(name) ?? null;
 }
 
 export function tabKeyIndex(length: number, index: number, key: string): number | null {

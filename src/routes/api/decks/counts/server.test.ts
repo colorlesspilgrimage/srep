@@ -60,6 +60,8 @@ describe('GET /api/decks/counts', () => {
     await addStudyNote(h, leaf.id);
     const response = await GET(makeEvent('/api/decks/counts', { method: 'GET', session }).event);
     expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('vary')).toBe('Cookie');
     const body = await readBody<{ counts: DeckCountRecord[] }>(response);
     const byId = new Map(body.counts.map((row) => [row.id, row]));
     for (const id of [root.id, mid.id, leaf.id]) {
@@ -72,6 +74,8 @@ describe('GET /api/decks/counts', () => {
     await execSql(h, sql`insert into app_settings (key, value) values ('study', '"x"')`);
     const response = await GET(makeEvent('/api/decks/counts', { method: 'GET', session }).event);
     expect(response.status).toBe(500);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('vary')).toBe('Cookie');
     expect(await readBody(response)).toEqual({ error: 'settings_corrupt' });
   });
 });

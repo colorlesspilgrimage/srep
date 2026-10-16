@@ -24,8 +24,20 @@ export type DeckView = {
   subtree: CountTriple;
 };
 
-function copyCounts(value: CountTriple): CountTriple {
-  return { new: value.new, learning: value.learning, due: value.due };
+// A count on screen is a finite number. A bad JSON value becomes zero (CWE-20).
+export function shownCount(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    return 0;
+  }
+  return value;
+}
+
+function copyCounts(value: CountTriple | undefined): CountTriple {
+  return {
+    new: shownCount(value?.new),
+    learning: shownCount(value?.learning),
+    due: shownCount(value?.due),
+  };
 }
 
 export function joinDeckViews(
@@ -38,12 +50,11 @@ export function joinDeckViews(
     if (deck.archivedAt !== null) {
       continue;
     }
-    const subtree = byId.get(deck.id);
     views.push({
       id: deck.id,
       parentId: deck.parentId,
       name: deck.name,
-      subtree: copyCounts(subtree ?? { new: 0, learning: 0, due: 0 }),
+      subtree: copyCounts(byId.get(deck.id)),
     });
   }
   return views;

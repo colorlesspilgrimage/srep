@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { deckRowDomId } from './deck-id.js';
   import { deckLevel, visibleDeckRows } from './deck-tree-state.js';
   import type { DeckView } from './deck-screen.js';
 
@@ -17,6 +18,12 @@
   let root = $state<HTMLDivElement | null>(null);
 
   const visible = $derived(visibleDeckRows(decks, expanded));
+  const activeDomId = $derived.by(() => {
+    if (selectedId === null || !visible.some((row) => row.id === selectedId)) {
+      return undefined;
+    }
+    return deckRowDomId(selectedId) ?? undefined;
+  });
 
   function hasChildren(id: string): boolean {
     return decks.some((deck) => deck.parentId === id);
@@ -41,12 +48,14 @@
   class="app-tree"
   role="tree"
   aria-label="Decks"
+  aria-activedescendant={activeDomId}
   tabindex="0"
   bind:this={root}
   onkeydown={onKeydown}
 >
   {#each visible as row (row.id)}
     <div
+      id={deckRowDomId(row.id) ?? undefined}
       class="app-tree-row"
       role="treeitem"
       aria-level={deckLevel(decks, row.id)}
