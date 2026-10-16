@@ -3,15 +3,19 @@
 // tabKeyIndex moves a tab. ArrowDown, j, k, and digits do not move a tab.
 // No I/O.
 
-export const NAV_ITEMS = [{ id: 'decks', label: 'Decks', href: '/' }] as const;
+export const NAV_ITEMS = [
+  { id: 'decks', label: 'Decks', href: '/' },
+  { id: 'study', label: 'Study', href: '/study' },
+] as const;
 
-export const APP_COMMANDS = ['Open Decks', 'Open Gallery', 'Open Security'] as const;
+export const APP_COMMANDS = ['Open Decks', 'Open Study', 'Open Gallery', 'Open Security'] as const;
 
-type CommandPath = '/' | '/gallery' | '/security';
+type CommandPath = '/' | '/study' | '/gallery' | '/security';
 
 // Own keys only. A name such as "constructor" must not read Object members (CWE-1321).
 const TARGETS = new Map<string, CommandPath>([
   ['Open Decks', '/'],
+  ['Open Study', '/study'],
   ['Open Gallery', '/gallery'],
   ['Open Security', '/security'],
 ]);

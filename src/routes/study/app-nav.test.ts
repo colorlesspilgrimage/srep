@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { APP_COMMANDS, commandTarget, NAV_ITEMS, tabKeyIndex } from './app-nav.js';
+import { APP_COMMANDS, commandTarget, NAV_ITEMS, tabKeyIndex } from '#lib/client/app/app-nav.js';
 
 describe('app nav', () => {
-  it('lists Decks and the three commands', () => {
-    expect(NAV_ITEMS).toEqual([{ id: 'decks', label: 'Decks', href: '/' }]);
-    expect(APP_COMMANDS).toEqual(['Open Decks', 'Open Gallery', 'Open Security']);
+  it('lists Decks, Study, and the four commands', () => {
+    expect(NAV_ITEMS).toEqual([
+      { id: 'decks', label: 'Decks', href: '/' },
+      { id: 'study', label: 'Study', href: '/study' },
+    ]);
+    expect(APP_COMMANDS).toEqual(['Open Decks', 'Open Study', 'Open Gallery', 'Open Security']);
   });
 
   it('maps each command to a fixed path', () => {
     expect(commandTarget('Open Decks')).toBe('/');
+    expect(commandTarget('Open Study')).toBe('/study');
     expect(commandTarget('Open Gallery')).toBe('/gallery');
     expect(commandTarget('Open Security')).toBe('/security');
     expect(commandTarget('Show Panes')).toBeNull();
