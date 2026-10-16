@@ -36,6 +36,12 @@ describe('createStudyClient', () => {
     expect(
       await client.answer({ cardId: ID, rating: 3, reps: 0, elapsedMs: 3_600_001 }),
     ).toMatchObject({ ok: false });
+    expect(
+      await client.answer({ cardId: ID, rating: 3, reps: 1_000_001, elapsedMs: 10 }),
+    ).toMatchObject({ ok: false });
+    expect(
+      await client.answer({ cardId: ID, rating: 3, reps: Number.MAX_SAFE_INTEGER, elapsedMs: 10 }),
+    ).toMatchObject({ ok: false });
     expect(await client.patchNote(NOTE, ['a\u0000'])).toMatchObject({ ok: false });
     expect(validNoteFields(['a'.repeat(50_001)])).toBe(false);
     expect(seen).toEqual([]);

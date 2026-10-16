@@ -1,6 +1,7 @@
 // Contract: the study JSON client.
 // A deck id or a note id enters a path only after the UUID check.
 // A card id is checked, then sent with JSON.stringify through apiFetch.
+// reps is an integer from 0 to 1000000. elapsedMs is 0 to 3600000.
 // A failed check does not call fetch. No shell command is built.
 
 import { apiFetch, type ApiResult } from '#lib/client/api.js';
@@ -21,6 +22,7 @@ export type AnswerRequest = {
 };
 
 const MAX_ELAPSED_MS = 3_600_000;
+const MAX_REPS = 1_000_000;
 const MAX_FIELDS = 100;
 const MAX_FIELD_TEXT = 50_000;
 
@@ -30,7 +32,7 @@ function rejected(): ApiResult<never> {
 
 function validAnswer(body: AnswerRequest): boolean {
   const ratingOk = body.rating === 1 || body.rating === 2 || body.rating === 3 || body.rating === 4;
-  const repsOk = Number.isInteger(body.reps) && body.reps >= 0;
+  const repsOk = Number.isInteger(body.reps) && body.reps >= 0 && body.reps <= MAX_REPS;
   const elapsedOk =
     Number.isInteger(body.elapsedMs) && body.elapsedMs >= 0 && body.elapsedMs <= MAX_ELAPSED_MS;
   return ratingOk && repsOk && elapsedOk;

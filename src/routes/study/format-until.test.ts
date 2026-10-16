@@ -28,5 +28,13 @@ describe('formatUntil', () => {
   it('returns an empty string for a non-finite value', () => {
     expect(formatUntil(Number.NaN)).toBe('');
     expect(formatUntil(Number.POSITIVE_INFINITY)).toBe('');
+    expect(formatUntil(Number.NEGATIVE_INFINITY)).toBe('');
+  });
+
+  it('returns an empty string when the time is outside the Date range', () => {
+    expect(formatUntil(8_640_000_000_000_001, 'UTC')).toBe('');
+    expect(formatUntil(-8_640_000_000_000_001, 'UTC')).toBe('');
+    expect(formatUntil(Number.MAX_VALUE)).toBe('');
+    expect(formatUntil(0, 'Not/AZone')).toBe('');
   });
 });

@@ -29,5 +29,10 @@ describe('formatInterval', () => {
     expect(formatInterval(1.5)).toBe('0m');
     expect(formatInterval(Number.NaN)).toBe('0m');
     expect(formatInterval(Number.POSITIVE_INFINITY)).toBe('0m');
+    expect(formatInterval(Number.NEGATIVE_INFINITY)).toBe('0m');
+    expect(formatInterval(-0)).toBe('0m');
+    expect(formatInterval(Number.MAX_SAFE_INTEGER)).toBe(`${Number.MAX_SAFE_INTEGER}m`);
+    expect(formatInterval(1e21)).toBe('1e+21m');
+    expect(formatInterval(Number.MAX_VALUE)).toBe('1.7976931348623157e+308m');
   });
 });

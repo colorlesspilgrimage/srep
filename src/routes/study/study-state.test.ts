@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   applyEditedCard,
   applyNext,
+  applySaveResult,
   badDeck,
   beginAction,
   closeEdit,
   failedAction,
   failedLoad,
   initialStudyState,
+  mutationFollowUp,
   nothingToUndo,
   openEdit,
   phaseSide,
@@ -101,5 +103,52 @@ describe('study state', () => {
     expect(saved.phase).toMatchObject({ card: { front: 'gato2' } });
     expect(closeEdit(editing).editOpen).toBe(false);
     expect(applyEditedCard(initialStudyState(), 'a', 'b').phase.kind).toBe('loading');
+  });
+
+  it('blocks reveal and a new action while edit is open', () => {
+    const shown = applyNext(initialStudyState(), cardReply, 1000);
+    const editing = openEdit(shown);
+    expect(reveal(editing)).toBe(editing);
+    expect(beginAction(editing)).toBeNull();
+    expect(beginAction(shown)?.busy).toBe(true);
+  });
+
+  it('does not throw when the wait time is out of range', () => {
+    const wait = applyNext(
+      initialStudyState(),
+      { status: 'wait', until: 8_640_000_000_000_001, counts: COUNTS },
+      0,
+    );
+    expect(wait.phase).toEqual({ kind: 'wait', untilText: '', counts: COUNTS });
+  });
+
+  it('drops a save that belongs to a different card', () => {
+    const shown = applyNext(initialStudyState(), cardReply, 1000);
+    const otherId = '323e4567-e89b-42d3-a456-426614174000';
+    expect(applySaveResult(shown, otherId, { front: 'x', back: 'y' })).toEqual({ kind: 'ignore' });
+    expect(applySaveResult(initialStudyState(), ID, { front: 'x', back: 'y' }).kind).toBe('reload');
+    expect(applySaveResult(badDeck(initialStudyState()), ID, { front: 'x', back: 'y' }).kind).toBe(
+      'ignore',
+    );
+    const gone = applySaveResult(shown, ID, null);
+    expect(gone.kind).toBe('reload');
+    if (gone.kind === 'reload') {
+      expect(gone.state.editOpen).toBe(false);
+      expect(gone.state.phase).toMatchObject({ card: { front: 'gato' } });
+    }
+    const applied = applySaveResult(openEdit(shown), ID, { front: 'gato2', back: 'cat2' });
+    expect(applied.kind).toBe('applied');
+    if (applied.kind === 'applied') {
+      expect(applied.state.editOpen).toBe(false);
+      expect(applied.state.phase).toMatchObject({ card: { front: 'gato2', back: 'cat2' } });
+    }
+  });
+
+  it('refreshes after a stale success and drops a stale failure', () => {
+    expect(mutationFollowUp(1, 1, true)).toBe('apply');
+    expect(mutationFollowUp(1, 1, false)).toBe('apply');
+    expect(mutationFollowUp(1, 2, true)).toBe('refresh');
+    expect(mutationFollowUp(1, 2, false)).toBe('drop');
+    expect(mutationFollowUp(Number.NaN, 1, true)).toBe('refresh');
   });
 });

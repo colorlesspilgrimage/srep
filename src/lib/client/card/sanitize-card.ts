@@ -1,12 +1,15 @@
 // Contract: sanitize rendered card HTML before display (CWE-79).
-// Input: one string. Output: at most 200000 characters.
+// Input: one string. A non-string returns an empty string.
+// Output: at most 200000 characters.
 // Allowed marks are the exact strings <span class="cloze">, </span>, <br>, and <hr>.
 // {{media: plus 64 lower-case hex digits plus }} becomes an img.
 // Every other <, >, and & is escaped. A </span> with no open span is escaped.
+// Nested cloze spans stop at 32. A deeper span is escaped (CWE-400).
 // An output longer than 200000 characters is escaped text cut at that limit.
 // The scan is one left-to-right pass. It does not use a regex (CWE-1333). No I/O.
 
 const MAX_HTML = 200_000;
+const MAX_DEPTH = 32;
 const MEDIA_MARK = '{{media:';
 const CLOZE_OPEN = '<span class="cloze">';
 const CLOZE_CLOSE = '</span>';
@@ -73,6 +76,9 @@ function closeSpan(open: number): Step {
 
 function takeMark(text: string, at: number, open: number): Step | null {
   if (text.startsWith(CLOZE_OPEN, at)) {
+    if (open >= MAX_DEPTH) {
+      return null;
+    }
     return { text: CLOZE_OPEN, size: CLOZE_OPEN.length, open: open + 1 };
   }
   if (text.startsWith(CLOZE_CLOSE, at)) {
@@ -110,6 +116,9 @@ function scan(input: string): string {
 }
 
 export function sanitizeCardHtml(input: string): string {
+  if (typeof input !== 'string') {
+    return '';
+  }
   if (input.length > MAX_HTML) {
     return escapePrefix(input);
   }
