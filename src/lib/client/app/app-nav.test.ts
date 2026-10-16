@@ -12,6 +12,9 @@ describe('app nav', () => {
     expect(commandTarget('Open Gallery')).toBe('/gallery');
     expect(commandTarget('Open Security')).toBe('/security');
     expect(commandTarget('Show Panes')).toBeNull();
+    expect(commandTarget('constructor')).toBeNull();
+    expect(commandTarget('toString')).toBeNull();
+    expect(commandTarget('__proto__')).toBeNull();
   });
 
   it('moves tabs with arrows, Home, and End, and ignores other keys', () => {

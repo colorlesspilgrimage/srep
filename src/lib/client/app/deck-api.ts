@@ -5,7 +5,7 @@
 
 import { apiFetch, type ApiResult } from '#lib/client/api.js';
 import type { DeckClient } from './deck-actions.js';
-import { deckResourcePath } from './deck-id.js';
+import { deckResourcePath, isDeckUuid } from './deck-id.js';
 
 type FetchJson = <T>(
   path: string,
@@ -20,7 +20,12 @@ export function createDeckClient(fetchJson: FetchJson = apiFetch): DeckClient {
   return {
     getDecks: () => fetchJson('/api/decks'),
     getCounts: () => fetchJson('/api/decks/counts'),
-    createDeck: (body) => fetchJson('/api/decks', { method: 'POST', body }),
+    createDeck: (body) => {
+      if (body.parentId !== null && !isDeckUuid(body.parentId)) {
+        return Promise.resolve(rejected());
+      }
+      return fetchJson('/api/decks', { method: 'POST', body });
+    },
     renameDeck: (id, name) => {
       const path = deckResourcePath(id, 'item');
       if (path === null) {

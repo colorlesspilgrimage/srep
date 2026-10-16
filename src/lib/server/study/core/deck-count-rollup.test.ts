@@ -77,6 +77,14 @@ describe('rollupDeckCounts', () => {
     expect(limited[0]?.own.due).toBe(2);
   });
 
+  it('shows zero when a snapshot count is negative or not finite', () => {
+    const rows = rollupDeckCounts(
+      [deck('a', null)],
+      [snap('a', { newCount: -3, learningTodayCount: Number.NaN, reviewDueCount: -2 })],
+    );
+    expect(rows[0]?.own).toEqual({ new: 0, learning: 0, due: 0 });
+  });
+
   it('does not throw when the parent link is missing or cyclic', () => {
     const missing = rollupDeckCounts([deck('c', 'gone')], [snap('c', { newCount: 2 })]);
     expect(missing).toEqual([

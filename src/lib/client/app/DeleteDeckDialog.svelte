@@ -1,10 +1,14 @@
 <script lang="ts">
+  import { nextTrapIndex } from '#lib/client/tui/palette-focus.js';
   import { appMessageFor } from './app-messages.js';
   import { createDeckClient } from './deck-api.js';
+  import { shownCount } from './deck-screen.js';
+  import { dialogKeyAction } from './dialog-focus.js';
 
   // Contract: delete dialog. It loads impact when it opens.
   // A deck id that fails the UUID check does not call fetch.
   // Trash and Move use apiFetch. Escape closes and does not delete.
+  // Tab stays in the dialog. Close returns focus to the control that opened it.
   // Enter is left to the focused button.
 
   type Impact = { decks: number; cards: number; notes: number };
@@ -25,9 +29,52 @@
   let message = $state('');
   let targetId = $state('');
   let busy = $state(false);
+  let dialog = $state<HTMLElement | null>(null);
 
-  function focusOnMount(node: HTMLElement): void {
+  const FOCUSABLE = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+  ].join(', ');
+
+  function focusDialog(node: HTMLElement): { destroy: () => void } {
+    const previous = document.activeElement;
+    const returnFocus = previous instanceof HTMLElement && previous !== node ? previous : null;
     node.focus();
+    return {
+      destroy(): void {
+        if (returnFocus !== null && returnFocus.isConnected) {
+          returnFocus.focus();
+        }
+      },
+    };
+  }
+
+  function focusableItems(root: HTMLElement): HTMLElement[] {
+    const found: HTMLElement[] = [];
+    for (const node of root.querySelectorAll<HTMLElement>(FOCUSABLE)) {
+      if (node.tabIndex < 0 || node.closest('[hidden]') !== null) {
+        continue;
+      }
+      found.push(node);
+    }
+    return found;
+  }
+
+  function trapTab(shiftKey: boolean): void {
+    const root = dialog;
+    if (root === null) {
+      return;
+    }
+    const items = focusableItems(root);
+    const current = items.indexOf(document.activeElement as HTMLElement);
+    const next = nextTrapIndex(items.length, current, shiftKey);
+    const target = next === null ? undefined : items[next];
+    if (target !== undefined) {
+      target.focus();
+    }
   }
 
   function activatesControl(target: EventTarget | null): boolean {
@@ -40,14 +87,18 @@
 
   $effect(() => {
     function onKey(event: KeyboardEvent): void {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        event.stopPropagation();
+      const action = dialogKeyAction(event.key, event.shiftKey, activatesControl(event.target));
+      if (action.type === 'none') {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      if (action.type === 'close') {
         onClose();
         return;
       }
-      if (event.key === ' ' && !activatesControl(event.target)) {
-        event.preventDefault();
+      if (action.type === 'tab') {
+        trapTab(action.shift);
       }
     }
     window.addEventListener('keydown', onKey, true);
@@ -98,7 +149,11 @@
         message = appMessageFor(result.error);
         return;
       }
-      impact = result.body;
+      impact = {
+        decks: shownCount(result.body.decks),
+        cards: shownCount(result.body.cards),
+        notes: shownCount(result.body.notes),
+      };
     });
     return () => {
       stop = true;
@@ -112,7 +167,8 @@
   aria-modal="true"
   aria-labelledby="delete-deck-title"
   tabindex="-1"
-  use:focusOnMount
+  bind:this={dialog}
+  use:focusDialog
 >
   <h2 id="delete-deck-title">Delete {deckName}</h2>
   {#if impact === null}

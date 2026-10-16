@@ -136,6 +136,10 @@ test.describe.serial('deck list', () => {
     await focusTree();
     await page.keyboard.press('Home');
     await expect(selected()).toContainText('Languages');
+    await expect(page.getByRole('tree', { name: 'Decks' })).toHaveAttribute(
+      'aria-activedescendant',
+      /^deck-row-[0-9a-f-]{36}$/i,
+    );
     await page.keyboard.press('ArrowDown');
     await expect(selected()).toContainText('French');
     await page.keyboard.press('ArrowDown');
@@ -328,8 +332,17 @@ test.describe.serial('deck list', () => {
     await expect(row('Languages')).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(deleteDialog()).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Delete' })).toBeFocused();
+    await page.getByRole('button', { name: 'Delete' }).click();
+    for (let step = 0; step < 6; step += 1) {
+      await page.keyboard.press('Tab');
+      await expect(deleteDialog().locator(':focus')).toHaveCount(1);
+    }
+    await page.keyboard.press('Escape');
+    await expect(deleteDialog()).toBeHidden();
     await page.getByRole('button', { name: 'Delete' }).click();
     await page.keyboard.press('Tab');
+    await expect(deleteDialog().getByRole('button', { name: 'Cancel' })).toBeFocused();
     await page.keyboard.press('Enter');
     await expect(deleteDialog()).toBeHidden();
     await expect(row('Languages')).toBeVisible();

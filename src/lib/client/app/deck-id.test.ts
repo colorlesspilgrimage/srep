@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deckResourcePath, isDeckUuid } from './deck-id.js';
+import { deckResourcePath, deckRowDomId, isDeckUuid } from './deck-id.js';
 
 const ID = '123e4567-e89b-42d3-a456-426614174000';
 
@@ -14,10 +14,15 @@ describe('deck id path', () => {
   });
 
   it('rejects a bad id and does not build a path', () => {
-    for (const id of ['', 'counts', '../x', `${ID}/impact`, 'not-a-uuid']) {
+    for (const id of ['', 'counts', '../x', `${ID}/impact`, 'not-a-uuid', `${ID}\n`, `${ID} `]) {
       expect(isDeckUuid(id)).toBe(false);
       expect(deckResourcePath(id, 'item')).toBeNull();
       expect(deckResourcePath(id, 'impact')).toBeNull();
+      expect(deckRowDomId(id)).toBeNull();
     }
+  });
+
+  it('builds a DOM id only for a UUID', () => {
+    expect(deckRowDomId(ID)).toBe(`deck-row-${ID}`);
   });
 });

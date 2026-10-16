@@ -10,5 +10,8 @@ describe('appMessageFor', () => {
     expect(appMessageFor('network_error')).toBe('The server did not answer.');
     expect(appMessageFor('unauthenticated')).toBe('Sign in and try again.');
     expect(appMessageFor('other')).toBe('The request failed.');
+    expect(appMessageFor('constructor')).toBe('The request failed.');
+    expect(appMessageFor('toString')).toBe('The request failed.');
+    expect(appMessageFor('__proto__')).toBe('The request failed.');
   });
 });

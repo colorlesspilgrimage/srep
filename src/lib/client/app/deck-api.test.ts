@@ -31,6 +31,9 @@ describe('createDeckClient', () => {
       ok: false,
     });
     expect(await client.readImpact('not-a-uuid')).toMatchObject({ ok: false });
+    expect(await client.createDeck({ name: 'Languages', parentId: '../x' })).toMatchObject({
+      ok: false,
+    });
     expect(seen).toEqual([]);
   });
 
