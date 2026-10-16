@@ -1,6 +1,6 @@
 <script lang="ts">
   import './palette.css';
-  import { commandsFor } from './keymap.js';
+  import { paletteNames } from '#lib/client/app/command-filter.js';
   import { listKeyEffect, listKeyIndex } from './list-state.js';
   import { nextTrapIndex } from './palette-focus.js';
   import List from './List.svelte';
@@ -12,13 +12,14 @@
     open: boolean;
     onClose: () => void;
     onRun: (name: string) => void;
+    commands?: readonly string[];
   };
 
-  let { open, onClose, onRun }: Props = $props();
+  let { open, onClose, onRun, commands }: Props = $props();
   let filter = $state('');
   let picked = $state(0);
 
-  const names = $derived(filter.trim() === '' ? [] : commandsFor(filter));
+  const names = $derived(paletteNames(filter, commands));
   const rowIndex = $derived(names.length === 0 ? 0 : Math.min(picked, names.length - 1));
 
   function focusOnMount(node: HTMLInputElement): void {

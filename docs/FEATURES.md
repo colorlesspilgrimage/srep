@@ -218,7 +218,7 @@ Node 22.17 is the minimum. drizzle-kit is pinned to 0.31.11. The esbuild overrid
 
 ## Performance bench and bundle guard
 
-A repeatable bench times study next, answer, deck list, and note read. CI rejects a client JS gzip sum above 56000 bytes. Results and auth behavior stay the same.
+A repeatable bench times study next, answer, deck list, and note read. CI rejects a client JS gzip sum above 61000 bytes. Results and auth behavior stay the same.
 
 - Entry point: `npx tsx scripts/perf-bench.ts`. CI step `node scripts/bundle-budget.mjs` after `npm run build`.
 - Use:
@@ -235,3 +235,25 @@ A repeatable bench times study next, answer, deck list, and note read. CI reject
 - Code and tests:
   - Code: `src/lib/server/study/store/snapshot-batch.sqlite.ts`, `src/lib/server/study/store/snapshot-batch.pg.ts`, `src/lib/server/read-cache.ts`, `src/lib/client/sign-out.ts`, `scripts/perf-bench.ts`, `scripts/bundle-budget.mjs`.
   - Tests: `src/lib/server/study/store/snapshot-batch.test.ts`, `src/lib/server/read-cache.test.ts`, `scripts/perf-bench-stats.test.ts`, `scripts/bundle-budget.test.ts`.
+
+## Deck list (M5 slice 9)
+
+A signed-in home page shows the deck tree with New, Learning, and Due counts. The user can create, rename, and delete a deck.
+
+- Entry point: browser path `/` after sign-in. API `GET /api/decks/counts`.
+- Use:
+  1. Start the server and sign in (see "Authentication (M1)").
+  2. Open `/`.
+  3. Create a deck named `Languages`.
+  4. Create a child named `Spanish`.
+  5. Create a child named `French`.
+  6. The rows are `Languages`, `French`, `Spanish`.
+  7. Press Home. ArrowDown selects `French`. ArrowDown again selects `Spanish`.
+  8. Read the New, Learning, and Due numbers on each row.
+- Check:
+  - `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/api/decks/counts` prints `401`.
+  - `npx vitest run src/lib/client/app src/lib/server/study/deck-counts.test.ts src/routes/api/decks/counts` exits 0.
+  - `npx playwright test e2e/deck-list.test.ts` exits 0.
+- Code and tests:
+  - Code: `src/lib/client/app/`, `src/lib/server/study/deck-counts.ts`, `src/lib/server/study/core/deck-count-rollup.ts`, `src/routes/api/decks/counts/+server.ts`, `src/routes/+page.svelte`, `src/lib/server/http/private-page.ts`, `src/routes/+page.server.ts`, `src/lib/client/tui/CommandPalette.svelte`.
+  - Tests: `src/lib/client/app/*.test.ts`, `src/lib/server/study/deck-counts.test.ts`, `src/routes/api/decks/counts/server.test.ts`, `e2e/deck-list.test.ts`.

@@ -1,0 +1,78 @@
+/* App shell layout. BREAKPOINT_PX is 720, same as the gallery tab bar.
+   .tui-tabbar is display:none above 720px. Do not edit tui.css. */
+
+.tui-root.app-root {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.app-screen {
+  max-width: 100%;
+}
+
+.app-tree {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.app-tree-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.app-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-width: 100%;
+  align-items: center;
+}
+
+.app-detail input[type='text'],
+.app-detail select,
+.app-dialog,
+.app-dialog select {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.app-dialog {
+  max-width: 100%;
+}
+
+.app-tree-row[data-level='2'] {
+  padding-left: 1rem;
+}
+
+.app-tree-row[data-level='3'] {
+  padding-left: 2rem;
+}
+
+.app-tree-row[data-level='4'] {
+  padding-left: 3rem;
+}
+
+.app-tree-row[data-level='5'] {
+  padding-left: 4rem;
+}
+
+.app-tree-row[data-level='6'] {
+  padding-left: 5rem;
+}
+
+@media (max-width: 720px) {
+  .app-tree-row,
+  .app-tab {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
