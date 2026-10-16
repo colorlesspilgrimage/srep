@@ -5,11 +5,9 @@
   import { shownCount } from './deck-screen.js';
   import { dialogKeyAction } from './dialog-focus.js';
 
-  // Contract: delete dialog. It loads impact when it opens.
-  // A deck id that fails the UUID check does not call fetch.
+  // Contract: the delete dialog. It loads impact when it opens. No fetch for a bad id.
   // Trash and Move use apiFetch. Escape closes and does not delete.
   // Tab stays in the dialog. Close returns focus to the control that opened it.
-  // Enter is left to the focused button.
 
   type Impact = { decks: number; cards: number; notes: number };
   type Target = { id: string; name: string };
@@ -107,12 +105,12 @@
     };
   });
 
-  async function trash(): Promise<void> {
+  async function finishDelete(send: () => ReturnType<typeof client.deleteDeck>): Promise<void> {
     if (busy) {
       return;
     }
     busy = true;
-    const result = await client.deleteDeck(deckId, { action: 'trash' });
+    const result = await send();
     busy = false;
     if (!result.ok) {
       message = appMessageFor(result.error);
@@ -121,18 +119,15 @@
     onDone();
   }
 
-  async function move(): Promise<void> {
-    if (busy || targetId === '') {
+  function trash(): void {
+    void finishDelete(() => client.deleteDeck(deckId, { action: 'trash' }));
+  }
+
+  function move(): void {
+    if (targetId === '') {
       return;
     }
-    busy = true;
-    const result = await client.deleteDeck(deckId, { action: 'move', targetDeckId: targetId });
-    busy = false;
-    if (!result.ok) {
-      message = appMessageFor(result.error);
-      return;
-    }
-    onDone();
+    void finishDelete(() => client.deleteDeck(deckId, { action: 'move', targetDeckId: targetId }));
   }
 
   $effect(() => {

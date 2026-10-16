@@ -15,7 +15,7 @@
   import { afterMutation, moveTargetIds, type DeckView } from '#lib/client/app/deck-screen.js';
   import { deckTreeKeyAction } from '#lib/client/app/deck-tree-keys.js';
   import { effectForTreeKey, visibleDeckRows } from '#lib/client/app/deck-tree-state.js';
-  import { elementIsTextField } from '#lib/client/tui/keymap.js';
+  import { targetIsTextField } from '#lib/client/tui/text-target.js';
 
   // Contract: the signed-in home page. Guests stay on the auth pages.
   // Svelte 5 rejects a class on svelte:body. This effect adds tui-page.
@@ -143,13 +143,6 @@
     );
   }
 
-  function isField(target: EventTarget | null): boolean {
-    if (!(target instanceof HTMLElement)) {
-      return false;
-    }
-    return elementIsTextField(target.tagName, target.isContentEditable);
-  }
-
   function onTreeKey(event: KeyboardEvent): void {
     const visible = visibleDeckRows(decks, expanded);
     const index = visible.findIndex((row) => row.id === selectedId);
@@ -187,7 +180,7 @@
         hasChildren: decks.some((deck) => deck.parentId === row.id),
         expanded: expanded.has(row.id),
         isRoot: row.parentId === null,
-        targetIsField: isField(event.target),
+        targetIsField: targetIsTextField(event.target),
         modalOpen: deleteOpen,
         paletteOpen,
       }),

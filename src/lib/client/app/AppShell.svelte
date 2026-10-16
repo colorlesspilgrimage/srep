@@ -8,21 +8,14 @@
   import './app.css';
   import CommandPalette from '../tui/CommandPalette.svelte';
   import StatusLine from '../tui/StatusLine.svelte';
-  import {
-    closeHint,
-    elementIsTextField,
-    openHint,
-    paletteKeyAction,
-    type KeybindMap,
-  } from '../tui/keymap.js';
+  import { closeHint, openHint, paletteKeyAction, type KeybindMap } from '../tui/keymap.js';
+  import { targetIsTextField } from '../tui/text-target.js';
   import { themeClass } from '../tui/themes.js';
   import { APP_COMMANDS, commandTarget, NAV_ITEMS, tabKeyIndex } from './app-nav.js';
 
   // Contract: the signed-in app shell. The main pane is the children snippet.
-  // The theme class sits on tui-root. The tab bar uses tui-tabbar.
-  // Palette keys match the gallery: capture phase on window.
-  // keyCapture true ignores those keys. A fixed command path is the only navigation.
-  // Closing the palette returns focus to the element that had it.
+  // Palette keys use the capture phase. keyCapture true ignores those keys.
+  // A command goes only to a fixed path. Close returns focus to the prior element.
 
   type Props = {
     themeId: string;
@@ -48,13 +41,6 @@
   ]);
 
   let returnFocus: HTMLElement | null = null;
-
-  function isField(target: EventTarget | null): boolean {
-    if (!(target instanceof HTMLElement)) {
-      return false;
-    }
-    return elementIsTextField(target.tagName, target.isContentEditable);
-  }
 
   function rememberFocus(): void {
     const active = document.activeElement;
@@ -82,7 +68,7 @@
       modalOpen,
       paletteOpen,
       binds: keybinds,
-      targetIsField: isField(event.target),
+      targetIsField: targetIsTextField(event.target),
     });
     if (action === 'none') {
       return;
@@ -101,17 +87,10 @@
 
   function runCommand(name: string): void {
     const target = commandTarget(name);
-    if (target === '/') {
-      void goto(resolve('/'));
+    if (target === null) {
       return;
     }
-    if (target === '/gallery') {
-      void goto(resolve('/gallery'));
-      return;
-    }
-    if (target === '/security') {
-      void goto(resolve('/security'));
-    }
+    void goto(resolve(target));
   }
 
   function closePalette(): void {

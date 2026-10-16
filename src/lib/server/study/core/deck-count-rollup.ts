@@ -1,14 +1,10 @@
-// Contract: roll deck counts up the parent links.
-// Input: decks with id, parentId, archivedAt, and that deck's quota.
-// Input: DeckSnapshot rows from one read.
-// An archived deck is left out. A deck with no snapshot counts as zero.
-// own new and own due come from remainingQuota. own learning is learningTodayCount.
-// A negative or non-finite count is shown as zero.
-// subtree is the deck plus every visible descendant.
-// A missing parent does not throw. A parent cycle does not throw.
-// Output: one record per visible deck, in input order.
-// No I/O.
+// Contract: roll counts up parent links. No I/O. Output keeps input order.
+// Decks have id, parentId, archivedAt, and a quota. Snapshots come from one read.
+// Archived decks are left out. A missing snapshot is zero. subtree adds descendants.
+// own new and due use remainingQuota. own learning is learningTodayCount.
+// A negative or non-finite count is zero. A missing parent or a cycle does not throw.
 
+import { childrenByParent, shownCount } from '#lib/client/app/deck-screen.js';
 import { remainingQuota, type DeckQuota, type DeckSnapshot } from './queue-choice.js';
 
 export type CountTriple = { new: number; learning: number; due: number };
@@ -40,13 +36,6 @@ function addCounts(left: CountTriple, right: CountTriple): CountTriple {
   };
 }
 
-function shownCount(value: number): number {
-  if (!Number.isFinite(value) || value < 0) {
-    return 0;
-  }
-  return value;
-}
-
 function ownCounts(deck: RollupDeck, snapshot: DeckSnapshot | undefined): CountTriple {
   if (snapshot === undefined) {
     return zeroCounts();
@@ -63,19 +52,6 @@ function ownCounts(deck: RollupDeck, snapshot: DeckSnapshot | undefined): CountT
     learning: shownCount(snapshot.learningTodayCount),
     due: shownCount(left.reviewLeft),
   };
-}
-
-function childIds(decks: readonly RollupDeck[]): Map<string, string[]> {
-  const map = new Map<string, string[]>();
-  for (const deck of decks) {
-    if (deck.parentId === null) {
-      continue;
-    }
-    const list = map.get(deck.parentId) ?? [];
-    list.push(deck.id);
-    map.set(deck.parentId, list);
-  }
-  return map;
 }
 
 function subtreeOf(
@@ -110,7 +86,7 @@ export function rollupDeckCounts(
   const visible = decks.filter((deck) => deck.archivedAt === null);
   const bySnapshot = new Map(snapshots.map((row) => [row.deckId, row]));
   const own = new Map(visible.map((deck) => [deck.id, ownCounts(deck, bySnapshot.get(deck.id))]));
-  const children = childIds(visible);
+  const children = childrenByParent(visible);
   const memo = new Map<string, CountTriple>();
   return visible.map((deck) => ({
     id: deck.id,

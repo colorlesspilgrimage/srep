@@ -54,14 +54,15 @@
   onkeydown={onKeydown}
 >
   {#each visible as row (row.id)}
+    {@const level = deckLevel(decks, row.id)}
     <div
       id={deckRowDomId(row.id) ?? undefined}
       class="app-tree-row"
       role="treeitem"
-      aria-level={deckLevel(decks, row.id)}
+      aria-level={level}
       aria-selected={row.id === selectedId}
       aria-expanded={hasChildren(row.id) ? expanded.has(row.id) : undefined}
-      data-level={deckLevel(decks, row.id)}
+      data-level={level}
       tabindex="-1"
       onclick={() => pick(row.id)}
       onkeydown={(event) => onRowKey(event, row.id)}

@@ -11,13 +11,8 @@
   import Pane from './Pane.svelte';
   import SettingsPane from './SettingsPane.svelte';
   import StatusLine from './StatusLine.svelte';
-  import {
-    closeHint,
-    elementIsTextField,
-    openHint,
-    paletteKeyAction,
-    type KeybindMap,
-  } from './keymap.js';
+  import { closeHint, openHint, paletteKeyAction, type KeybindMap } from './keymap.js';
+  import { targetIsTextField } from './text-target.js';
   import {
     beginThemeSave,
     finishThemeSave,
@@ -129,13 +124,6 @@
     pickedId = next.id;
   }
 
-  function isField(target: EventTarget | null): boolean {
-    if (!(target instanceof HTMLElement)) {
-      return false;
-    }
-    return elementIsTextField(target.tagName, target.isContentEditable);
-  }
-
   function onGalleryKey(event: KeyboardEvent): void {
     if (keyCapture) {
       return;
@@ -144,7 +132,7 @@
       modalOpen,
       paletteOpen,
       binds,
-      targetIsField: isField(event.target),
+      targetIsField: targetIsTextField(event.target),
     });
     if (action === 'none') {
       return;

@@ -40,6 +40,21 @@ function copyCounts(value: CountTriple | undefined): CountTriple {
   };
 }
 
+export function childrenByParent(
+  decks: readonly { id: string; parentId: string | null }[],
+): Map<string, string[]> {
+  const children = new Map<string, string[]>();
+  for (const deck of decks) {
+    if (deck.parentId === null) {
+      continue;
+    }
+    const list = children.get(deck.parentId) ?? [];
+    list.push(deck.id);
+    children.set(deck.parentId, list);
+  }
+  return children;
+}
+
 export function joinDeckViews(
   decks: readonly DeckListRow[],
   counts: readonly CountRow[],
@@ -64,15 +79,7 @@ export function subtreeIdSet(
   decks: readonly { id: string; parentId: string | null }[],
   rootId: string,
 ): Set<string> {
-  const children = new Map<string, string[]>();
-  for (const deck of decks) {
-    if (deck.parentId === null) {
-      continue;
-    }
-    const list = children.get(deck.parentId) ?? [];
-    list.push(deck.id);
-    children.set(deck.parentId, list);
-  }
+  const children = childrenByParent(decks);
   const ids = new Set<string>();
   const stack = [rootId];
   while (stack.length > 0) {
