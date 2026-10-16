@@ -9,7 +9,7 @@ import { formatInterval } from './format-interval.js';
 import { formatUntil } from './format-until.js';
 import { elapsedMs } from './study-elapsed.js';
 import type { NextReply, StudyCounts } from './study-parse.js';
-import type { StudyRating } from './study-keys.js';
+import { STUDY_RATINGS, type StudyRating } from './study-keys.js';
 
 export type RateLabels = Record<StudyRating, string>;
 
@@ -51,12 +51,11 @@ export function initialStudyState(): StudyState {
 }
 
 function labelsFor(previews: Record<StudyRating, number>): RateLabels {
-  return {
-    1: formatInterval(previews[1]),
-    2: formatInterval(previews[2]),
-    3: formatInterval(previews[3]),
-    4: formatInterval(previews[4]),
-  };
+  const labels: RateLabels = { 1: '', 2: '', 3: '', 4: '' };
+  for (const rating of STUDY_RATINGS) {
+    labels[rating] = formatInterval(previews[rating]);
+  }
+  return labels;
 }
 
 function idle(state: StudyState): StudyState {

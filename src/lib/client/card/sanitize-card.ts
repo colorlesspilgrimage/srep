@@ -1,6 +1,5 @@
 // Contract: sanitize rendered card HTML before display (CWE-79).
 // Input: one string. A non-string returns an empty string.
-// Output: at most 200000 characters.
 // Allowed marks are the exact strings <span class="cloze">, </span>, <br>, and <hr>.
 // {{media: plus 64 lower-case hex digits plus }} becomes an img.
 // Every other <, >, and & is escaped. A </span> with no open span is escaped.

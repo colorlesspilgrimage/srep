@@ -1,13 +1,13 @@
 // Contract: map one study key to one action.
-// Input: key, side, field and button flags, modal, palette, status, and inFlight.
-// Output: reveal, rate, undo, suspend, edit, or none.
-// inFlight is true while a rate, undo, or suspend request is open. The result is none.
+// inFlight, a field, a dialog, or the palette returns none.
 // Space or Enter on a button is none, so that button runs once.
 // No I/O.
 
 export type StudySide = 'front' | 'back';
 export type StudyStatus = 'card' | 'wait' | 'done';
 export type StudyRating = 1 | 2 | 3 | 4;
+
+export const STUDY_RATINGS = [1, 2, 3, 4] as const;
 
 export type StudyKeyInput = {
   key: string;
@@ -30,22 +30,28 @@ export type StudyKeyAction =
 
 const NONE: StudyKeyAction = { type: 'none' };
 
+const RATE_BY_KEY = new Map<string, StudyRating>(
+  STUDY_RATINGS.map((rating) => [String(rating), rating]),
+);
+
+export function isStudyRating(value: number): value is StudyRating {
+  return STUDY_RATINGS.some((rating) => rating === value);
+}
+
 function blocked(input: StudyKeyInput): boolean {
   return input.inFlight || input.targetIsField || input.modalOpen || input.paletteOpen;
 }
 
 function rateKey(key: string): StudyRating | null {
-  if (key === '1') {
-    return 1;
+  return RATE_BY_KEY.get(key) ?? null;
+}
+
+function cardControl(key: string): StudyKeyAction | null {
+  if (key === 's') {
+    return { type: 'suspend' };
   }
-  if (key === '2') {
-    return 2;
-  }
-  if (key === '3') {
-    return 3;
-  }
-  if (key === '4') {
-    return 4;
+  if (key === 'e') {
+    return { type: 'edit' };
   }
   return null;
 }
@@ -55,13 +61,7 @@ function frontAction(input: StudyKeyInput): StudyKeyAction {
   if (showsBack && !input.targetIsButton) {
     return { type: 'reveal' };
   }
-  if (input.key === 's') {
-    return { type: 'suspend' };
-  }
-  if (input.key === 'e') {
-    return { type: 'edit' };
-  }
-  return NONE;
+  return cardControl(input.key) ?? NONE;
 }
 
 function backAction(input: StudyKeyInput): StudyKeyAction {
@@ -72,13 +72,7 @@ function backAction(input: StudyKeyInput): StudyKeyAction {
   if (input.key === ' ' && !input.targetIsButton) {
     return { type: 'rate', rating: 3 };
   }
-  if (input.key === 's') {
-    return { type: 'suspend' };
-  }
-  if (input.key === 'e') {
-    return { type: 'edit' };
-  }
-  return NONE;
+  return cardControl(input.key) ?? NONE;
 }
 
 export function studyKeyAction(input: StudyKeyInput): StudyKeyAction {

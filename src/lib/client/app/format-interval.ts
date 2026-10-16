@@ -1,8 +1,5 @@
 // Contract: format a review interval in minutes for a rate button.
-// A non-integer or a negative value returns 0m.
-// Under 60 minutes, return Nm. Under 1440, return Nh when the value divides by 60.
-// At 1440 and above, return Nd when the value divides by 1440. Otherwise return Nm.
-// No I/O.
+// A non-integer or a negative value returns 0m. No I/O.
 
 export function formatInterval(minutes: number): string {
   if (!Number.isInteger(minutes) || minutes < 0) {

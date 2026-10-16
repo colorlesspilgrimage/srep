@@ -5,26 +5,32 @@
 
 import { isDeckUuid } from './deck-id.js';
 
+function encodedId(id: string): string | null {
+  if (!isDeckUuid(id)) {
+    return null;
+  }
+  return encodeURIComponent(id);
+}
+
 export function studyNextPath(deckId: string | null): string | null {
   if (deckId === null) {
     return '/api/study/next';
   }
-  if (!isDeckUuid(deckId)) {
+  const id = encodedId(deckId);
+  if (id === null) {
     return null;
   }
-  return `/api/study/next?deckId=${encodeURIComponent(deckId)}`;
+  return `/api/study/next?deckId=${id}`;
 }
 
 export function studyDeckQuery(deckId: string): string | null {
-  if (!isDeckUuid(deckId)) {
-    return null;
-  }
-  return encodeURIComponent(deckId);
+  return encodedId(deckId);
 }
 
 export function noteResourcePath(noteId: string): string | null {
-  if (!isDeckUuid(noteId)) {
+  const id = encodedId(noteId);
+  if (id === null) {
     return null;
   }
-  return `/api/notes/${encodeURIComponent(noteId)}`;
+  return `/api/notes/${id}`;
 }
