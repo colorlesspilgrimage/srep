@@ -49,6 +49,25 @@
   max-width: 100%;
 }
 
+.study-card {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.study-rate {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-width: 100%;
+}
+
+.app-dialog textarea {
+  box-sizing: border-box;
+  display: block;
+  max-width: 100%;
+  width: 100%;
+}
+
 .app-tree-row[data-level='2'] {
   padding-left: 1rem;
 }
@@ -72,6 +91,16 @@
 @media (max-width: 720px) {
   .app-tree-row,
   .app-tab {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .study-rate {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .study-rate button {
     min-height: 44px;
     min-width: 44px;
   }

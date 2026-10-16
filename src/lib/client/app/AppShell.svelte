@@ -11,6 +11,7 @@
   import { closeHint, openHint, paletteKeyAction, type KeybindMap } from '../tui/keymap.js';
   import { targetIsTextField } from '../tui/text-target.js';
   import { themeClass } from '../tui/themes.js';
+  import { page } from '$app/state';
   import { APP_COMMANDS, commandTarget, NAV_ITEMS, tabKeyIndex } from './app-nav.js';
 
   // Contract: the signed-in app shell. The main pane is the children snippet.
@@ -24,6 +25,7 @@
     modalOpen?: boolean;
     keyCapture?: boolean;
     paletteOpen?: boolean;
+    mode?: string;
   };
 
   let {
@@ -33,7 +35,10 @@
     modalOpen = false,
     keyCapture = false,
     paletteOpen = $bindable(false),
+    mode = 'DECKS',
   }: Props = $props();
+
+  const pathNow = $derived(page.url.pathname);
 
   const hints = $derived([
     openHint(keybinds['palette.open']),
@@ -74,7 +79,8 @@
       return;
     }
     event.preventDefault();
-    event.stopPropagation();
+    // Later capture listeners are on the same window. stopPropagation does not skip them.
+    event.stopImmediatePropagation();
     if (action === 'open') {
       rememberFocus();
     }
@@ -87,24 +93,47 @@
 
   function runCommand(name: string): void {
     const target = commandTarget(name);
-    if (target === null) {
+    if (target === '/') {
+      void goto(resolve('/'));
       return;
     }
-    void goto(resolve(target));
+    if (target === '/study') {
+      void goto(resolve('/study'));
+      return;
+    }
+    if (target === '/gallery') {
+      void goto(resolve('/gallery'));
+      return;
+    }
+    if (target === '/security') {
+      void goto(resolve('/security'));
+    }
+  }
+
+  function navTarget(href: '/' | '/study'): string {
+    if (href === '/study') {
+      return resolve('/study');
+    }
+    return resolve('/');
+  }
+
+  function openNav(href: '/' | '/study'): void {
+    if (href === '/study') {
+      if (window.location.pathname === resolve('/study')) {
+        return;
+      }
+      void goto(resolve('/study'));
+      return;
+    }
+    if (window.location.pathname === resolve('/')) {
+      return;
+    }
+    void goto(resolve('/'));
   }
 
   function closePalette(): void {
     paletteOpen = false;
     restoreFocus();
-  }
-
-  // A click stays on this page when Decks is already open.
-  function openDecks(): void {
-    const target = resolve('/');
-    if (window.location.pathname === target) {
-      return;
-    }
-    void goto(target);
   }
 
   function onTabKey(event: KeyboardEvent): void {
@@ -141,8 +170,8 @@
         type="button"
         class="app-tab"
         role="tab"
-        aria-selected="true"
-        onclick={openDecks}
+        aria-selected={pathNow === navTarget(item.href)}
+        onclick={() => openNav(item.href)}
         onkeydown={onTabKey}
       >
         {item.label}
@@ -156,5 +185,5 @@
     onClose={closePalette}
     onRun={runCommand}
   />
-  <StatusLine mode="DECKS" {hints} />
+  <StatusLine {mode} {hints} />
 </div>

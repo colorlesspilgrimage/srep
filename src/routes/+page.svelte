@@ -248,6 +248,7 @@
       {ready}
       {busy}
       canEdit={selectedId !== null}
+      deckId={selectedId}
       bind:nameField
       {onName}
       {onCreateChild}

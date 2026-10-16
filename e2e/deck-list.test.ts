@@ -285,20 +285,18 @@ test.describe.serial('deck list', () => {
     });
     expect(fit).toBe(true);
     const tab = page.getByRole('tab', { name: 'Decks' });
+    const studyTab = page.getByRole('tab', { name: 'Study' });
+    await expect(studyTab).toBeVisible();
     await tab.click();
-    for (const key of [
-      'ArrowRight',
-      'ArrowLeft',
-      'Home',
-      'End',
-      'ArrowDown',
-      'j',
-      'k',
-      '1',
-      '2',
-      '3',
-      '4',
-    ]) {
+    await page.keyboard.press('ArrowRight');
+    await expect(studyTab).toBeFocused();
+    await page.keyboard.press('ArrowLeft');
+    await expect(tab).toBeFocused();
+    await page.keyboard.press('End');
+    await expect(studyTab).toBeFocused();
+    await page.keyboard.press('Home');
+    await expect(tab).toBeFocused();
+    for (const key of ['ArrowDown', 'j', 'k', '1', '2', '3', '4']) {
       await page.keyboard.press(key);
       await expect(tab).toBeFocused();
     }

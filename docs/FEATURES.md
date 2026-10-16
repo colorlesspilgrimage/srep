@@ -257,3 +257,22 @@ A signed-in home page shows the deck tree with New, Learning, and Due counts. Th
 - Code and tests:
   - Code: `src/lib/client/app/`, `src/lib/server/study/deck-counts.ts`, `src/lib/server/study/core/deck-count-rollup.ts`, `src/routes/api/decks/counts/+server.ts`, `src/routes/+page.svelte`, `src/lib/server/http/private-page.ts`, `src/routes/+page.server.ts`, `src/lib/client/tui/CommandPalette.svelte`.
   - Tests: `src/lib/client/app/*.test.ts`, `src/lib/server/study/deck-counts.test.ts`, `src/routes/api/decks/counts/server.test.ts`, `e2e/deck-list.test.ts`.
+
+## Study screen (M5 slice 10)
+
+A signed-in study page shows a card, reveals the back, and records a rating. It can undo, suspend, and edit the note fields.
+
+- Entry point: browser path `/study` after sign-in. Optional query `deck` with a deck id.
+- Use:
+  1. Sign in and add a Basic note (see "Decks, notes and media (M2)").
+  2. Open `/study?deck=<deck id>`.
+  3. Press Space to reveal the back.
+  4. Press 4 to rate Easy.
+  5. Read `No cards left.` when that card was the only card.
+- Check:
+  - `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/api/study/next` prints `401`.
+  - `npx vitest run src/lib/client/card src/lib/client/app/study-keys.test.ts` exits 0.
+  - `npx playwright test e2e/study-screen.test.ts` exits 0.
+- Code and tests:
+  - Code: `src/lib/client/card/sanitize-card.ts`, `src/lib/client/app/StudyScreen.svelte`, `src/routes/study/+page.svelte`.
+  - Tests: `src/lib/client/card/sanitize-card.test.ts`, `src/lib/client/app/study-keys.test.ts`, `e2e/study-screen.test.ts`.
