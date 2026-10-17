@@ -1,10 +1,11 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
+  import { isDeckUuid } from './deck-id.js';
   import { studyDeckQuery } from './study-paths.js';
 
-  // Contract: the deck name field and the create, rename, delete, and study controls.
+  // Contract: the deck name field and the create, rename, delete, study, and add-note controls.
   // Enter in the field saves the rename. Escape blurs the field.
-  // The Study href uses the deck id only after the UUID check.
+  // The Study and Add note hrefs use the deck id only after the UUID check.
   // This file does not call the network.
 
   type Props = {
@@ -44,6 +45,13 @@
       return null;
     }
     return `${resolve('/study')}?deck=${id}`;
+  });
+
+  const addHref = $derived.by(() => {
+    if (deckId === null || !isDeckUuid(deckId)) {
+      return null;
+    }
+    return `${resolve('/notes/new')}?deck=${encodeURIComponent(deckId)}`;
   });
 
   const locked = $derived(!ready || busy);
@@ -89,5 +97,10 @@
     <!-- resolve() has no query slot. The id is encoded after the UUID check. -->
     <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
     <a href={studyHref}>Study</a>
+  {/if}
+  {#if addHref !== null}
+    <!-- resolve() has no query slot. The id is encoded after the UUID check. -->
+    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+    <a href={addHref}>Add note</a>
   {/if}
 </div>

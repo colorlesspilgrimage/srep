@@ -68,6 +68,44 @@
   width: 100%;
 }
 
+.note-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 100%;
+}
+
+.note-preview {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.note-editor textarea,
+.note-editor input[type='text'],
+.note-editor select,
+.note-deck {
+  box-sizing: border-box;
+  display: block;
+  max-width: 100%;
+  width: 100%;
+}
+
+.note-deck {
+  margin: 0;
+  padding: 0;
+}
+
+.note-deck [role='option'] {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.note-deck [aria-selected='true'] {
+  outline: 1px solid var(--tui-accent);
+  background: var(--tui-selection);
+}
+
 .app-tree-row[data-level='2'] {
   padding-left: 1rem;
 }
@@ -101,6 +139,19 @@
   }
 
   .study-rate button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .note-preview {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--tui-bg);
+  }
+
+  .note-editor .note-save,
+  .note-editor input.note-camera {
     min-height: 44px;
     min-width: 44px;
   }

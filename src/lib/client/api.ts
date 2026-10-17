@@ -20,15 +20,23 @@ export function setCsrfToken(token: string | null): void {
   csrfToken = token;
 }
 
+// The media upload uses this header. It is the same token apiFetch sends.
+export function csrfHeaders(): Record<string, string> {
+  if (csrfToken === null) {
+    return {};
+  }
+  return { 'x-srep-csrf': csrfToken };
+}
+
 // Calls the same-origin JSON API. Adds the CSRF header when a token is known.
 export async function apiFetch<T>(
   path: string,
   init: { method?: string; body?: unknown } = {},
 ): Promise<ApiResult<T>> {
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (csrfToken !== null) {
-    headers['x-srep-csrf'] = csrfToken;
-  }
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+    ...csrfHeaders(),
+  };
   const method = init.method ?? 'GET';
   const body = init.body === undefined ? undefined : JSON.stringify(init.body);
   let response: Response;
