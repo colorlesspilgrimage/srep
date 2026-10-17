@@ -69,8 +69,13 @@ describe('uploadMediaFile', () => {
       seen.push({ path: String(input), init: init ?? {} });
       return jsonResponse(201, { media: { sha256: SHA } });
     };
+    const maxBytes = new Uint8Array(MEDIA_MAX_BYTES);
     const result = await uploadMediaFile(
-      file({ size: MEDIA_MAX_BYTES, type: 'image/png; x=1' }),
+      file({
+        size: MEDIA_MAX_BYTES,
+        type: 'image/png; x=1',
+        arrayBuffer: () => Promise.resolve(maxBytes.buffer),
+      }),
       fetchImpl,
     );
     expect(result).toEqual({ ok: true, sha256: SHA });
@@ -82,6 +87,8 @@ describe('uploadMediaFile', () => {
     expect(seen[0]?.path).toBe('/api/media');
     expect(init?.method).toBe('POST');
     expect(init?.credentials).toBe('same-origin');
+    expect(init?.body).toBeInstanceOf(ArrayBuffer);
+    expect((init?.body as ArrayBuffer).byteLength).toBe(MEDIA_MAX_BYTES);
     expect(headers['content-type']).toBe('image/png');
     expect(headers['x-srep-csrf']).toBe('tok');
     expect(headers['x-filename']).toBe('dot.png');
@@ -120,5 +127,89 @@ describe('uploadMediaFile', () => {
     expect(await uploadMediaFile(file(), empty)).toEqual({ ok: false, error: 'bad_request' });
     const textError = vi.fn(async () => jsonResponse(400, { error: 5 }));
     expect(await uploadMediaFile(file(), textError)).toEqual({ ok: false, error: 'error' });
+  });
+
+  it('does not call fetch for a bad size, an odd type, or a long body', async () => {
+    const fetchImpl = vi.fn();
+    const boom = () => Promise.reject(new Error('read'));
+    expect(await uploadMediaFile(file({ size: -1, arrayBuffer: boom }), fetchImpl)).toEqual({
+      ok: false,
+      error: 'bad_request',
+    });
+    expect(await uploadMediaFile(file({ size: 1.5, arrayBuffer: boom }), fetchImpl)).toEqual({
+      ok: false,
+      error: 'bad_request',
+    });
+    expect(await uploadMediaFile(file({ size: Number.NaN, arrayBuffer: boom }), fetchImpl)).toEqual(
+      {
+        ok: false,
+        error: 'bad_request',
+      },
+    );
+    expect(
+      await uploadMediaFile(file({ type: 'text/html', arrayBuffer: boom }), fetchImpl),
+    ).toEqual({ ok: false, error: 'unsupported_media_type' });
+    expect(
+      await uploadMediaFile(file({ type: 'image/svg+xml', arrayBuffer: boom }), fetchImpl),
+    ).toEqual({ ok: false, error: 'unsupported_media_type' });
+    expect(
+      await uploadMediaFile(file({ type: 'image/png\r\nX-Evil: 1', arrayBuffer: boom }), fetchImpl),
+    ).toEqual({ ok: false, error: 'unsupported_media_type' });
+    expect(
+      await uploadMediaFile(file({ type: 'image/png\0', arrayBuffer: boom }), fetchImpl),
+    ).toEqual({ ok: false, error: 'unsupported_media_type' });
+    const huge = new Uint8Array(MEDIA_MAX_BYTES + 1);
+    expect(
+      await uploadMediaFile(
+        file({
+          size: 4,
+          arrayBuffer: () => Promise.resolve(huge.buffer),
+        }),
+        fetchImpl,
+      ),
+    ).toEqual({ ok: false, error: 'bad_request' });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('omits a path-like file name', async () => {
+    const seen: RequestInit[] = [];
+    const fetchImpl: typeof fetch = async (_input, init) => {
+      seen.push(init ?? {});
+      return jsonResponse(201, { media: { sha256: SHA } });
+    };
+    for (const name of ['../../etc/passwd', '..\\secret.png', 'a..b.png', 'a/b.png']) {
+      await uploadMediaFile(file({ name }), fetchImpl);
+    }
+    expect(seen).toHaveLength(4);
+    for (const init of seen) {
+      const headers = init.headers;
+      if (headers === undefined || headers instanceof Headers || Array.isArray(headers)) {
+        throw new Error('missing headers');
+      }
+      expect(headers['x-filename']).toBeUndefined();
+      expect(headers['content-type']).toBe('image/png');
+    }
+  });
+
+  it('drops MIME parameters and does not copy CR or LF into a header', async () => {
+    setCsrfToken('tok');
+    const seen: RequestInit[] = [];
+    const fetchImpl: typeof fetch = async (_input, init) => {
+      seen.push(init ?? {});
+      return jsonResponse(201, { media: { sha256: SHA } });
+    };
+    await uploadMediaFile(
+      file({ type: 'image/png; charset=utf-8\r\nX-Evil: 1', name: 'dot.png' }),
+      fetchImpl,
+    );
+    const headers = seen[0]?.headers;
+    if (headers === undefined || headers instanceof Headers || Array.isArray(headers)) {
+      throw new Error('missing headers');
+    }
+    expect(headers['content-type']).toBe('image/png');
+    expect(headers['x-filename']).toBe('dot.png');
+    expect(headers['x-srep-csrf']).toBe('tok');
+    expect(JSON.stringify(headers)).not.toMatch(/[\r\n\0]/);
+    setCsrfToken(null);
   });
 });

@@ -21,6 +21,25 @@ describe('wrapCloze', () => {
   it('wraps text that already contains braces', () => {
     expect(wrapCloze('{{c1::a}}', 0, 8, 2)).toBe('{{c2::{{c1::a}}}}');
   });
+
+  it('returns null when a selection splits a surrogate pair', () => {
+    const grin = '\uD83D\uDE00';
+    expect(wrapCloze(grin, 0, 1, 1)).toBeNull();
+    expect(wrapCloze(grin, 1, 1, 1)).toBeNull();
+    expect(wrapCloze(grin, 1, 2, 1)).toBeNull();
+    expect(wrapCloze(`a${grin}b`, 2, 2, 1)).toBeNull();
+    expect(wrapCloze(grin, 0, 2, 1)).toBe(`{{c1::${grin}}}`);
+    expect(wrapCloze(`a${grin}b`, 1, 3, 1)).toBe(`a{{c1::${grin}}}b`);
+  });
+
+  it('returns null when the text or the result is above 50000 characters', () => {
+    expect(wrapCloze('a'.repeat(50_001), 0, 0, 1)).toBeNull();
+    expect(wrapCloze('a'.repeat(49_993), 0, 0, 1)).toBeNull();
+    expect(wrapCloze('a'.repeat(49_992), 0, 0, 1)?.length).toBe(50_000);
+    expect(wrapCloze('gato', 0, 4, Number.NaN)).toBeNull();
+    expect(wrapCloze('gato', 0, 4, Number.POSITIVE_INFINITY)).toBeNull();
+    expect(wrapCloze('gato', 0, 4, -1)).toBeNull();
+  });
 });
 
 describe('nextClozeIndex', () => {
@@ -40,5 +59,11 @@ describe('nextClozeIndex', () => {
   it('reads the outer cloze when braces are nested', () => {
     expect(nextClozeIndex('{{c1::{{c2::x}}}}')).toBe(2);
     expect(nextClozeIndex('{{c4::{{c9::x}}}} {{c3::y}}')).toBe(5);
+    expect(nextClozeIndex('{{c3::\uD83D\uDE00}}')).toBe(4);
+  });
+
+  it('does not scan text above 50000 characters', () => {
+    expect(nextClozeIndex(`{{c9::a}}${'b'.repeat(50_000)}`)).toBe(1);
+    expect(nextClozeIndex('{{c7::a}}' + 'b'.repeat(49_991))).toBe(8);
   });
 });

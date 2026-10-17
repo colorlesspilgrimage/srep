@@ -1,18 +1,33 @@
 // Contract: cloze helpers for the note editor.
 // wrapCloze returns null when the index or the selection is not valid.
 // An empty selection inserts {{cN::}} at the caret. A selection wraps that text.
+// A selection that splits a surrogate pair returns null (CWE-176).
+// Text above 50000 characters is refused (CWE-400).
 // nextClozeIndex is one more than the highest cloze index, or 1.
 // The result is at most 999. The first }} ends a cloze.
 // A nested {{cM:: inside that cloze is not a second cloze.
 // No I/O.
 
 const MAX_CLOZE_INDEX = 999;
+const MAX_CLOZE_TEXT = 50_000;
 
 function integerInRange(value: number, min: number, max: number): boolean {
   return Number.isInteger(value) && value >= min && value <= max;
 }
 
+function cutsSurrogate(text: string, index: number): boolean {
+  if (index <= 0 || index >= text.length) {
+    return false;
+  }
+  const prev = text.charCodeAt(index - 1);
+  const next = text.charCodeAt(index);
+  return prev >= 0xd800 && prev <= 0xdbff && next >= 0xdc00 && next <= 0xdfff;
+}
+
 export function wrapCloze(text: string, start: number, end: number, index: number): string | null {
+  if (text.length > MAX_CLOZE_TEXT) {
+    return null;
+  }
   if (!integerInRange(index, 1, MAX_CLOZE_INDEX)) {
     return null;
   }
@@ -22,8 +37,15 @@ export function wrapCloze(text: string, start: number, end: number, index: numbe
   if (start < 0 || end < start || end > text.length) {
     return null;
   }
+  if (cutsSurrogate(text, start) || cutsSurrogate(text, end)) {
+    return null;
+  }
   const body = text.slice(start, end);
-  return `${text.slice(0, start)}{{c${index}::${body}}}${text.slice(end)}`;
+  const next = `${text.slice(0, start)}{{c${index}::${body}}}${text.slice(end)}`;
+  if (next.length > MAX_CLOZE_TEXT) {
+    return null;
+  }
+  return next;
 }
 
 function readDigits(text: string, from: number): number {
@@ -54,6 +76,9 @@ function clozeAt(text: string, start: number): { index: number; end: number } | 
 }
 
 export function nextClozeIndex(text: string): number {
+  if (text.length > MAX_CLOZE_TEXT) {
+    return 1;
+  }
   let highest = 0;
   let at = 0;
   while (at < text.length) {
