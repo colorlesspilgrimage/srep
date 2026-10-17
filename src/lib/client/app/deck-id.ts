@@ -9,6 +9,13 @@ export function isDeckUuid(id: string): boolean {
   return id.length === 36 && DECK_UUID.test(id);
 }
 
+export function encodedUuid(id: string): string | null {
+  if (!isDeckUuid(id)) {
+    return null;
+  }
+  return encodeURIComponent(id);
+}
+
 // A row id is a fixed prefix plus the UUID. A bad id does not enter the DOM id.
 export function deckRowDomId(id: string): string | null {
   if (!isDeckUuid(id)) {
@@ -18,10 +25,10 @@ export function deckRowDomId(id: string): string | null {
 }
 
 export function deckResourcePath(id: string, kind: 'item' | 'impact'): string | null {
-  if (!isDeckUuid(id)) {
+  const encoded = encodedUuid(id);
+  if (encoded === null) {
     return null;
   }
-  const encoded = encodeURIComponent(id);
   if (kind === 'impact') {
     return `/api/decks/${encoded}/impact`;
   }

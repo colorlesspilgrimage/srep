@@ -4,7 +4,7 @@
 // reps is an integer from 0 to 1000000. elapsedMs is 0 to 3600000.
 // A failed check does not call fetch. No shell command is built.
 
-import { apiFetch, type ApiResult } from '#lib/client/api.js';
+import { apiFetch, rejectedResult, type ApiResult } from '#lib/client/api.js';
 import { isDeckUuid } from './deck-id.js';
 import { MAX_ELAPSED_MS } from './study-elapsed.js';
 import { isStudyRating, type StudyRating } from './study-keys.js';
@@ -25,10 +25,6 @@ export type AnswerRequest = {
 
 const MAX_REPS = 1_000_000;
 
-function rejected(): ApiResult<never> {
-  return { ok: false, status: 400, error: 'bad_request' };
-}
-
 function validAnswer(body: AnswerRequest): boolean {
   const repsOk = Number.isInteger(body.reps) && body.reps >= 0 && body.reps <= MAX_REPS;
   const elapsedOk =
@@ -45,7 +41,7 @@ export function createStudyClient(fetchJson: FetchJson = apiFetch) {
     init?: { method?: string; body?: unknown },
   ): Promise<ApiResult<T>> {
     if (!ok || path === null) {
-      return Promise.resolve(rejected());
+      return Promise.resolve(rejectedResult());
     }
     return fetchJson(path, init);
   }

@@ -1,8 +1,11 @@
 export type ApiResult<T> =
   { ok: true; status: number; body: T } | { ok: false; status: number; error: string };
 
-// Reads the stable error code from an error body.
-function errorCodeOf(body: unknown): string {
+export function rejectedResult(): ApiResult<never> {
+  return { ok: false, status: 400, error: 'bad_request' };
+}
+
+export function errorCodeOf(body: unknown): string {
   if (
     typeof body === 'object' &&
     body !== null &&
@@ -20,7 +23,7 @@ export function setCsrfToken(token: string | null): void {
   csrfToken = token;
 }
 
-// The media upload uses this header. It is the same token apiFetch sends.
+// Media upload sends this header. It is the same token apiFetch sends.
 export function csrfHeaders(): Record<string, string> {
   if (csrfToken === null) {
     return {};

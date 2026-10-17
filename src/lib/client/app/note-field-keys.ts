@@ -1,9 +1,5 @@
-// Contract: keys for a note field textarea.
-// Alt+C asks the caller to wrap the selection with the next cloze.
-// Escape blurs the field when no modifier is held.
-// Arrow keys, letters, digits, Space, Enter, Tab, and colon stay with the field.
-// Ctrl and Meta chords stay with the browser and the command palette.
-// No I/O.
+// Contract: field keys. Alt+C asks the caller to wrap the next cloze.
+// Escape blurs the field. Ctrl and Meta chords stay with the browser.
 
 export type FieldKeyEffect = { type: 'pass' } | { type: 'blur' } | { type: 'cloze' };
 

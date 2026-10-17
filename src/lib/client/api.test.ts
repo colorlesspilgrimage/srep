@@ -1,7 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-import { apiFetch, csrfHeaders, setCsrfToken } from './api.js';
+import { apiFetch, csrfHeaders, errorCodeOf, rejectedResult, setCsrfToken } from './api.js';
 
 describe('apiFetch', () => {
+  it('returns a rejected result and reads an error code', () => {
+    expect(rejectedResult()).toEqual({ ok: false, status: 400, error: 'bad_request' });
+    expect(errorCodeOf({ error: 'unauthenticated' })).toBe('unauthenticated');
+    expect(errorCodeOf({ error: 1 })).toBe('error');
+    expect(errorCodeOf(null)).toBe('error');
+  });
+
   it('sends JSON and the CSRF header when a token is set', async () => {
     setCsrfToken('tok');
     const seen: { path: string; init: RequestInit }[] = [];
