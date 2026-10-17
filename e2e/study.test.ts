@@ -1,11 +1,13 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
+import { studyClockHeader, studyClockMs } from './support/study-clock';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
 // The e2e database keeps its rows across runs. Each deck name is unique, and every
 // study call is scoped to that deck.
 let counter = 0;
 const unique = (name: string) => `${name}-${process.pid}-${(counter += 1)}`;
+let clockHeaders: Record<string, string> = {};
 
 const BASIC_ID = '00000000-0000-4000-8000-000000000011';
 
@@ -38,7 +40,12 @@ test.describe.serial('study engine', () => {
   async function headers() {
     const status = await page.request.get('/api/auth/status');
     const { csrfToken }: { csrfToken: string } = await status.json();
-    return { origin: E2E_ORIGIN, 'x-srep-csrf': csrfToken, 'content-type': 'application/json' };
+    return {
+      origin: E2E_ORIGIN,
+      'x-srep-csrf': csrfToken,
+      'content-type': 'application/json',
+      ...clockHeaders,
+    };
   }
 
   async function post<T>(path: string, data: unknown, expected = 200): Promise<T> {
@@ -48,7 +55,9 @@ test.describe.serial('study engine', () => {
   }
 
   async function next(): Promise<NextReply> {
-    const response = await page.request.get(`/api/study/next?deckId=${deckId}`);
+    const response = await page.request.get(`/api/study/next?deckId=${deckId}`, {
+      headers: clockHeaders,
+    });
     expect(response.status()).toBe(200);
     return response.json();
   }
@@ -82,13 +91,18 @@ test.describe.serial('study engine', () => {
   });
 
   test('3. an answer moves the card to learning, so next waits about 10 minutes', async () => {
-    const before = Date.now();
-    await post('/api/study/answer', { cardId, rating: 3, reps: 0, elapsedMs: 4000 });
-    const reply = await next();
-    expect(reply.status).toBe('wait');
-    const minutes = ((reply.until ?? 0) - before) / 60_000;
-    expect(minutes).toBeGreaterThan(9);
-    expect(minutes).toBeLessThan(11);
+    const before = studyClockMs();
+    clockHeaders = studyClockHeader();
+    try {
+      await post('/api/study/answer', { cardId, rating: 3, reps: 0, elapsedMs: 4000 });
+      const reply = await next();
+      expect(reply.status).toBe('wait');
+      const minutes = ((reply.until ?? 0) - before) / 60_000;
+      expect(minutes).toBeGreaterThan(9);
+      expect(minutes).toBeLessThan(11);
+    } finally {
+      clockHeaders = {};
+    }
   });
 
   test('4. undo brings the card back with the same reps', async () => {
