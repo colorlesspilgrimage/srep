@@ -105,4 +105,14 @@ describe('sqlite browse edges', () => {
     expect(await fronts('is:due')).toEqual(['due']);
     expect(hidden.cardId).not.toBe(kept.cardId);
   });
+
+  it('treats a backslash as a literal in free text', async () => {
+    h = await createStudyHarness();
+    const deck = await addDeck(h, 'Spanish');
+    await note(deck.id, ['a\\b', 'x']);
+    await note(deck.id, ['ab', 'x']);
+    expect(await fronts('a\\b')).toEqual(['a\\b']);
+    expect(await fronts('\\')).toEqual(['a\\b']);
+    expect(await fronts('ab')).toEqual(['ab']);
+  });
 });

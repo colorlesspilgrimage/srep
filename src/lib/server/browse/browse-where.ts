@@ -2,7 +2,9 @@
 // Every user string is a bound parameter (CWE-89).
 // LIKE uses ESCAPE '\'. Deck children match path plus '::'.
 // is:due is state review and due before the study-day end.
-// Free text uses asciiLower on the pattern and SQL lower() on the field.
+// Free text uses asciiLower on the pattern.
+// SQLite lower() folds A to Z. Postgres translate() folds those same letters.
+// Postgres lower() also folds letters such as Ä, so the pg clause does not use it.
 
 import { type AnyColumn, type SQL, type Table, sql } from 'drizzle-orm';
 import { asciiLower, escapeLike } from '#lib/server/browse/like-escape.js';
@@ -48,7 +50,7 @@ function textClause(fields: AnyColumn, text: string, dialect: BrowseDialect): SQ
   if (dialect === 'sqlite') {
     return sql`exists (select 1 from json_each(${fields}) as field where lower(field.value) like ${pattern} escape '\\')`;
   }
-  return sql`exists (select 1 from jsonb_array_elements_text(${fields}) as field(value) where lower(field.value) like ${pattern} escape '\\')`;
+  return sql`exists (select 1 from jsonb_array_elements_text(${fields}) as field(value) where translate(field.value, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz') like ${pattern} escape '\\')`;
 }
 
 function isClause(cols: BrowseColumns, flag: BrowseIs, windowEndMs: number): SQL {

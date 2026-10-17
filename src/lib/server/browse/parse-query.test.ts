@@ -61,5 +61,24 @@ describe('parseBrowseQuery', () => {
     expect(parseBrowseQuery('a'.repeat(500)).ok).toBe(true);
     expect(parseBrowseQuery(Array.from({ length: 8 }, (_, i) => `t${i}`).join(' ')).ok).toBe(true);
     expect(parseBrowseQuery('   ').ok).toBe(true);
+    expect(parseBrowseQuery('deck:Spanish\u00a0')).toEqual(query({ decks: ['Spanish'] }));
+    expect(parseBrowseQuery('deck:"  Spanish  "')).toEqual(query({ decks: ['Spanish'] }));
+    expect(parseBrowseQuery('deck:"   "')).toEqual(bad);
+  });
+
+  it('does not throw on a long or malformed query', () => {
+    const inputs = [
+      'prop:lapses>' + '1'.repeat(400),
+      'deck:' + '%_\\'.repeat(80),
+      'tag:' + 'é'.repeat(80),
+      '\u0000',
+      String.fromCharCode(0xd800),
+      '"'.repeat(500),
+      '((((',
+      '.*+',
+    ];
+    for (const input of inputs) {
+      expect(() => parseBrowseQuery(input)).not.toThrow();
+    }
   });
 });

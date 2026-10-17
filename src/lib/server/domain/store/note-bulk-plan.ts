@@ -1,5 +1,5 @@
 // Contract: pure checks for bulk note tag replace and bulk trash.
-// ids length is 1 to 100. Every id is a UUID. Duplicates collapse.
+// ids length is 1 to 100. Every id is a lower-case UUID. Duplicates collapse.
 // A bad id returns null and must not be sent to SQL (CWE-89).
 // planTagReplace returns null when normalizeTags rejects the result.
 
@@ -20,8 +20,10 @@ export function bulkNoteIds(ids: readonly string[]): string[] | null {
   if (ids.length < 1 || ids.length > MAX_BULK_NOTES) return null;
   const unique: string[] = [];
   for (const id of ids) {
-    if (!z.uuid().safeParse(id).success) return null;
-    if (!unique.includes(id)) unique.push(id);
+    const parsed = z.uuid().safeParse(id);
+    if (!parsed.success) return null;
+    const canonical = parsed.data.toLowerCase();
+    if (!unique.includes(canonical)) unique.push(canonical);
   }
   unique.sort(byCodeUnit);
   return unique;

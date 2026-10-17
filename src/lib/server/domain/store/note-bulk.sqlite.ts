@@ -1,7 +1,8 @@
 // Contract: SQLite bulk tag replace and bulk trash.
-// One db.transaction. A missing or trashed id writes nothing.
-// User ids are UUIDs before they reach SQL (CWE-89).
-// SQLite serializes this write transaction. It does not use FOR UPDATE.
+// One immediate transaction. The write lock starts before the read (CWE-362).
+// A missing or trashed id writes nothing.
+// User ids are lower-case UUIDs before they reach SQL (CWE-89).
+// A second connection waits. It does not use FOR UPDATE.
 
 import { eq, inArray } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
@@ -49,14 +50,17 @@ export function replaceNoteTags(
 ): BulkCode {
   const unique = bulkNoteIds(ids);
   if (unique === null) return 'bad_request';
-  return db.transaction((tx) => {
-    const snaps = loadSnaps(tx, unique);
-    if (snaps === null) return 'not_found';
-    const plans = planAll(snaps, add, remove);
-    if (plans === null) return 'bad_request';
-    for (const plan of plans) writeTags(tx, plan.id, plan.tags, now);
-    return 'ok';
-  });
+  return db.transaction(
+    (tx) => {
+      const snaps = loadSnaps(tx, unique);
+      if (snaps === null) return 'not_found';
+      const plans = planAll(snaps, add, remove);
+      if (plans === null) return 'bad_request';
+      for (const plan of plans) writeTags(tx, plan.id, plan.tags, now);
+      return 'ok';
+    },
+    { behavior: 'immediate' },
+  );
 }
 
 export function trashNotes(
@@ -66,12 +70,15 @@ export function trashNotes(
 ): BulkCode {
   const unique = bulkNoteIds(ids);
   if (unique === null) return 'bad_request';
-  return db.transaction((tx) => {
-    const snaps = loadSnaps(tx, unique);
-    if (snaps === null) return 'not_found';
-    for (const snap of snaps) {
-      tx.update(note).set({ deletedAt: now, updatedAt: now }).where(eq(note.id, snap.id)).run();
-    }
-    return 'ok';
-  });
+  return db.transaction(
+    (tx) => {
+      const snaps = loadSnaps(tx, unique);
+      if (snaps === null) return 'not_found';
+      for (const snap of snaps) {
+        tx.update(note).set({ deletedAt: now, updatedAt: now }).where(eq(note.id, snap.id)).run();
+      }
+      return 'ok';
+    },
+    { behavior: 'immediate' },
+  );
 }

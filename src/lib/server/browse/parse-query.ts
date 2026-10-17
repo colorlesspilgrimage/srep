@@ -4,6 +4,7 @@
 // A `"` pair groups text. An odd quote count is bad_query.
 // A quoted token is free text, even when it looks like deck: or is:.
 // An unquoted deck:, tag:, is:, or prop: token is that filter.
+// A deck path is trimmed. An empty path is bad_query.
 // The query string stays data. This module does not build SQL.
 
 import { normalizeTags } from '#lib/server/domain/core/tags.js';
@@ -82,8 +83,9 @@ function pushText(query: BrowseQuery, text: string): boolean {
 }
 
 function pushDeck(query: BrowseQuery, path: string): boolean {
-  if (path.length < 1) return false;
-  query.decks.push(path);
+  const trimmed = path.trim();
+  if (trimmed.length < 1) return false;
+  query.decks.push(trimmed);
   return true;
 }
 

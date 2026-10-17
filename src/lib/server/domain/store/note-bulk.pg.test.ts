@@ -130,4 +130,11 @@ describe('postgres note bulk', () => {
     expect(await trashNotes(hostile.db, [], 1)).toBe('bad_request');
     expect(hostile.transactions()).toBe(0);
   });
+
+  it('stores an upper-case id as the lower-case uuid', async () => {
+    const mixed = 'abcdefab-cdef-4abc-8def-0123456789ab';
+    const stub = createStub([[{ id: mixed }], [{ id: mixed, deletedAt: null }], []]);
+    expect(await replaceNoteTags(stub.db, [mixed.toUpperCase()], ['plants'], [], 3)).toBe('ok');
+    expect(whereParams(stub.calls)).toEqual([mixed]);
+  });
 });

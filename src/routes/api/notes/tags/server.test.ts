@@ -88,6 +88,14 @@ describe('POST /api/notes/tags', () => {
       expect(csrf.status).toBe(403);
       expect(await csrf.json()).toEqual({ error: 'bad_csrf' });
       expect(csrfTokenFor(rawToken)).not.toBe('wrong');
+      const badOrigin = guestEvent('/api/notes/tags', 'POST', {
+        origin: 'http://evil.example',
+        'x-srep-csrf': csrfTokenFor(rawToken),
+      });
+      badOrigin.cookies.get = (name: string) => (name === 'srep_session' ? rawToken : undefined);
+      const origin = await handleAuth(auth.deps, badOrigin, resolve);
+      expect(origin.status).toBe(403);
+      expect(await origin.json()).toEqual({ error: 'bad_origin' });
       expect(resolve).not.toHaveBeenCalled();
     } finally {
       await auth.handle.close();
@@ -156,5 +164,22 @@ describe('POST /api/notes/tags', () => {
       }).event,
     );
     expect(raw.status).toBe(400);
+  });
+
+  it('sets private cache headers on a rejected body', async () => {
+    const bad = await post({});
+    expect(bad.status).toBe(400);
+    expect(bad.headers.get('cache-control')).toBe('no-store');
+    expect(bad.headers.get('vary')).toBe('Cookie');
+    const typed = await POST(
+      makeEvent('/api/notes/tags', {
+        rawBody: 'x',
+        session,
+        headers: { 'content-type': 'text/plain' },
+      }).event,
+    );
+    expect(typed.status).toBe(415);
+    expect(typed.headers.get('cache-control')).toBe('no-store');
+    expect(typed.headers.get('vary')).toBe('Cookie');
   });
 });

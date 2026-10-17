@@ -79,6 +79,17 @@ describe('sqlite note bulk', () => {
     expect((await h.store.getNoteState(live))?.note.deletedAt).toBeNull();
   });
 
+  it('updates the note when the id is upper case', async () => {
+    h = await createStudyHarness();
+    const live = await makeNote('Live', ['animals']);
+    expect(live).toBe(live.toLowerCase());
+    expect(live.toUpperCase()).not.toBe(live);
+    expect(replaceNoteTags(db(), [live.toUpperCase()], ['plants'], [], 9)).toBe('ok');
+    expect((await h.store.getNoteState(live))?.tags).toEqual(['animals', 'plants']);
+    expect(trashNotes(db(), [live.toUpperCase()], 11)).toBe('ok');
+    expect((await h.store.getNoteState(live))?.note.deletedAt).toBe(11);
+  });
+
   it('updates one note when the same id is repeated', async () => {
     h = await createStudyHarness();
     const live = await makeNote('Live', ['animals']);

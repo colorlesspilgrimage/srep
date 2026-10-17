@@ -136,4 +136,21 @@ describe('POST /api/notes/trash', () => {
     }
     expect((await harness.store.getNoteState(id))?.note.deletedAt).toBeNull();
   });
+
+  it('sets private cache headers on a rejected body', async () => {
+    const bad = await post({});
+    expect(bad.status).toBe(400);
+    expect(bad.headers.get('cache-control')).toBe('no-store');
+    expect(bad.headers.get('vary')).toBe('Cookie');
+    const typed = await POST(
+      makeEvent('/api/notes/trash', {
+        rawBody: 'x',
+        session,
+        headers: { 'content-type': 'text/plain' },
+      }).event,
+    );
+    expect(typed.status).toBe(415);
+    expect(typed.headers.get('cache-control')).toBe('no-store');
+    expect(typed.headers.get('vary')).toBe('Cookie');
+  });
 });
