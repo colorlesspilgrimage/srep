@@ -1,10 +1,11 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
+  import { isDeckUuid } from './deck-id.js';
   import { studyDeckQuery } from './study-paths.js';
 
-  // Contract: the deck name field and the create, rename, delete, and study controls.
+  // Contract: the deck name field and the create, rename, delete, study, and add-note controls.
   // Enter in the field saves the rename. Escape blurs the field.
-  // The Study href uses the deck id only after the UUID check.
+  // The Study and Add note hrefs use the deck id only after the UUID check.
   // This file does not call the network.
 
   type Props = {
@@ -46,6 +47,13 @@
     return `${resolve('/study')}?deck=${id}`;
   });
 
+  const addHref = $derived.by(() => {
+    if (deckId === null || !isDeckUuid(deckId)) {
+      return null;
+    }
+    return `${resolve('/notes/new')}?deck=${encodeURIComponent(deckId)}`;
+  });
+
   const locked = $derived(!ready || busy);
 
   function onNameKey(event: KeyboardEvent): void {
@@ -85,9 +93,13 @@
   <button type="button" disabled={locked} onclick={onCreateRoot}>Create root</button>
   <button type="button" disabled={locked || !canEdit} onclick={onRename}>Rename</button>
   <button type="button" disabled={locked || !canEdit} onclick={onDelete}>Delete</button>
+  <!-- resolve() has no query slot. The id is encoded after the UUID check. -->
+  <!-- eslint-disable svelte/no-navigation-without-resolve -->
   {#if studyHref !== null}
-    <!-- resolve() has no query slot. The id is encoded after the UUID check. -->
-    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
     <a href={studyHref}>Study</a>
   {/if}
+  {#if addHref !== null}
+    <a href={addHref}>Add note</a>
+  {/if}
+  <!-- eslint-enable svelte/no-navigation-without-resolve -->
 </div>

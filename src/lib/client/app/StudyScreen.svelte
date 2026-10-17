@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/env';
+  import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import { onMount, untrack } from 'svelte';
   import CardHtml from '#lib/client/card/CardHtml.svelte';
@@ -26,6 +27,7 @@
   import { createStudyClient } from './study-client.js';
   import { parseNextReply, readAnswerInterval } from './study-parse.js';
   import { STUDY_RATINGS, studyKeyAction, type StudyRating } from './study-keys.js';
+  import { isDeckUuid } from './deck-id.js';
   import { studyNextPath } from './study-paths.js';
 
   // Contract: the study screen. It reads deck from the query.
@@ -293,6 +295,9 @@
       <button type="button" disabled={locked} onclick={() => (screen = openEdit(screen))}>
         Edit
       </button>
+      {#if isDeckUuid(screen.phase.card.noteId)}
+        <a href={resolve('/notes/[id]', { id: screen.phase.card.noteId })}>Full editor</a>
+      {/if}
     {:else if screen.phase.kind === 'wait'}
       <p>Next card at {screen.phase.untilText}</p>
       {@render undoButton()}

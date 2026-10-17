@@ -276,3 +276,23 @@ A signed-in study page shows a card, reveals the back, and records a rating. It 
 - Code and tests:
   - Code: `src/lib/client/card/sanitize-card.ts`, `src/lib/client/card/CardHtml.svelte`, `src/lib/client/app/StudyScreen.svelte`, `src/lib/client/app/format-until.ts`, `src/lib/client/app/study-elapsed.ts`, `src/lib/client/app/study-paths.ts`, `src/lib/client/app/study-parse.ts`, `src/lib/client/app/study-client.ts`, `src/lib/client/app/study-state.ts`, `src/routes/study/+page.svelte`.
   - Tests: `src/lib/client/card/sanitize-card.test.ts`, `src/lib/client/app/study-keys.test.ts`, `src/routes/study/`, `e2e/study-screen.test.ts`.
+
+## Note editor (M5 slice 11)
+
+A signed-in page edits note fields, tags, and the deck. A live preview shows the cards. Cloze buttons and media upload are on the page.
+
+- Entry point: browser path `/notes/new` and `/notes/<id>` after sign-in.
+- Use:
+  1. Sign in and open `/notes/new`.
+  2. Choose Basic and deck `Spanish`.
+  3. Type front `gato` and back `cat`. Type tag `animals`.
+  4. Press Save.
+  5. Open the saved note. The fields are still `gato` and `cat`.
+- Check:
+  - `curl -s -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1:3000/api/notes/preview -H 'content-type: application/json' -d '{}'` prints `401`.
+  - `npx vitest run src/lib/server/domain/note-preview.test.ts src/routes/api/notes/preview` exits 0.
+  - `npx playwright test e2e/note-editor.test.ts` exits 0.
+  - A failed preview shows `The preview failed.` in an alert. `npx playwright test e2e/note-editor-race.test.ts` exits 0.
+- Code and tests:
+  - Code: `src/lib/server/domain/note-preview.ts`, `src/routes/api/notes/preview/+server.ts`, `src/lib/client/app/NoteEditor.svelte`.
+  - Tests: `src/lib/server/domain/note-preview.test.ts`, `src/routes/api/notes/preview/server.test.ts`, `e2e/note-editor.test.ts`.

@@ -1,8 +1,11 @@
 export type ApiResult<T> =
   { ok: true; status: number; body: T } | { ok: false; status: number; error: string };
 
-// Reads the stable error code from an error body.
-function errorCodeOf(body: unknown): string {
+export function rejectedResult(): ApiResult<never> {
+  return { ok: false, status: 400, error: 'bad_request' };
+}
+
+export function errorCodeOf(body: unknown): string {
   if (
     typeof body === 'object' &&
     body !== null &&
@@ -20,15 +23,23 @@ export function setCsrfToken(token: string | null): void {
   csrfToken = token;
 }
 
+// Media upload sends this header. It is the same token apiFetch sends.
+export function csrfHeaders(): Record<string, string> {
+  if (csrfToken === null) {
+    return {};
+  }
+  return { 'x-srep-csrf': csrfToken };
+}
+
 // Calls the same-origin JSON API. Adds the CSRF header when a token is known.
 export async function apiFetch<T>(
   path: string,
   init: { method?: string; body?: unknown } = {},
 ): Promise<ApiResult<T>> {
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (csrfToken !== null) {
-    headers['x-srep-csrf'] = csrfToken;
-  }
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+    ...csrfHeaders(),
+  };
   const method = init.method ?? 'GET';
   const body = init.body === undefined ? undefined : JSON.stringify(init.body);
   let response: Response;
