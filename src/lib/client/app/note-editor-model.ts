@@ -12,7 +12,29 @@ export type NoteEditorProps = {
 };
 
 export const DUPLICATE_NOTE_TEXT = 'A note with this first field already exists.';
+export const PREVIEW_FAILED_TEXT = 'The preview failed.';
 export const PREVIEW_DELAY_MS = 200;
+
+export type PreviewDecision<T> =
+  { type: 'ignore' } | { type: 'error' } | { type: 'cards'; cards: readonly T[] };
+
+// A slow reply is ignored when a newer serial is current.
+// A current failure is an error. A current card list is shown.
+export function previewDecision<T>(input: {
+  alive: boolean;
+  mine: number;
+  serial: number;
+  ok: boolean;
+  cards: readonly T[] | null;
+}): PreviewDecision<T> {
+  if (!input.alive || !previewIsCurrent(input.mine, input.serial)) {
+    return { type: 'ignore' };
+  }
+  if (!input.ok || input.cards === null) {
+    return { type: 'error' };
+  }
+  return { type: 'cards', cards: input.cards };
+}
 
 export function splitTags(text: string): string[] {
   const tags: string[] = [];

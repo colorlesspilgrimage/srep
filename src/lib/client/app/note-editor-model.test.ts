@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   DUPLICATE_NOTE_TEXT,
   duplicateText,
+  PREVIEW_FAILED_TEXT,
+  previewDecision,
   fieldsForCount,
   insertSlice,
   joinTags,
@@ -27,6 +29,29 @@ describe('note editor model', () => {
     expect(nextSerial(4)).toBe(5);
     expect(previewIsCurrent(2, 2)).toBe(true);
     expect(previewIsCurrent(1, 2)).toBe(false);
+    const slow = previewDecision({
+      alive: true,
+      mine: 1,
+      serial: 2,
+      ok: true,
+      cards: ['SLOW'],
+    });
+    const fast = previewDecision({
+      alive: true,
+      mine: 2,
+      serial: 2,
+      ok: true,
+      cards: ['FAST'],
+    });
+    expect(slow).toEqual({ type: 'ignore' });
+    expect(fast).toEqual({ type: 'cards', cards: ['FAST'] });
+    expect(previewDecision({ alive: true, mine: 2, serial: 2, ok: false, cards: null })).toEqual({
+      type: 'error',
+    });
+    expect(previewDecision({ alive: false, mine: 2, serial: 2, ok: false, cards: null })).toEqual({
+      type: 'ignore',
+    });
+    expect(PREVIEW_FAILED_TEXT).toBe('The preview failed.');
     expect(insertSlice('gato', 4, 4, '{{media:x}}')).toBe('gato{{media:x}}');
     expect(insertSlice('hello', 1, 4, 'i')).toBe('hio');
     expect(insertSlice('ab', -1, 9, 'Z')).toBe('Z');

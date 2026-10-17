@@ -20,7 +20,8 @@
     pickBasicTypeId,
     pickDeckIndex,
     PREVIEW_DELAY_MS,
-    previewIsCurrent,
+    PREVIEW_FAILED_TEXT,
+    previewDecision,
     splitTags,
   } from './note-editor-model.js';
   import { loadEditorLists, loadEditorNote } from './note-editor-load.js';
@@ -34,6 +35,8 @@
   import { fieldKeyEffect } from './note-field-keys.js';
 
   // Contract: add and edit note fields. Preview waits 200 ms and drops a stale reply.
+  // A failed preview shows an alert. Save and upload set busy until they finish.
+  // A second action while busy does not send another request.
   let { mode, noteId, initialDeckId }: NoteEditorProps = $props();
   const client = createNoteEditorClient();
 
@@ -45,6 +48,7 @@
   let deckIndex = $state(0);
   let cards = $state<PreviewCardView[]>([]);
   let message = $state('');
+  let previewAlert = $state('');
   let ready = $state(false);
   let busy = $state(false);
   let activeField = $state(0);
@@ -74,16 +78,23 @@
 
   async function sendPreview(mine: number): Promise<void> {
     const result = await client.preview(noteTypeId, fields);
-    if (!alive || !previewIsCurrent(mine, serial)) {
+    const parsed = result.ok ? parsePreview(result.body) : null;
+    const effect = previewDecision({
+      alive,
+      mine,
+      serial,
+      ok: result.ok,
+      cards: parsed,
+    });
+    if (effect.type === 'ignore' || !alive) {
       return;
     }
-    if (!result.ok) {
+    if (effect.type === 'error') {
+      previewAlert = PREVIEW_FAILED_TEXT;
       return;
     }
-    const parsed = parsePreview(result.body);
-    if (parsed !== null && previewIsCurrent(mine, serial)) {
-      cards = parsed;
-    }
+    previewAlert = '';
+    cards = [...effect.cards];
   }
 
   function remember(index: number, target: EventTarget | null): void {
@@ -100,6 +111,9 @@
   }
 
   function onFieldInput(index: number, event: Event): void {
+    if (busy) {
+      return;
+    }
     const target = event.currentTarget;
     if (!(target instanceof HTMLTextAreaElement)) {
       return;
@@ -132,6 +146,9 @@
   }
 
   function applyWrap(index: number): void {
+    if (busy) {
+      return;
+    }
     readFocusedField();
     const current = fields[activeField] ?? '';
     const wrapped = wrapCloze(current, caretStart, caretEnd, index);
@@ -168,7 +185,7 @@
   }
 
   function onType(id: string): void {
-    if (mode === 'edit') {
+    if (mode === 'edit' || busy) {
       return;
     }
     noteTypeId = id;
@@ -180,20 +197,17 @@
     schedulePreview();
   }
 
-  async function onFile(event: Event): Promise<void> {
+  function takeFile(event: Event): File | undefined {
     const input = event.currentTarget;
     if (!(input instanceof HTMLInputElement)) {
-      return;
+      return undefined;
     }
     const chosen = input.files?.[0];
     input.value = '';
-    if (chosen === undefined) {
-      return;
-    }
-    const result = await uploadMediaFile(chosen);
-    if (!alive) {
-      return;
-    }
+    return chosen;
+  }
+
+  function applyUpload(result: { ok: true; sha256: string } | { ok: false; error: string }): void {
     if (!result.ok) {
       message = appMessageFor(result.error);
       return;
@@ -203,12 +217,28 @@
       message = appMessageFor('bad_request');
       return;
     }
+    message = '';
     const current = fields[activeField] ?? '';
     writeField(
       activeField,
       insertSlice(current, caretStart, caretEnd, token),
       caretStart + token.length,
     );
+  }
+
+  async function onFile(event: Event): Promise<void> {
+    const chosen = takeFile(event);
+    if (chosen === undefined || !ready || busy) {
+      return;
+    }
+    busy = true;
+    message = '';
+    const result = await uploadMediaFile(chosen);
+    if (!alive) {
+      return;
+    }
+    busy = false;
+    applyUpload(result);
   }
 
   async function openCreated(id: string): Promise<void> {
@@ -238,23 +268,28 @@
     if (!alive) {
       return;
     }
-    busy = false;
     if (!result.ok) {
+      busy = false;
       message = appMessageFor(result.error);
       return;
     }
     const note = parseEditorNote(result.body);
     if (note === null) {
+      busy = false;
       message = appMessageFor('bad_request');
       return;
     }
     if (mode === 'new') {
       await openCreated(note.id);
+      if (alive) {
+        busy = false;
+      }
       return;
     }
     fields = [...note.fields];
     tagText = joinTags(note.tags);
     message = duplicateText(note.duplicates);
+    busy = false;
   }
 
   function applyNote(note: NonNullable<ReturnType<typeof parseEditorNote>>): void {
@@ -317,6 +352,9 @@
 
 <main class="app-screen note-editor">
   <h1>{mode === 'new' ? 'Add note' : 'Edit note'}</h1>
+  {#if previewAlert !== ''}
+    <p role="alert">{previewAlert}</p>
+  {/if}
   {#if message !== ''}
     <p role="status">{message}</p>
   {/if}
@@ -339,8 +377,16 @@
     {onFieldInput}
     {onFieldKey}
     {onFieldMark}
-    onTags={(value) => (tagText = value)}
-    onDeckIndex={(index) => (deckIndex = index)}
+    onTags={(value) => {
+      if (!busy) {
+        tagText = value;
+      }
+    }}
+    onDeckIndex={(index) => {
+      if (!busy) {
+        deckIndex = index;
+      }
+    }}
     onCloze={applyWrap}
     {onNextCloze}
     {onSave}

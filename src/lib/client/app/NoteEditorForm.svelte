@@ -105,7 +105,7 @@
   disabled={locked}
   oninput={onTagInput}
 />
-<NoteDeckList {decks} index={deckIndex} onIndex={onDeckIndex} />
+<NoteDeckList {decks} index={deckIndex} {locked} onIndex={onDeckIndex} />
 <button class="note-save" type="button" disabled={locked} onclick={onSave}>Save</button>
 <button type="button" disabled={locked} onmousedown={keepFieldFocus} onclick={() => onCloze(1)}>
   Cloze 1

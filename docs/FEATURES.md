@@ -292,6 +292,7 @@ A signed-in page edits note fields, tags, and the deck. A live preview shows the
   - `curl -s -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1:3000/api/notes/preview -H 'content-type: application/json' -d '{}'` prints `401`.
   - `npx vitest run src/lib/server/domain/note-preview.test.ts src/routes/api/notes/preview` exits 0.
   - `npx playwright test e2e/note-editor.test.ts` exits 0.
+  - A failed preview shows `The preview failed.` in an alert. `npx playwright test e2e/note-editor-race.test.ts` exits 0.
 - Code and tests:
   - Code: `src/lib/server/domain/note-preview.ts`, `src/routes/api/notes/preview/+server.ts`, `src/lib/client/app/NoteEditor.svelte`.
   - Tests: `src/lib/server/domain/note-preview.test.ts`, `src/routes/api/notes/preview/server.test.ts`, `e2e/note-editor.test.ts`.

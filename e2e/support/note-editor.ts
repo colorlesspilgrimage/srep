@@ -10,13 +10,16 @@ export const TINY_PNG = Buffer.from(
   'base64',
 );
 
-export async function signInEditor(browser: Browser): Promise<{
+export async function signInEditor(
+  browser: Browser,
+  address = NOTE_EDITOR_IP,
+): Promise<{
   context: BrowserContext;
   page: Page;
 }> {
   const setupToken = resetAuthViaCli();
   const context = await browser.newContext({
-    extraHTTPHeaders: { 'x-forwarded-for': NOTE_EDITOR_IP },
+    extraHTTPHeaders: { 'x-forwarded-for': address },
     viewport: { width: 1440, height: 900 },
   });
   const page = await context.newPage();

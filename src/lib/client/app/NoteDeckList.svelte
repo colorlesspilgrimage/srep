@@ -10,10 +10,11 @@
   type Props = {
     decks: readonly EditorDeck[];
     index: number;
+    locked?: boolean;
     onIndex: (index: number) => void;
   };
 
-  let { decks, index, onIndex }: Props = $props();
+  let { decks, index, locked = false, onIndex }: Props = $props();
 
   const activeId = $derived.by(() => {
     const deck = decks[index];
@@ -24,7 +25,7 @@
   });
 
   function onKey(event: KeyboardEvent): void {
-    if (event.altKey || event.ctrlKey || event.metaKey) {
+    if (locked || event.altKey || event.ctrlKey || event.metaKey) {
       return;
     }
     const effect = deckListKey(event.key, index, decks.length);
@@ -49,6 +50,9 @@
 
   function onOptionDown(event: MouseEvent, next: number): void {
     event.preventDefault();
+    if (locked) {
+      return;
+    }
     const node = event.currentTarget;
     if (node instanceof HTMLElement) {
       node.parentElement?.focus();
@@ -61,7 +65,8 @@
   class="note-deck"
   role="listbox"
   aria-label="Deck"
-  tabindex="0"
+  aria-disabled={locked}
+  tabindex={locked ? -1 : 0}
   aria-activedescendant={activeId}
   onkeydown={onKey}
 >
