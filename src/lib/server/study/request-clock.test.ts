@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { parseTestNow, TEST_NOW_HEADER, withTestClock } from '#lib/server/study/request-clock.js';
+import {
+  parseTestNow,
+  safeStudyNow,
+  TEST_NOW_HEADER,
+  withTestClock,
+} from '#lib/server/study/request-clock.js';
 
 const PIN = Date.parse('2026-10-16T23:30:00.000Z');
 const ON = { SREP_E2E_CLOCK: '1' };
@@ -8,6 +13,29 @@ function request(header: string | undefined): Request {
   const headers = header === undefined ? undefined : { [TEST_NOW_HEADER]: header };
   return new Request('http://localhost/api/study/next', { headers });
 }
+
+describe('safeStudyNow', () => {
+  it('keeps a time that is at least 20 minutes before 04:00 UTC', () => {
+    expect(safeStudyNow(Date.parse('2026-10-16T23:30:00.000Z'))).toBe(
+      Date.parse('2026-10-16T23:30:00.000Z'),
+    );
+    expect(safeStudyNow(Date.parse('2026-10-17T03:40:00.000Z'))).toBe(
+      Date.parse('2026-10-17T03:40:00.000Z'),
+    );
+    expect(safeStudyNow(Date.parse('2026-10-17T04:00:00.000Z'))).toBe(
+      Date.parse('2026-10-17T04:00:00.000Z'),
+    );
+  });
+
+  it('moves the last 20 minutes to 20 minutes after the rollover', () => {
+    expect(safeStudyNow(Date.parse('2026-10-17T03:50:00.000Z'))).toBe(
+      Date.parse('2026-10-17T04:20:00.000Z'),
+    );
+    expect(safeStudyNow(Date.parse('2026-10-17T03:40:00.001Z'))).toBe(
+      Date.parse('2026-10-17T04:20:00.000Z'),
+    );
+  });
+});
 
 describe('parseTestNow', () => {
   it('accepts an integer epoch up to the bound', () => {

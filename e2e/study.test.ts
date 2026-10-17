@@ -92,7 +92,7 @@ test.describe.serial('study engine', () => {
 
   test('3. an answer moves the card to learning, so next waits about 10 minutes', async () => {
     const before = studyClockMs();
-    clockHeaders = studyClockHeader();
+    clockHeaders = studyClockHeader(before);
     try {
       await post('/api/study/answer', { cardId, rating: 3, reps: 0, elapsedMs: 4000 });
       const reply = await next();

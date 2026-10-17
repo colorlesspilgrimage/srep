@@ -81,6 +81,10 @@ test('guest GET /study returns 303 to setup or login', async ({ request }) => {
 test.describe.serial('study screen', () => {
   test.beforeAll(async ({ browser }) => {
     await signIn(browser);
+    await context.setExtraHTTPHeaders({
+      'x-forwarded-for': CLIENT_IP,
+      ...studyClockHeader(),
+    });
   });
 
   test.afterAll(async () => {
