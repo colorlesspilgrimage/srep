@@ -4,6 +4,7 @@
 // planTagReplace returns null when normalizeTags rejects the result.
 
 import { z } from 'zod';
+import { compareCodeUnit, groupNoteTags } from '#lib/server/domain/core/code-unit.js';
 import { normalizeTags } from '#lib/server/domain/core/tags.js';
 
 export const MAX_BULK_NOTES = 100;
@@ -25,14 +26,8 @@ export function bulkNoteIds(ids: readonly string[]): string[] | null {
     const canonical = parsed.data.toLowerCase();
     if (!unique.includes(canonical)) unique.push(canonical);
   }
-  unique.sort(byCodeUnit);
+  unique.sort(compareCodeUnit);
   return unique;
-}
-
-function byCodeUnit(a: string, b: string): number {
-  if (a < b) return -1;
-  if (a > b) return 1;
-  return 0;
 }
 
 export function planTagReplace(
@@ -59,18 +54,8 @@ export function snapsFrom(
     const deleted = deletedAt.get(id);
     if (deleted === undefined || deleted !== null) return null;
   }
-  const tags = groupTags(ids, tagRows);
+  const tags = groupNoteTags(ids, tagRows);
   return ids.map((id) => ({ id, tags: [...(tags.get(id) ?? [])] }));
-}
-
-function groupTags(ids: readonly string[], rows: readonly TagRow[]): Map<string, string[]> {
-  const map = new Map<string, string[]>();
-  for (const id of ids) map.set(id, []);
-  for (const row of rows) {
-    const list = map.get(row.noteId);
-    if (list !== undefined) list.push(row.tag);
-  }
-  return map;
 }
 
 export function planAll(

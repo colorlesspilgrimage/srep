@@ -1,7 +1,7 @@
-// Contract: turn joined card rows into a browse page. Pure. No I/O.
-// frontText is the first field with tags removed, cut at 80 code points.
-// Templates are not rendered. A null deck id becomes an empty string.
+// Contract: map joined rows to a browse page. Pure. No I/O.
+// frontText is plain text. The list does not render a template.
 
+import { compareCodeUnit, groupNoteTags } from '#lib/server/domain/core/code-unit.js';
 import { stripTags } from '#lib/server/domain/core/text.js';
 import type { BrowsePage, BrowseRawRow, BrowseRow } from '#lib/server/browse/types.js';
 
@@ -18,20 +18,9 @@ export function tagsByNote(
   ids: readonly string[],
   rows: readonly { noteId: string; tag: string }[],
 ): Map<string, string[]> {
-  const map = new Map<string, string[]>();
-  for (const id of ids) map.set(id, []);
-  for (const row of rows) {
-    const list = map.get(row.noteId);
-    if (list !== undefined) list.push(row.tag);
-  }
-  for (const list of map.values()) list.sort(byCodeUnit);
+  const map = groupNoteTags(ids, rows);
+  for (const list of map.values()) list.sort(compareCodeUnit);
   return map;
-}
-
-function byCodeUnit(a: string, b: string): number {
-  if (a < b) return -1;
-  if (a > b) return 1;
-  return 0;
 }
 
 function toRow(row: BrowseRawRow, tags: ReadonlyMap<string, readonly string[]>): BrowseRow {

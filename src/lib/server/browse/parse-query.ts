@@ -1,11 +1,6 @@
-// Contract: parseBrowseQuery turns a browse string into filters.
-// Input: a string of at most 500 characters and at most 8 tokens.
-// Output: { ok: true, query } or { ok: false, error: 'bad_query' }.
-// A `"` pair groups text. An odd quote count is bad_query.
-// A quoted token is free text, even when it looks like deck: or is:.
-// An unquoted deck:, tag:, is:, or prop: token is that filter.
-// A deck path is trimmed. An empty path is bad_query.
-// The query string stays data. This module does not build SQL.
+// Contract: parseBrowseQuery maps a browse string to filters. It does not build SQL.
+// At most 500 characters and 8 tokens. An odd quote count is bad_query.
+// A quoted token is free text. A deck path is trimmed. An empty path is bad_query.
 
 import { normalizeTags } from '#lib/server/domain/core/tags.js';
 import type { BrowseIs, BrowseOp, BrowseQuery, ParsedBrowse } from '#lib/server/browse/types.js';

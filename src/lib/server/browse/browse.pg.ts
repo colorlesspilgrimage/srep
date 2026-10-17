@@ -1,29 +1,14 @@
-// Contract: Postgres card search for browse.
+// Contract: Postgres card search for browse. The caller passes db.
 // Same filter as the SQLite search. User text is a bound parameter (CWE-89).
-// The field match uses jsonb_array_elements_text.
-// This file does not open a connection. The caller passes db.
 
 import { asc, eq, inArray } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { tagsByNote, toBrowsePage } from '#lib/server/browse/browse-page.js';
-import { browseWhere, type BrowseColumns } from '#lib/server/browse/browse-where.js';
+import { browseColumns, browseWhere } from '#lib/server/browse/browse-where.js';
 import type { BrowsePage, BrowseQuery, BrowseRawRow } from '#lib/server/browse/types.js';
 import { card, deck, note, noteTag } from '#lib/server/db/schema/pg.js';
 
-const columns: BrowseColumns = {
-  cardId: card.id,
-  noteId: card.noteId,
-  state: card.state,
-  due: card.due,
-  lapses: card.lapses,
-  fields: note.fields,
-  noteDeleted: note.deletedAt,
-  deckArchived: deck.archivedAt,
-  deckPath: deck.path,
-  tagNoteId: noteTag.noteId,
-  tagValue: noteTag.tag,
-  tagTable: noteTag,
-};
+const columns = browseColumns({ card, note, deck, noteTag });
 
 const shape = {
   cardId: card.id,

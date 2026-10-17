@@ -1,8 +1,6 @@
 // Contract: searchBrowse loads the study window and runs the dialect search.
-// q, limit, and cursor are untrusted. A bad value is 400 bad_query.
-// Default limit is 50. limit is an integer from 1 to 100.
-// A cursor must be a UUID. A failed match does not build a path (CWE-20).
-// The query string is parsed as data. It is not SQL text (CWE-89).
+// A bad q, limit, or cursor is 400 bad_query. Default limit is 50.
+// A cursor must be a UUID before it is used (CWE-20). The query string is not SQL (CWE-89).
 
 import { z } from 'zod';
 import { fail, type Result } from '#lib/server/auth/deps.js';
