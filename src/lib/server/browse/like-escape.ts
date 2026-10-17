@@ -1,7 +1,6 @@
 // Contract: LIKE pattern helpers. Pure. No I/O.
-// escapeLike makes `\`, `%`, and `_` literal when the SQL clause is ESCAPE '\'.
-// asciiLower folds A to Z only. It is not a Unicode case fold.
-// SQLite lower() folds those same letters. The two sides stay in agreement.
+// escapeLike makes `\`, `%`, and `_` literal under ESCAPE '\'.
+// asciiLower folds A to Z only, so it matches SQLite lower(). It is not a Unicode fold.
 
 export function escapeLike(value: string): string {
   return value.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');

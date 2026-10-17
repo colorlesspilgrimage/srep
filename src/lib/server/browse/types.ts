@@ -1,5 +1,4 @@
-// Contract: types for a parsed browse query and one result row.
-// No I/O. No SQL.
+// Contract: types for a parsed browse query and one result row. No I/O.
 
 export type BrowseIs = 'due' | 'new' | 'suspended';
 

@@ -1,30 +1,14 @@
-// Contract: SQLite card search for browse.
-// searchCards orders by card id and returns rows after the cursor.
-// limit is 1 to 100. The caller checks that bound.
+// Contract: SQLite card search for browse. The caller passes db.
 // User text is bound. LIKE uses ESCAPE '\' (CWE-89).
-// Trashed notes and archived decks are excluded.
 
 import { asc, eq, inArray } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { tagsByNote, toBrowsePage } from '#lib/server/browse/browse-page.js';
-import { browseWhere, type BrowseColumns } from '#lib/server/browse/browse-where.js';
+import { browseColumns, browseWhere } from '#lib/server/browse/browse-where.js';
 import type { BrowsePage, BrowseQuery, BrowseRawRow } from '#lib/server/browse/types.js';
 import { card, deck, note, noteTag } from '#lib/server/db/schema/sqlite.js';
 
-const columns: BrowseColumns = {
-  cardId: card.id,
-  noteId: card.noteId,
-  state: card.state,
-  due: card.due,
-  lapses: card.lapses,
-  fields: note.fields,
-  noteDeleted: note.deletedAt,
-  deckArchived: deck.archivedAt,
-  deckPath: deck.path,
-  tagNoteId: noteTag.noteId,
-  tagValue: noteTag.tag,
-  tagTable: noteTag,
-};
+const columns = browseColumns({ card, note, deck, noteTag });
 
 const shape = {
   cardId: card.id,

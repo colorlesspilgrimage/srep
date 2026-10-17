@@ -1,16 +1,43 @@
 // Contract: build the browse WHERE clause. Pure. No I/O.
-// Every user string is a bound parameter (CWE-89).
-// LIKE uses ESCAPE '\'. Deck children match path plus '::'.
+// User strings are bound parameters (CWE-89).
 // is:due is state review and due before the study-day end.
-// Free text uses asciiLower on the pattern.
-// SQLite lower() folds A to Z. Postgres translate() folds those same letters.
-// Postgres lower() also folds letters such as Ä, so the pg clause does not use it.
+// Postgres lower() folds Ä. translate() folds A to Z only, like SQLite lower().
 
 import { type AnyColumn, type SQL, type Table, sql } from 'drizzle-orm';
 import { asciiLower, escapeLike } from '#lib/server/browse/like-escape.js';
 import type { BrowseIs, BrowseProp, BrowseQuery } from '#lib/server/browse/types.js';
 
 export type BrowseDialect = 'sqlite' | 'pg';
+
+type BrowseTables = {
+  card: {
+    id: AnyColumn;
+    noteId: AnyColumn;
+    state: AnyColumn;
+    due: AnyColumn;
+    lapses: AnyColumn;
+  };
+  note: { fields: AnyColumn; deletedAt: AnyColumn };
+  deck: { path: AnyColumn; archivedAt: AnyColumn };
+  noteTag: Table & { noteId: AnyColumn; tag: AnyColumn };
+};
+
+export function browseColumns(tables: BrowseTables): BrowseColumns {
+  return {
+    cardId: tables.card.id,
+    noteId: tables.card.noteId,
+    state: tables.card.state,
+    due: tables.card.due,
+    lapses: tables.card.lapses,
+    fields: tables.note.fields,
+    noteDeleted: tables.note.deletedAt,
+    deckArchived: tables.deck.archivedAt,
+    deckPath: tables.deck.path,
+    tagNoteId: tables.noteTag.noteId,
+    tagValue: tables.noteTag.tag,
+    tagTable: tables.noteTag,
+  };
+}
 
 export type BrowseColumns = {
   cardId: AnyColumn;
@@ -35,8 +62,7 @@ export function combineAnd(parts: readonly SQL[]): SQL {
   return current;
 }
 
-// '=' is case-sensitive. LIKE is not, on SQLite, so a child uses substr.
-// '%' and '_' in a deck path stay literal. They are not wildcards.
+// A child path uses substr. '=' keeps '%' and '_' literal. LIKE would not.
 function deckClause(pathCol: AnyColumn, path: string): SQL {
   return sql`(${pathCol} = ${path} or substr(${pathCol}, 1, length(${path}) + 2) = ${path} || '::')`;
 }

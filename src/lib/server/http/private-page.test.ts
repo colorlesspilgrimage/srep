@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_KEYBINDS } from '#lib/client/tui/keymap.js';
-import { privatePageHeaders } from './private-page.js';
+import { privateJson, privatePageHeaders, withPrivateHeaders } from './private-page.js';
 
 const { readGallerySettings } = vi.hoisted(() => ({
   readGallerySettings: vi.fn(),
@@ -28,6 +28,21 @@ beforeEach(() => {
 describe('private page headers', () => {
   it('tells caches not to store the document', () => {
     expect(privatePageHeaders()).toEqual({ 'cache-control': 'no-store', vary: 'Cookie' });
+  });
+
+  it('sets those headers on a JSON body', async () => {
+    const response = privateJson({ ok: true }, 200);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('vary')).toBe('Cookie');
+    expect(await response.json()).toEqual({ ok: true });
+  });
+
+  it('copies those headers onto a rejected body', () => {
+    const response = withPrivateHeaders(new Response('no', { status: 400 }));
+    expect(response.status).toBe(400);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('vary')).toBe('Cookie');
   });
 
   it('the home load sets that header and passes a null theme query', async () => {

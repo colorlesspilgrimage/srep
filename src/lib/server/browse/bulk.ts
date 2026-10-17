@@ -5,7 +5,10 @@
 
 import { z } from 'zod';
 import { fail, type Result } from '#lib/server/auth/deps.js';
+import { readJson } from '#lib/server/auth/http.js';
+import type { DbHandle } from '#lib/server/db/client.js';
 import { getDb } from '#lib/server/db/index.js';
+import { privateJson, withPrivateHeaders } from '#lib/server/http/private-page.js';
 import { getDomainContext } from '#lib/server/domain/context.js';
 import {
   replaceNoteTags as replaceNoteTagsPg,
@@ -37,26 +40,45 @@ function toResult(code: BulkCode): Result<object> {
   return fail(400, 'bad_request');
 }
 
+type SqliteDb = Extract<DbHandle, { dialect: 'sqlite' }>['db'];
+type PgDb = Extract<DbHandle, { dialect: 'postgres' }>['db'];
+
+async function runDialect(
+  sqlite: (db: SqliteDb, now: number) => BulkCode,
+  pg: (db: PgDb, now: number) => Promise<BulkCode>,
+): Promise<Result<object>> {
+  const now = getDomainContext().now();
+  const handle = getDb();
+  const code = handle.dialect === 'sqlite' ? sqlite(handle.db, now) : await pg(handle.db, now);
+  return toResult(code);
+}
+
 export async function replaceNoteTagsBulk(
   ids: readonly string[],
   add: readonly string[],
   remove: readonly string[],
 ): Promise<Result<object>> {
-  const now = getDomainContext().now();
-  const handle = getDb();
-  const code =
-    handle.dialect === 'sqlite'
-      ? replaceNoteTagsSqlite(handle.db, ids, add, remove, now)
-      : await replaceNoteTagsPg(handle.db, ids, add, remove, now);
-  return toResult(code);
+  return runDialect(
+    (db, now) => replaceNoteTagsSqlite(db, ids, add, remove, now),
+    (db, now) => replaceNoteTagsPg(db, ids, add, remove, now),
+  );
 }
 
 export async function trashNotesBulk(ids: readonly string[]): Promise<Result<object>> {
-  const now = getDomainContext().now();
-  const handle = getDb();
-  const code =
-    handle.dialect === 'sqlite'
-      ? trashNotesSqlite(handle.db, ids, now)
-      : await trashNotesPg(handle.db, ids, now);
-  return toResult(code);
+  return runDialect(
+    (db, now) => trashNotesSqlite(db, ids, now),
+    (db, now) => trashNotesPg(db, ids, now),
+  );
+}
+
+export async function runBulkPost<S extends z.ZodType>(
+  request: Request,
+  schema: S,
+  run: (data: z.output<S>) => Promise<Result<object>>,
+): Promise<Response> {
+  const body = await readJson(request, schema);
+  if (!body.ok) return withPrivateHeaders(body.response);
+  const result = await run(body.data);
+  if (!result.ok) return privateJson({ error: result.error }, result.status);
+  return privateJson({ ok: true });
 }
