@@ -1,9 +1,12 @@
 // Contract: upload one file as raw bytes to POST /api/media.
 // A size of 0 or above 10485760 does not call fetch.
-// An empty type does not call fetch.
+// A size that is not a positive integer does not call fetch.
+// The byte length must match the size. A longer body does not call fetch.
+// An empty type or a type outside the allow list does not call fetch.
 // content-type is file.type with the parameters removed, then lower case.
+// CR, LF, or NUL in the type token does not become a header (CWE-113).
 // x-filename is set only for 1 to 200 bytes from space through tilde.
-// A name with CR or LF does not become a header (CWE-113).
+// A name with CR, LF, a slash, or ".." does not become a header (CWE-22, CWE-113).
 // The CSRF header is the same token apiFetch sends.
 // This file does not log the file bytes.
 
@@ -25,7 +28,9 @@ export const ALLOWED_MEDIA_TYPES = [
 export const MEDIA_ACCEPT = ALLOWED_MEDIA_TYPES.join(',');
 
 const FILE_NAME = /^[\x20-\x7E]{1,200}$/;
+const TYPE_TOKEN = /^[a-z0-9.+-]+\/[a-z0-9.+-]+$/;
 const SHA = /^[0-9a-f]{64}$/;
+const ALLOWED = new Set<string>(ALLOWED_MEDIA_TYPES);
 
 export type MediaUploadFile = {
   size: number;
@@ -38,11 +43,25 @@ export type MediaUploadResult = { ok: true; sha256: string } | { ok: false; erro
 
 export function declaredMediaType(type: string): string {
   const semi = type.indexOf(';');
-  return (semi === -1 ? type : type.slice(0, semi)).trim().toLowerCase();
+  const base = (semi === -1 ? type : type.slice(0, semi)).trim().toLowerCase();
+  if (!TYPE_TOKEN.test(base)) {
+    return '';
+  }
+  return base;
+}
+
+function safeFileName(name: string): boolean {
+  if (name.includes('\r') || name.includes('\n') || name.includes('\0')) {
+    return false;
+  }
+  if (name.includes('/') || name.includes('\\') || name.includes('..')) {
+    return false;
+  }
+  return FILE_NAME.test(name);
 }
 
 export function fileNameHeader(name: string): Record<string, string> {
-  if (name.includes('\r') || name.includes('\n') || !FILE_NAME.test(name)) {
+  if (!safeFileName(name)) {
     return {};
   }
   return { 'x-filename': name };
@@ -66,14 +85,25 @@ function readSha(body: unknown): string | null {
   return typeof media.sha256 === 'string' && SHA.test(media.sha256) ? media.sha256 : null;
 }
 
-function refused(file: MediaUploadFile): MediaUploadResult | null {
-  if (file.size === 0) {
+function sizeError(size: number): MediaUploadResult | null {
+  if (size === 0) {
     return { ok: false, error: 'empty_file' };
   }
-  if (file.size > MEDIA_MAX_BYTES) {
+  if (typeof size !== 'number' || !Number.isInteger(size) || size < 0) {
+    return { ok: false, error: 'bad_request' };
+  }
+  if (size > MEDIA_MAX_BYTES) {
     return { ok: false, error: 'payload_too_large' };
   }
-  if (declaredMediaType(file.type).length === 0) {
+  return null;
+}
+
+function refused(file: MediaUploadFile): MediaUploadResult | null {
+  const size = sizeError(file.size);
+  if (size !== null) {
+    return size;
+  }
+  if (!ALLOWED.has(declaredMediaType(file.type))) {
     return { ok: false, error: 'unsupported_media_type' };
   }
   return null;
@@ -87,6 +117,15 @@ export async function uploadMediaFile(
   if (early !== null) {
     return early;
   }
+  let bytes: ArrayBuffer;
+  try {
+    bytes = await file.arrayBuffer();
+  } catch {
+    return { ok: false, error: 'network_error' };
+  }
+  if (bytes.byteLength !== file.size) {
+    return { ok: false, error: 'bad_request' };
+  }
   const headers: Record<string, string> = {
     'content-type': declaredMediaType(file.type),
     ...csrfHeaders(),
@@ -97,7 +136,7 @@ export async function uploadMediaFile(
     response = await fetchImpl('/api/media', {
       method: 'POST',
       headers,
-      body: await file.arrayBuffer(),
+      body: bytes,
       credentials: 'same-origin',
     });
   } catch {

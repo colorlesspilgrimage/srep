@@ -8,6 +8,7 @@
   // Contract: the edit-note route. Guests stay on the auth pages.
   // Svelte 5 rejects a class on svelte:body. This effect adds tui-page.
   // A bad id renders the error and does not call GET /api/notes/:id.
+  // A new id mounts a new editor. The old editor drops a late reply.
 
   let { data }: { data: PageData } = $props();
   let paletteOpen = $state(false);
@@ -26,7 +27,9 @@
 
 <AppShell themeId={data.themeId} keybinds={data.keybinds} bind:paletteOpen mode="NOTE">
   {#if valid}
-    <NoteEditor mode="edit" {noteId} initialDeckId={null} />
+    {#key noteId}
+      <NoteEditor mode="edit" {noteId} initialDeckId={null} />
+    {/key}
   {:else}
     <main class="app-screen">
       <h1>Edit note</h1>

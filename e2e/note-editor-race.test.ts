@@ -9,6 +9,7 @@ const PNG = { name: 'dot.png', mimeType: 'image/png', buffer: TINY_PNG };
 
 let page: Page;
 let alpha = '';
+let beta = '';
 
 function hold() {
   let release = () => {};
@@ -39,7 +40,9 @@ test.describe.serial('note editor races', () => {
   test.beforeAll(async ({ browser }) => {
     const signed = await signInEditor(browser, CLIENT_IP);
     page = signed.page;
-    alpha = (await makeDecks(page)).alpha;
+    const decks = await makeDecks(page);
+    alpha = decks.alpha;
+    beta = decks.beta;
   });
 
   test.afterAll(async () => {
@@ -232,4 +235,68 @@ test.describe.serial('note editor races', () => {
     expect(uploads).toBe(2);
     await page.unroute(MEDIA_PATH);
   });
+
+  test('a client move to another note shows that note and drops a late load', async () => {
+    const idA = await postNote(page, alpha, ['note-a-front', 'a-back']);
+    const idB = await postNote(page, alpha, ['note-b-front', 'b-back']);
+    const idC = await postNote(page, alpha, ['note-c-front', 'c-back']);
+    await page.goto(`/notes/${idA}`);
+    await page.waitForFunction(() => document.body.classList.contains('tui-page'));
+    await expect(page.getByLabel('Front')).toHaveValue('note-a-front');
+    await page.evaluate(() => {
+      (window as Window & { stay?: number }).stay = 1;
+    });
+    await clientGo(page, `/notes/${idB}`);
+    expect(await page.evaluate(() => (window as Window & { stay?: number }).stay)).toBe(1);
+    await expect(page.getByLabel('Front')).toHaveValue('note-b-front');
+    const pending = hold();
+    let held = false;
+    const noteA = (url: URL) => url.pathname === `/api/notes/${idA}`;
+    await page.route(noteA, async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.continue();
+        return;
+      }
+      held = true;
+      await pending.gate;
+      await route.continue();
+    });
+    try {
+      await clientGo(page, `/notes/${idA}`);
+      await expect.poll(() => held).toBe(true);
+      await clientGo(page, `/notes/${idC}`);
+      await expect(page.getByLabel('Front')).toHaveValue('note-c-front');
+      pending.release();
+      await expect(page.getByLabel('Front')).toHaveValue('note-c-front');
+      const kept = await page.request.get(`/api/notes/${idB}`);
+      expect((await kept.json()).note.fields[0]).toBe('note-b-front');
+    } finally {
+      pending.release();
+      await page.unroute(noteA);
+    }
+  });
+
+  test('a client move to another deck query selects that deck', async () => {
+    await openNewNote(page, alpha);
+    const deck = page.getByRole('listbox', { name: 'Deck' });
+    await expect(deck.getByRole('option', { selected: true })).toHaveText('Alpha');
+    await page.evaluate(() => {
+      (window as Window & { stay?: number }).stay = 2;
+    });
+    await clientGo(page, `/notes/new?deck=${encodeURIComponent(beta)}`);
+    expect(await page.evaluate(() => (window as Window & { stay?: number }).stay)).toBe(2);
+    await expect(deck.getByRole('option', { selected: true })).toHaveText('Beta');
+  });
 });
+
+async function clientGo(target: Page, href: string): Promise<void> {
+  await target.evaluate((path) => {
+    document.getElementById('security-nav')?.remove();
+    const link = document.createElement('a');
+    link.id = 'security-nav';
+    link.href = path;
+    link.textContent = 'Open note';
+    document.body.appendChild(link);
+  }, href);
+  await target.locator('#security-nav').click();
+}

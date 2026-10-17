@@ -91,4 +91,35 @@ describe('POST /api/notes/preview', () => {
     expect(missing.status).toBe(404);
     expect(await readBody(missing)).toEqual({ error: 'not_found' });
   });
+
+  it('rejects a wrong type, a huge field, and an extra key', async () => {
+    h = await useDomainRouteContext();
+    const cases: unknown[] = [
+      { noteTypeId: BASIC_ID, fields: 'gato' },
+      { noteTypeId: BASIC_ID, fields: [1, 2] },
+      { noteTypeId: 1, fields: ['a', 'b'] },
+      { fields: ['a', 'b'] },
+      ['a', 'b'],
+      { noteTypeId: BASIC_ID, fields: Array.from({ length: 101 }, () => 'a') },
+      { noteTypeId: BASIC_ID, fields: ['a'.repeat(50_001), 'b'] },
+      { noteTypeId: BASIC_ID, fields: ['a\u0000', 'b'] },
+      { noteTypeId: BASIC_ID, fields: ['a', 'b'], deckId: null },
+    ];
+    for (const body of cases) {
+      const response = await POST(makeEvent('/api/notes/preview', { body, session }).event);
+      expect(response.status).toBe(400);
+      expect(await readBody(response)).toEqual({ error: 'bad_request' });
+    }
+    const raw = `{"noteTypeId":"${BASIC_ID}","fields":["a","b"],"__proto__":{"admin":true}}`;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    expect(Object.hasOwn(parsed, '__proto__')).toBe(true);
+    const proto = await POST(
+      makeEvent('/api/notes/preview', {
+        rawBody: raw,
+        session,
+        headers: { 'content-type': 'application/json' },
+      }).event,
+    );
+    expect(proto.status).toBe(400);
+  });
 });

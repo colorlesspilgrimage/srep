@@ -8,6 +8,7 @@
   // Contract: the add-note route. Guests stay on the auth pages.
   // Svelte 5 rejects a class on svelte:body. This effect adds tui-page.
   // A deck query is used only when it is a UUID.
+  // A new deck id mounts a new editor. The old editor drops a late reply.
 
   let { data }: { data: PageData } = $props();
   let paletteOpen = $state(false);
@@ -31,5 +32,7 @@
 <svelte:head><title>Add note</title></svelte:head>
 
 <AppShell themeId={data.themeId} keybinds={data.keybinds} bind:paletteOpen mode="NOTE">
-  <NoteEditor mode="new" noteId={null} {initialDeckId} />
+  {#key initialDeckId ?? ''}
+    <NoteEditor mode="new" noteId={null} {initialDeckId} />
+  {/key}
 </AppShell>
