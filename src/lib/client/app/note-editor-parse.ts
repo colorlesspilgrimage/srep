@@ -61,43 +61,54 @@ function readStringList(value: unknown, maxItems: number, maxText: number): stri
   return out;
 }
 
-export function parseDecks(body: unknown): EditorDeck[] | null {
-  if (!isRecord(body) || !Array.isArray(body.decks)) {
+function mapRecords<T>(
+  list: unknown,
+  read: (item: Record<string, unknown>) => T | null,
+): T[] | null {
+  if (!Array.isArray(list)) {
     return null;
   }
-  const decks: EditorDeck[] = [];
-  for (const item of body.decks) {
+  const out: T[] = [];
+  for (const item of list) {
     if (!isRecord(item)) {
       return null;
     }
+    const row = read(item);
+    if (row === null) {
+      return null;
+    }
+    out.push(row);
+  }
+  return out;
+}
+
+export function parseDecks(body: unknown): EditorDeck[] | null {
+  if (!isRecord(body)) {
+    return null;
+  }
+  return mapRecords(body.decks, (item) => {
     const id = readUuid(item.id);
     const name = readText(item.name, MAX_NAME);
     if (id === null || name === null) {
       return null;
     }
-    decks.push({ id, name });
-  }
-  return decks;
+    return { id, name };
+  });
 }
 
 export function parseTypes(body: unknown): EditorType[] | null {
-  if (!isRecord(body) || !Array.isArray(body.noteTypes)) {
+  if (!isRecord(body)) {
     return null;
   }
-  const types: EditorType[] = [];
-  for (const item of body.noteTypes) {
-    if (!isRecord(item)) {
-      return null;
-    }
+  return mapRecords(body.noteTypes, (item) => {
     const id = readUuid(item.id);
     const name = readText(item.name, MAX_NAME);
     const fields = readStringList(item.fields, MAX_FIELDS, MAX_NAME);
     if (id === null || name === null || fields === null || fields.length === 0) {
       return null;
     }
-    types.push({ id, name, fields });
-  }
-  return types;
+    return { id, name, fields };
+  });
 }
 
 function readOrdinal(value: unknown): number | null {
@@ -111,11 +122,7 @@ export function parsePreview(body: unknown): PreviewCardView[] | null {
   if (!isRecord(body) || !Array.isArray(body.cards) || body.cards.length > MAX_CARDS) {
     return null;
   }
-  const cards: PreviewCardView[] = [];
-  for (const item of body.cards) {
-    if (!isRecord(item)) {
-      return null;
-    }
+  return mapRecords(body.cards, (item) => {
     const templateName = readText(item.templateName, MAX_NAME);
     const ordinal = readOrdinal(item.ordinal);
     const front = readText(item.front, MAX_TEXT);
@@ -123,9 +130,8 @@ export function parsePreview(body: unknown): PreviewCardView[] | null {
     if (templateName === null || ordinal === null || front === null || back === null) {
       return null;
     }
-    cards.push({ templateName, ordinal, front, back });
-  }
-  return cards;
+    return { templateName, ordinal, front, back };
+  });
 }
 
 function readDeckId(cards: unknown): string | null | 'bad' {

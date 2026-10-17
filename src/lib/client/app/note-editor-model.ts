@@ -18,8 +18,6 @@ export const PREVIEW_DELAY_MS = 200;
 export type PreviewDecision<T> =
   { type: 'ignore' } | { type: 'error' } | { type: 'cards'; cards: readonly T[] };
 
-// A slow reply is ignored when a newer serial is current.
-// A current failure is an error. A current card list is shown.
 export function previewDecision<T>(input: {
   alive: boolean;
   mine: number;

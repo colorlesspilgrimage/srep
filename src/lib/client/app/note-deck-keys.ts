@@ -1,10 +1,5 @@
-// Contract: keys for the note deck listbox.
-// ArrowDown and j select the next deck and stop on the last.
-// ArrowUp and k select the previous deck and stop on the first.
-// Home selects the first deck. End selects the last deck.
-// Enter keeps the current deck. Escape blurs the list.
-// Space, 1, 2, 3, 4, h, l, and Tab do not change the deck.
-// No I/O.
+// Contract: deck list keys. Arrow keys, j, k, Home, and End move and stop at the ends.
+// Enter keeps the deck. Escape blurs. Space, digits, h, l, and Tab do not change the deck.
 
 export type DeckListEffect =
   { type: 'select'; index: number } | { type: 'keep' } | { type: 'blur' } | { type: 'none' };

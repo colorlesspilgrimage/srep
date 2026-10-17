@@ -93,14 +93,13 @@
   <button type="button" disabled={locked} onclick={onCreateRoot}>Create root</button>
   <button type="button" disabled={locked || !canEdit} onclick={onRename}>Rename</button>
   <button type="button" disabled={locked || !canEdit} onclick={onDelete}>Delete</button>
+  <!-- resolve() has no query slot. The id is encoded after the UUID check. -->
+  <!-- eslint-disable svelte/no-navigation-without-resolve -->
   {#if studyHref !== null}
-    <!-- resolve() has no query slot. The id is encoded after the UUID check. -->
-    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
     <a href={studyHref}>Study</a>
   {/if}
   {#if addHref !== null}
-    <!-- resolve() has no query slot. The id is encoded after the UUID check. -->
-    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
     <a href={addHref}>Add note</a>
   {/if}
+  <!-- eslint-enable svelte/no-navigation-without-resolve -->
 </div>

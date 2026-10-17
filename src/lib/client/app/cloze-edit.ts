@@ -1,12 +1,6 @@
-// Contract: cloze helpers for the note editor.
-// wrapCloze returns null when the index or the selection is not valid.
-// An empty selection inserts {{cN::}} at the caret. A selection wraps that text.
-// A selection that splits a surrogate pair returns null (CWE-176).
-// Text above 50000 characters is refused (CWE-400).
-// nextClozeIndex is one more than the highest cloze index, or 1.
-// The result is at most 999. The first }} ends a cloze.
-// A nested {{cM:: inside that cloze is not a second cloze.
-// No I/O.
+// Contract: cloze helpers. A bad index, selection, or surrogate split returns null (CWE-176).
+// Text above 50000 characters is refused (CWE-400). The result index is at most 999.
+// The first }} ends a cloze. A nested {{cM:: inside that cloze is not a second cloze.
 
 const MAX_CLOZE_INDEX = 999;
 const MAX_CLOZE_TEXT = 50_000;

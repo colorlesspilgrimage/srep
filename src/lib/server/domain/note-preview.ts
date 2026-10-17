@@ -1,9 +1,6 @@
-// Contract: render cards for unsaved fields.
-// Input is noteTypeId and fields. A missing type is 404 not_found.
-// A field list that does not match the type is 400 bad_request.
-// A render over the cost limit is 400 bad_request.
-// Output is one card per desired card. HTML is not sanitized.
-// This function does not insert a note and does not touch media files.
+// Contract: render cards for unsaved fields. A missing type is 404 not_found.
+// A bad field list or a render over the cost limit is 400 bad_request.
+// HTML is not sanitized. This function does not insert a note or touch media files.
 
 import { fail, type Result } from '#lib/server/auth/deps.js';
 import {

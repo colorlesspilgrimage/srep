@@ -5,6 +5,7 @@
   import { signOut } from '#lib/client/sign-out.js';
   import type { PageData } from './$types';
   import AppShell from '#lib/client/app/AppShell.svelte';
+  import TuiPage from '#lib/client/app/TuiPage.svelte';
   import DeckDetail from '#lib/client/app/DeckDetail.svelte';
   import DeckTree from '#lib/client/app/DeckTree.svelte';
   import DeleteDeckDialog from '#lib/client/app/DeleteDeckDialog.svelte';
@@ -18,7 +19,6 @@
   import { targetIsTextField } from '#lib/client/tui/text-target.js';
 
   // Contract: the signed-in home page. Guests stay on the auth pages.
-  // Svelte 5 rejects a class on svelte:body. This effect adds tui-page.
   // Counts and deck rows load together. A child create expands the parent.
 
   let { data }: { data: PageData } = $props();
@@ -34,13 +34,6 @@
   let deleteOpen = $state(false);
   let paletteOpen = $state(false);
   let nameField = $state<HTMLInputElement | null>(null);
-
-  $effect.pre(() => {
-    document.body.classList.add('tui-page');
-    return () => {
-      document.body.classList.remove('tui-page');
-    };
-  });
 
   let namedFor = $state<string | null | undefined>(undefined);
 
@@ -229,6 +222,7 @@
   }
 </script>
 
+<TuiPage />
 <svelte:head><title>srep</title></svelte:head>
 
 <AppShell themeId={data.themeId} keybinds={data.keybinds} modalOpen={deleteOpen} bind:paletteOpen>

@@ -1,16 +1,9 @@
-// Contract: upload one file as raw bytes to POST /api/media.
-// A size of 0 or above 10485760 does not call fetch.
-// A size that is not a positive integer does not call fetch.
-// The byte length must match the size. A longer body does not call fetch.
-// An empty type or a type outside the allow list does not call fetch.
-// content-type is file.type with the parameters removed, then lower case.
+// Contract: POST /api/media as raw bytes. A bad size, type, or body does not call fetch.
 // CR, LF, or NUL in the type token does not become a header (CWE-113).
-// x-filename is set only for 1 to 200 bytes from space through tilde.
 // A name with CR, LF, a slash, or ".." does not become a header (CWE-22, CWE-113).
-// The CSRF header is the same token apiFetch sends.
 // This file does not log the file bytes.
 
-import { csrfHeaders } from '#lib/client/api.js';
+import { csrfHeaders, errorCodeOf } from '#lib/client/api.js';
 
 export const MEDIA_MAX_BYTES = 10_485_760;
 
@@ -65,13 +58,6 @@ export function fileNameHeader(name: string): Record<string, string> {
     return {};
   }
   return { 'x-filename': name };
-}
-
-function errorCode(body: unknown): string {
-  if (typeof body !== 'object' || body === null || !('error' in body)) {
-    return 'error';
-  }
-  return typeof body.error === 'string' ? body.error : 'error';
 }
 
 function readSha(body: unknown): string | null {
@@ -144,7 +130,7 @@ export async function uploadMediaFile(
   }
   const parsed: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    return { ok: false, error: errorCode(parsed) };
+    return { ok: false, error: errorCodeOf(parsed) };
   }
   const sha = readSha(parsed);
   return sha === null ? { ok: false, error: 'bad_request' } : { ok: true, sha256: sha };
