@@ -39,6 +39,8 @@ export default defineConfig({
       SREP_DATABASE_URL: process.env.E2E_DATABASE_URL ?? 'sqlite:./data/e2e.db',
       SREP_LOG_LEVEL: 'warn',
       SREP_MEDIA_DIR: './data/e2e-media',
+      // Lets e2e send x-srep-test-now. Production does not set this variable.
+      SREP_E2E_CLOCK: '1',
       BODY_SIZE_LIMIT: '11M',
     },
   },

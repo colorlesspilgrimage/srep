@@ -7,6 +7,7 @@ import {
   type Request,
 } from '@playwright/test';
 import { resetAuthViaCli } from './support/cli';
+import { studyClockHeader } from './support/study-clock';
 import {
   addNote,
   createDeck,
@@ -80,6 +81,10 @@ test('guest GET /study returns 303 to setup or login', async ({ request }) => {
 test.describe.serial('study screen', () => {
   test.beforeAll(async ({ browser }) => {
     await signIn(browser);
+    await context.setExtraHTTPHeaders({
+      'x-forwarded-for': CLIENT_IP,
+      ...studyClockHeader(),
+    });
   });
 
   test.afterAll(async () => {
@@ -333,9 +338,14 @@ test.describe.serial('study screen', () => {
     const box = await good.boundingBox();
     expect(box?.height).toBeGreaterThanOrEqual(44);
     expect(box?.width).toBeGreaterThanOrEqual(44);
-    await good.click();
-    await expect(page.getByText('Next card at')).toBeVisible();
-    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.setExtraHTTPHeaders(studyClockHeader());
+    try {
+      await good.click();
+      await expect(page.getByText('Next card at')).toBeVisible();
+    } finally {
+      await page.setExtraHTTPHeaders({});
+      await page.setViewportSize({ width: 1440, height: 900 });
+    }
   });
 
   test('edit blocks suspend and undo and returns focus', async () => {
