@@ -296,3 +296,19 @@ A signed-in page edits note fields, tags, and the deck. A live preview shows the
 - Code and tests:
   - Code: `src/lib/server/domain/note-preview.ts`, `src/routes/api/notes/preview/+server.ts`, `src/lib/client/app/NoteEditor.svelte`.
   - Tests: `src/lib/server/domain/note-preview.test.ts`, `src/routes/api/notes/preview/server.test.ts`, `e2e/note-editor.test.ts`.
+
+## Browse query (M5 slice 12)
+
+A signed-in client can search cards and can tag or trash notes in one transaction.
+
+- Entry point: `GET /api/browse?q=tag:animals`. Bulk: `POST /api/notes/tags` and `POST /api/notes/trash`.
+- Use:
+  1. Sign in and add notes (see "Decks, notes and media (M2)").
+  2. Call `GET /api/browse?q=tag:animals&limit=50`.
+  3. Call `POST /api/notes/tags` with `noteIds`, `add`, and `remove`.
+- Check:
+  - `curl -s -o /dev/null -w '%{http_code}\n' 'http://127.0.0.1:3000/api/browse?q=tag:animals'` prints `401`.
+  - `npx vitest run src/lib/server/browse src/routes/api/browse src/routes/api/notes/tags src/routes/api/notes/trash src/lib/server/domain/store/note-bulk-plan.test.ts src/lib/server/domain/store/note-bulk.sqlite.test.ts src/lib/server/domain/store/note-bulk.pg.test.ts` exits 0.
+- Code and tests:
+  - Code: `src/lib/server/browse/`, `src/lib/server/domain/store/note-bulk.sqlite.ts`, `src/lib/server/domain/store/note-bulk.pg.ts`, `src/lib/server/domain/store/note-bulk-plan.ts`, `src/routes/api/browse/+server.ts`, `src/routes/api/notes/tags/+server.ts`, `src/routes/api/notes/trash/+server.ts`.
+  - Tests: `src/lib/server/browse/*.test.ts`, `src/routes/api/browse/server.test.ts`, `src/routes/api/notes/tags/server.test.ts`, `src/routes/api/notes/trash/server.test.ts`, `src/lib/server/domain/store/note-bulk*.test.ts`.
