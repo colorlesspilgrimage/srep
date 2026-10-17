@@ -12,6 +12,8 @@ const b = '00000000-0000-4000-8000-000000000020';
 describe('bulkNoteIds', () => {
   it('sorts unique ids and rejects a bad list', () => {
     expect(bulkNoteIds([b, a, b])).toEqual([a, b]);
+    const mixed = 'abcdefab-cdef-4abc-8def-0123456789ab';
+    expect(bulkNoteIds([mixed.toUpperCase(), mixed])).toEqual([mixed]);
     expect(bulkNoteIds([])).toBeNull();
     expect(bulkNoteIds(Array.from({ length: 101 }, () => a))).toBeNull();
     expect(bulkNoteIds([`'; drop table note; --`])).toBeNull();

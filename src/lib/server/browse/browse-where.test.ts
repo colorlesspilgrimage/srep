@@ -61,6 +61,32 @@ describe('browseWhere', () => {
   });
 });
 
+describe('browseWhere escape and fold', () => {
+  it('uses a one-character escape and an ASCII fold on postgres', () => {
+    const pg = new PgDialect().sqlToQuery(
+      browseWhere(columns, { ...sample(), texts: ['\\', '%', '_'] }, 1, null, 'pg'),
+    );
+    expect(pg.sql).toContain("escape '\\'");
+    expect(pg.sql.toLowerCase()).toContain('translate(');
+    expect(pg.sql.toLowerCase()).not.toContain('lower(');
+    expect(pg.params).toContain(`%${escapeLike('\\')}%`);
+    expect(pg.params).toContain(`%${escapeLike('%')}%`);
+    expect(pg.params).toContain(`%${escapeLike('_')}%`);
+    const sqlite = new PgDialect().sqlToQuery(
+      browseWhere(
+        columns,
+        { decks: [], tags: [], is: [], props: [], texts: ['\\'] },
+        1,
+        null,
+        'sqlite',
+      ),
+    );
+    expect(sqlite.sql).toContain("escape '\\'");
+    expect(sqlite.sql.toLowerCase()).toContain('lower(');
+    expect(sqlite.sql.toLowerCase()).toContain('json_each');
+  });
+});
+
 describe('combineAnd', () => {
   it('returns a true condition when there are no parts', () => {
     const compiled = new PgDialect().sqlToQuery(combineAnd([]));

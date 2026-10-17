@@ -121,13 +121,24 @@ describe('GET /api/browse', () => {
     expect(badQuery.status).toBe(400);
     expect(await readBody(badQuery)).toEqual({ error: 'bad_query' });
     expect(badQuery.headers.get('cache-control')).toBe('no-store');
-    for (const limit of ['0', '101', 'abc', '01']) {
+    for (const limit of ['0', '101', 'abc', '01', '-1', '1e2', '1.5', '+10', '999999999999']) {
       const response = await get(`/api/browse?limit=${limit}`);
       expect(response.status, limit).toBe(400);
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      expect(response.headers.get('vary')).toBe('Cookie');
     }
-    const cursor = await get(`/api/browse?cursor=${encodeURIComponent('../etc/passwd')}`);
-    expect(cursor.status).toBe(400);
-    expect(await readBody(cursor)).toEqual({ error: 'bad_query' });
+    for (const raw of ['../etc/passwd', '1', 'zzzz', '123e4567e89b42d3a456426614174000']) {
+      const cursor = await get(`/api/browse?cursor=${encodeURIComponent(raw)}`);
+      expect(cursor.status, raw).toBe(400);
+      expect(await readBody(cursor)).toEqual({ error: 'bad_query' });
+    }
+    const upper = await get('/api/browse?cursor=123E4567-E89B-42D3-A456-426614174000');
+    expect(upper.status).toBe(200);
+    const sorted = await get(
+      `/api/browse?sort=${encodeURIComponent('id; drop table note; --')}&order=desc`,
+    );
+    expect(sorted.status).toBe(200);
+    expect(await readBody(sorted)).toEqual({ rows: [], nextCursor: null });
     const again = await get('/api/browse?q=gato');
     expect(again.status).toBe(200);
     expect(await readBody(again)).toEqual({ rows: [], nextCursor: null });

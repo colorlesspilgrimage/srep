@@ -12,9 +12,15 @@ function reply(body: unknown, status: number): Response {
   return json(body, { status, headers: privatePageHeaders() });
 }
 
+function withPrivate(response: Response): Response {
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(privatePageHeaders())) headers.set(name, value);
+  return new Response(response.body, { status: response.status, headers });
+}
+
 export const POST: RequestHandler = async ({ request }) => {
   const body = await readJson(request, noteTrashBody);
-  if (!body.ok) return body.response;
+  if (!body.ok) return withPrivate(body.response);
   const result = await trashNotesBulk(body.data.noteIds);
   if (!result.ok) return reply({ error: result.error }, result.status);
   return reply({ ok: true }, 200);
