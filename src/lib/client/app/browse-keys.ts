@@ -57,15 +57,23 @@ function plainChord(input: BrowseKeyInput, key: string): boolean {
   return (input.ctrlKey || input.metaKey) && !input.altKey && !input.shiftKey && input.key === key;
 }
 
-function queryAction(input: BrowseKeyInput): BrowseKeyAction {
+function modifierAction(input: BrowseKeyInput, onSelect: BrowseKeyAction): BrowseKeyAction | null {
   if (plainChord(input, 'k')) {
     return { type: 'palette' };
   }
   if (plainChord(input, 'a')) {
-    return { type: 'select-query' };
+    return onSelect;
   }
   if (commandChord(input)) {
     return NONE;
+  }
+  return null;
+}
+
+function queryAction(input: BrowseKeyInput): BrowseKeyAction {
+  const chord = modifierAction(input, { type: 'select-query' });
+  if (chord !== null) {
+    return chord;
   }
   if (input.key === 'Enter') {
     return { type: 'search' };
@@ -77,14 +85,9 @@ function queryAction(input: BrowseKeyInput): BrowseKeyAction {
 }
 
 function gridAction(input: BrowseKeyInput): BrowseKeyAction {
-  if (plainChord(input, 'k')) {
-    return { type: 'palette' };
-  }
-  if (plainChord(input, 'a')) {
-    return { type: 'select-page' };
-  }
-  if (commandChord(input)) {
-    return NONE;
+  const chord = modifierAction(input, { type: 'select-page' });
+  if (chord !== null) {
+    return chord;
   }
   const move = MOVE[input.key];
   if (move !== undefined) {
