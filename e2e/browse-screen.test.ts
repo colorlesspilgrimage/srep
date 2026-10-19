@@ -4,10 +4,7 @@ import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
 import { csrf, removeRootDecks } from './support/study-screen';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
-// Contract: browse page keys, search, bulk writes, and the delete dialog.
-// Grid keys use page.keyboard on three rows. This file uses its own client IP.
-// PLAN named 198.51.100.43. That address is already used by note-editor-race.
-// This file uses 198.51.100.44 so the auth budget stays separate.
+// Contract: browse keys, search, and bulk writes. IP .44; .43 is note-editor-race.
 
 const CLIENT_IP = '198.51.100.44';
 const BASIC_ID = '00000000-0000-4000-8000-000000000011';
@@ -17,6 +14,7 @@ let page: Page;
 let gatoNote = '';
 let perroNote = '';
 let casaNote = '';
+let perroCard = '';
 
 function dataRows() {
   return page.getByRole('row').filter({ has: page.getByRole('checkbox') });
@@ -63,6 +61,7 @@ async function postNote(deckId: string, front: string, tags: string[]): Promise<
     throw new Error('missing card');
   }
   if (front === 'perro') {
+    perroCard = cardId;
     setLapses(cardId, 4);
   }
   return body.note.id;
@@ -105,8 +104,17 @@ async function openBrowse(): Promise<void> {
 
 async function search(q: string): Promise<void> {
   const field = page.getByLabel('Search');
+  await expect(page.getByRole('button', { name: 'Search' })).toBeEnabled();
   await field.fill(q);
+  const pending = page.waitForResponse((response) => {
+    if (response.request().method() !== 'GET') {
+      return false;
+    }
+    const url = new URL(response.url());
+    return url.pathname === '/api/browse' && (url.searchParams.get('q') ?? '') === q;
+  });
   await field.press('Enter');
+  await pending;
 }
 
 async function focusGrid(): Promise<void> {
@@ -136,6 +144,9 @@ test.describe.serial('browse screen', () => {
   });
 
   test.afterAll(async () => {
+    if (perroCard !== '') {
+      setLapses(perroCard, 0);
+    }
     await context.close();
   });
 
