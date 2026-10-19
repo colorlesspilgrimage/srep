@@ -159,7 +159,7 @@ test.describe.serial('browse screen', () => {
     const searchBox = await page.getByRole('button', { name: 'Search' }).boundingBox();
     expect(searchBox?.height).toBeGreaterThanOrEqual(44);
     for (const name of ['Move', 'Add tag', 'Remove tag', 'Suspend', 'Delete']) {
-      const box = await page.getByRole('button', { name }).boundingBox();
+      const box = await page.getByRole('button', { name, exact: true }).boundingBox();
       expect(box?.height).toBeGreaterThanOrEqual(44);
     }
     const fit = await page.evaluate(
@@ -218,11 +218,12 @@ test.describe.serial('browse screen', () => {
     await page.keyboard.press('2');
     await page.keyboard.press('3');
     await page.keyboard.press('4');
-    await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('ArrowUp');
     await page.keyboard.press('j');
     await page.keyboard.press('k');
-    await expect(field).toHaveValue('ga to:1234');
+    await expect(field).toHaveValue('ga to:1234jk');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowUp');
+    await expect(field).toHaveValue('ga to:1234jk');
     await expect(page.getByRole('dialog', { name: 'Commands' })).toBeHidden();
     await expect(selectedRow()).toHaveText(first);
     await page.keyboard.press('Control+a');
@@ -230,7 +231,7 @@ test.describe.serial('browse screen', () => {
     const span = await field.evaluate(
       (node: HTMLInputElement) => node.selectionEnd - node.selectionStart,
     );
-    expect(span).toBe('ga to:1234'.length);
+    expect(span).toBe('ga to:1234jk'.length);
     await page.keyboard.press('Control+k');
     await expect(page.getByRole('dialog', { name: 'Commands' })).toBeVisible();
     await page.keyboard.press('Escape');
@@ -297,7 +298,7 @@ test.describe.serial('browse screen', () => {
       .getByRole('listbox', { name: 'Deck' })
       .getByRole('option', { name: 'French' })
       .click();
-    await page.getByRole('button', { name: 'Move' }).click();
+    await page.getByRole('button', { name: 'Move', exact: true }).click();
     await search('deck:French');
     await expect(dataRows()).toHaveCount(1);
     await expect(dataRows().first()).toContainText('gato');
