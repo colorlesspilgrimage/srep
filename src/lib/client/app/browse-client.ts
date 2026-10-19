@@ -48,8 +48,11 @@ export function createBrowseClient(fetchJson: FetchJson = apiFetch) {
       return postIf(fetchJson, '/api/cards/suspend', suspendBody(cardIds));
     },
     setTags(body: TagWrite) {
+      const tag = body.add[0] ?? body.remove[0];
+      if (tag === undefined) {
+        return Promise.resolve(rejectedResult());
+      }
       const mode = body.add.length > 0 ? 'add' : 'remove';
-      const tag = mode === 'add' ? (body.add[0] ?? '') : (body.remove[0] ?? '');
       return postIf(fetchJson, '/api/notes/tags', tagBody(body.noteIds, tag, mode));
     },
     trash(noteIds: readonly string[]) {

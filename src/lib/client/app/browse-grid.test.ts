@@ -60,5 +60,7 @@ describe('gridKeyPlan', () => {
     expect(gridKeyPlan(grid('Tab'), [], 0)).toEqual({ type: 'tab', shift: false });
     expect(gridKeyPlan(grid('Escape'), [], 0)).toEqual({ type: 'blur' });
     expect(gridKeyPlan(grid('1'), ROWS, 0)).toEqual({ type: 'none' });
+    expect(gridKeyPlan(grid(' '), ROWS, 9)).toEqual({ type: 'none' });
+    expect(gridKeyPlan({ type: 'search' }, ROWS, 0)).toEqual({ type: 'none' });
   });
 });

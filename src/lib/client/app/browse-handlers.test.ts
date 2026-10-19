@@ -216,6 +216,7 @@ describe('browse handlers', () => {
     expect(io.client.move).not.toHaveBeenCalledWith([CARD_B], DECK);
     setSnap({ ...snap(), modalOpen: true });
     const before = tasks.length;
+    handlers.onMove();
     handlers.onSuspend();
     handlers.onAdd();
     expect(tasks).toHaveLength(before);

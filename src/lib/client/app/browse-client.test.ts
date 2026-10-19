@@ -56,5 +56,14 @@ describe('createBrowseClient', () => {
       body: { noteIds: [NOTE], add: ['<script>'], remove: [] },
     });
     expect(seen[5]?.init).toEqual({ method: 'POST', body: { noteIds: [NOTE] } });
+    await client.setTags({ noteIds: [NOTE], add: [], remove: ['pets'] });
+    expect(seen[6]?.init).toEqual({
+      method: 'POST',
+      body: { noteIds: [NOTE], add: [], remove: ['pets'] },
+    });
+    expect(await client.setTags({ noteIds: [NOTE], add: [], remove: [] })).toMatchObject({
+      ok: false,
+    });
+    expect(seen).toHaveLength(7);
   });
 });
