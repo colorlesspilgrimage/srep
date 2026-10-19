@@ -1,5 +1,6 @@
 <script lang="ts">
   import { nextTrapIndex } from '#lib/client/tui/palette-focus.js';
+  import { dialogMustStop } from './browse-guard.js';
   import { dialogKeyAction } from './dialog-focus.js';
 
   // Contract: confirm dialog for bulk delete.
@@ -85,7 +86,9 @@
   }
 
   function onKey(event: KeyboardEvent): void {
-    if (BLOCKED.has(event.key)) {
+    const stopped =
+      BLOCKED.has(event.key) || dialogMustStop(event.key, event.ctrlKey, event.metaKey);
+    if (stopped) {
       event.preventDefault();
       event.stopPropagation();
       return;
@@ -114,7 +117,7 @@
 </script>
 
 <div
-  class="tui-modal app-dialog"
+  class="tui-modal app-dialog browse-delete"
   role="dialog"
   aria-modal="true"
   aria-labelledby="browse-delete-title"

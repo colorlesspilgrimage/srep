@@ -81,6 +81,12 @@ describe('browse paths', () => {
     expect(browseSearchPath('a'.repeat(501))).toBeNull();
     expect(browseSearchPath('a\u0000')).toBeNull();
     expect(browseSearchPath('')).toBe('/api/browse?q=');
+    expect(browseSearchPath('tag:a', 'javascript:alert(1)')).toBeNull();
+    expect(browseSearchPath('tag:a', '../notes')).toBeNull();
+    const withCursor = browseSearchPath('tag:a', CARD_A);
+    expect(withCursor).toContain('cursor=');
+    expect(withCursor).not.toContain('javascript');
+    expect(new URLSearchParams(withCursor?.split('?')[1]).get('cursor')).toBe(CARD_A);
   });
 
   it('encodes a note id and rejects a bad id', () => {
@@ -102,6 +108,20 @@ describe('browse rows', () => {
     expect(parseBrowsePage(null)).toBeNull();
     expect(parseBrowsePage({ rows: [raw({ lapses: 1.5 })] })).toBeNull();
     expect(parseBrowsePage({ rows: [raw({ deckId: '' })] })?.[0]?.deckId).toBe('');
+    const rtl = 'א\u202e<script>alert(1)</script>';
+    const shown = parseBrowsePage({
+      rows: [raw({ frontText: rtl, deckPath: rtl, tags: [rtl] })],
+      nextCursor: 'javascript:alert(1)',
+    });
+    expect(shown?.[0]?.frontText).toBe(rtl);
+    expect(shown?.[0]?.deckPath).toBe(rtl);
+    expect(shown?.[0]?.tags).toBe(rtl);
+    expect(JSON.stringify(shown)).not.toContain('nextCursor');
+    const huge = 'x'.repeat(501);
+    expect(parseBrowsePage({ rows: [raw({ frontText: huge })] })?.[0]?.frontText).toHaveLength(500);
+    expect(
+      parseBrowsePage({ rows: [raw({ tags: Array.from({ length: 101 }, () => 'ok') })] }),
+    ).toBeNull();
   });
 
   it('keeps the new card when the old card leaves the page', () => {
@@ -188,7 +208,9 @@ describe('browse writes', () => {
   it('counts unique notes and toggles one card', () => {
     const rows = [row(), row({ cardId: CARD_B, noteId: NOTE_A })];
     expect(selectedNoteIds(rows, [CARD_A, CARD_B])).toEqual([NOTE_A]);
-    expect(selectedCardIds(rows, [CARD_B])).toEqual([CARD_B]);
+    expect(selectedCardIds(rows, [CARD_B, '123e4567-e89b-42d3-a456-000000000099'])).toEqual([
+      CARD_B,
+    ]);
     expect(pageCardIds(rows)).toEqual([CARD_A, CARD_B]);
     expect(toggleCard([CARD_A], CARD_B)).toEqual([CARD_A, CARD_B]);
     expect(toggleCard([CARD_A], CARD_A)).toEqual([]);

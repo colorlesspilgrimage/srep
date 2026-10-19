@@ -33,6 +33,8 @@ export type BrowseSnap = {
   busy: boolean;
   ready: boolean;
   paletteOpen: boolean;
+  pendingNotes: readonly string[];
+  searching: boolean;
 };
 
 type Patch = {
@@ -41,6 +43,7 @@ type Patch = {
   active?: number;
   message?: string;
   modalOpen?: boolean;
+  pendingNotes?: string[];
 };
 
 type Client = ReturnType<typeof createBrowseClient>;
@@ -53,7 +56,7 @@ export type HandlerIo = {
   grid: () => HTMLElement | null;
   client: Client;
   runBulk: (task: () => Promise<void>) => void;
-  finishWrite: (result: ApiResult<unknown>) => Promise<void>;
+  finishWrite: (result: ApiResult<unknown>, query: string) => Promise<void>;
   onSearch: () => void;
 };
 
@@ -99,10 +102,24 @@ function onQueryKey(io: HandlerIo, event: KeyboardEvent): void {
   }
 }
 
+function writeBlocked(snap: BrowseSnap): boolean {
+  return snap.modalOpen || snap.busy || snap.searching;
+}
+
 function onGridKey(io: HandlerIo, event: KeyboardEvent): void {
   const snap = io.snap();
   const plan = gridKeyPlan(browseKeyAction(io.keyInput('grid', event)), snap.rows, snap.active);
   if (plan.type === 'none') {
+    return;
+  }
+  if (
+    snap.busy &&
+    (plan.type === 'toggle' ||
+      plan.type === 'open' ||
+      plan.type === 'clear' ||
+      plan.type === 'page')
+  ) {
+    event.preventDefault();
     return;
   }
   event.preventDefault();
@@ -135,71 +152,75 @@ function onGridKey(io: HandlerIo, event: KeyboardEvent): void {
 
 function onMove(io: HandlerIo): void {
   const snap = io.snap();
-  if (snap.modalOpen) {
+  if (writeBlocked(snap)) {
     return;
   }
-  const ids = selectedCardIds(snap.rows, snap.selected);
+  const ids = [...selectedCardIds(snap.rows, snap.selected)];
   const deckId = snap.decks[snap.deckIndex]?.id;
+  const query = snap.query;
   if (deckId === undefined || !moveAllowed(ids.length)) {
     return;
   }
   io.runBulk(async () => {
-    await io.finishWrite(await io.client.move(ids, deckId));
+    await io.finishWrite(await io.client.move(ids, deckId), query);
   });
 }
 
 function onTag(io: HandlerIo, mode: 'add' | 'remove'): void {
   const snap = io.snap();
-  if (snap.modalOpen) {
+  if (writeBlocked(snap)) {
     return;
   }
+  const query = snap.query;
   const body = tagBody(selectedNoteIds(snap.rows, snap.selected), snap.tagText, mode);
   if (body === null) {
     return;
   }
   io.runBulk(async () => {
-    await io.finishWrite(await io.client.setTags(body));
+    await io.finishWrite(await io.client.setTags(body), query);
   });
 }
 
 function onSuspend(io: HandlerIo): void {
   const snap = io.snap();
-  if (snap.modalOpen) {
+  if (writeBlocked(snap)) {
     return;
   }
-  const ids = selectedCardIds(snap.rows, snap.selected);
+  const ids = [...selectedCardIds(snap.rows, snap.selected)];
+  const query = snap.query;
   if (!moveAllowed(ids.length)) {
     return;
   }
   io.runBulk(async () => {
-    await io.finishWrite(await io.client.suspend(ids));
+    await io.finishWrite(await io.client.suspend(ids), query);
   });
 }
 
 function onDelete(io: HandlerIo): void {
   const snap = io.snap();
-  const count = selectedNoteIds(snap.rows, snap.selected).length;
-  if (snap.busy || !noteWriteAllowed(count)) {
+  const ids = selectedNoteIds(snap.rows, snap.selected);
+  if (writeBlocked(snap) || !noteWriteAllowed(ids.length)) {
     return;
   }
-  io.patch({ message: '', modalOpen: true });
+  io.patch({ message: '', modalOpen: true, pendingNotes: [...ids] });
 }
 
 function onCloseDelete(io: HandlerIo): void {
   if (io.snap().busy) {
     return;
   }
-  io.patch({ modalOpen: false });
+  io.patch({ modalOpen: false, pendingNotes: [] });
 }
 
 function onConfirmDelete(io: HandlerIo): void {
   const snap = io.snap();
-  const ids = selectedNoteIds(snap.rows, snap.selected);
-  if (!noteWriteAllowed(ids.length)) {
+  const ids = [...snap.pendingNotes];
+  const query = snap.query;
+  if (snap.busy || snap.searching || !noteWriteAllowed(ids.length)) {
     return;
   }
   io.runBulk(async () => {
-    await io.finishWrite(await io.client.trash(ids));
+    await io.finishWrite(await io.client.trash(ids), query);
   });
 }
 
@@ -208,11 +229,18 @@ export function createBrowseHandlers(io: HandlerIo) {
     onQueryKey: (event: KeyboardEvent) => onQueryKey(io, event),
     onGridKey: (event: KeyboardEvent) => onGridKey(io, event),
     onPick: (index: number) => {
+      if (io.snap().modalOpen) {
+        return;
+      }
       io.patch({ active: index });
       io.grid()?.focus();
     },
     onCheck: (cardId: string, index: number) => {
-      io.patch({ active: index, selected: toggleCard(io.snap().selected, cardId) });
+      const snap = io.snap();
+      if (snap.busy || snap.modalOpen) {
+        return;
+      }
+      io.patch({ active: index, selected: toggleCard(snap.selected, cardId) });
     },
     onMove: () => onMove(io),
     onAdd: () => onTag(io, 'add'),

@@ -11,6 +11,7 @@
     onKeydown: (event: KeyboardEvent) => void;
     onPick: (index: number) => void;
     onCheck: (cardId: string, index: number) => void;
+    locked?: boolean;
     grid?: HTMLElement | null;
   };
 
@@ -21,11 +22,12 @@
     onKeydown,
     onPick,
     onCheck,
+    locked = false,
     grid = $bindable(null),
   }: Props = $props();
 
   function onRowKey(event: KeyboardEvent, cardId: string, index: number): void {
-    if (event.key !== 'Enter' && event.key !== ' ') {
+    if (locked || (event.key !== 'Enter' && event.key !== ' ')) {
       return;
     }
     event.preventDefault();
@@ -73,6 +75,7 @@
           <input
             type="checkbox"
             checked={selected.includes(row.cardId)}
+            disabled={locked}
             onchange={() => onCheck(row.cardId, index)}
           />
           Select {row.frontText}

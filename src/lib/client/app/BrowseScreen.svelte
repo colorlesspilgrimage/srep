@@ -8,6 +8,7 @@
   import { createBrowseClient } from './browse-client.js';
   import { createBrowseHandlers } from './browse-handlers.js';
   import { type BrowseKeyInput, type BrowseRegion } from './browse-keys.js';
+  import { writeFollowUp } from './browse-guard.js';
   import {
     BAD_QUERY_TEXT,
     EMPTY_TEXT,
@@ -23,7 +24,6 @@
     selectedCardIds,
     selectedNoteIds,
     tagIsSendable,
-    writeMessage,
     type BrowseDeck,
     type BrowseView,
   } from './browse-model.js';
@@ -55,6 +55,8 @@
   let loaded = $state(false);
   let busy = $state(false);
   let ready = $state(false);
+  let pendingNotes = $state<string[]>([]);
+  let searchPending = $state(0);
   let serial = 0;
   let alive = true;
   let searchField = $state<HTMLInputElement | null>(null);
@@ -67,6 +69,8 @@
   const suspendOn = $derived(moveAllowed(cardCount));
   const deleteOn = $derived(noteWriteAllowed(noteCount));
   const tagOn = $derived(noteWriteAllowed(noteCount) && tagIsSendable(tagText));
+  const controlsLocked = $derived(busy || modalOpen);
+  const bulkLocked = $derived(busy || searchPending > 0);
 
   function keyInput(region: BrowseRegion, event: KeyboardEvent): BrowseKeyInput {
     return {
@@ -117,21 +121,28 @@
   async function loadSearch(q: string): Promise<void> {
     serial += 1;
     const mine = serial;
-    const result = await client.search(q);
-    if (!alive) {
-      return;
+    searchPending += 1;
+    try {
+      const result = await client.search(q);
+      if (!alive) {
+        return;
+      }
+      const parsed = result.ok ? parseBrowsePage(result.body) : null;
+      showSearch(
+        searchEffect({
+          alive,
+          mine,
+          serial,
+          ok: result.ok,
+          error: result.ok ? '' : result.error,
+          rows: parsed,
+        }),
+      );
+    } finally {
+      if (alive) {
+        searchPending -= 1;
+      }
     }
-    const parsed = result.ok ? parseBrowsePage(result.body) : null;
-    showSearch(
-      searchEffect({
-        alive,
-        mine,
-        serial,
-        ok: result.ok,
-        error: result.ok ? '' : result.error,
-        rows: parsed,
-      }),
-    );
   }
 
   async function loadDecks(): Promise<void> {
@@ -149,19 +160,22 @@
     }
   }
 
-  async function finishWrite(result: ApiResult<unknown>): Promise<void> {
+  async function finishWrite(result: ApiResult<unknown>, reloadQuery: string): Promise<void> {
     if (!alive) {
       return;
     }
-    if (!result.ok) {
-      message = writeMessage(result.error);
+    const follow = writeFollowUp(result.ok, result.ok ? '' : result.error, reloadQuery);
+    if (follow.type === 'stay') {
+      message = follow.message;
       badQuery = false;
       return;
     }
     tagText = '';
     selected = [];
+    pendingNotes = [];
     modalOpen = false;
-    await loadSearch(query);
+    query = follow.query;
+    await loadSearch(follow.query);
   }
 
   function runBulk(task: () => Promise<void>): void {
@@ -176,7 +190,7 @@
   }
 
   function onSearch(): void {
-    if (!ready || busy) {
+    if (!ready || busy || modalOpen) {
       return;
     }
     void loadSearch(query);
@@ -195,6 +209,8 @@
       busy,
       ready,
       paletteOpen,
+      pendingNotes,
+      searching: searchPending > 0,
     }),
     patch: (value) => {
       if (value.query !== undefined) {
@@ -211,6 +227,9 @@
       }
       if (value.modalOpen !== undefined) {
         modalOpen = value.modalOpen;
+      }
+      if (value.pendingNotes !== undefined) {
+        pendingNotes = value.pendingNotes;
       }
     },
     keyInput,
@@ -253,7 +272,7 @@
   });
 </script>
 
-<main class="app-screen browse-screen">
+<main class="app-screen browse-screen" data-modal={modalOpen ? 'open' : 'closed'}>
   <h1>Browse</h1>
   {#if message !== ''}
     <p role="alert">{message}</p>
@@ -265,9 +284,10 @@
       type="text"
       bind:value={query}
       bind:this={searchField}
+      disabled={controlsLocked}
       onkeydown={handlers.onQueryKey}
     />
-    <button type="button" disabled={!ready || busy} onclick={onSearch}>Search</button>
+    <button type="button" disabled={!ready || controlsLocked} onclick={onSearch}>Search</button>
   </div>
   {#if badQuery}
     <p role="alert">{BAD_QUERY_TEXT}</p>
@@ -279,6 +299,7 @@
     {active}
     {selected}
     bind:grid
+    locked={controlsLocked}
     onKeydown={handlers.onGridKey}
     onPick={handlers.onPick}
     onCheck={handlers.onCheck}
@@ -287,7 +308,7 @@
     {decks}
     {deckIndex}
     {tagText}
-    {busy}
+    busy={bulkLocked}
     {moveOn}
     {suspendOn}
     {tagOn}

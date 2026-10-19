@@ -67,6 +67,8 @@ function baseSnap(rows: BrowseView[]): BrowseSnap {
     busy: false,
     ready: true,
     paletteOpen: false,
+    pendingNotes: [],
+    searching: false,
   };
 }
 
@@ -227,6 +229,7 @@ describe('browse handlers', () => {
     handlers.onAdd();
     handlers.onRemove();
     handlers.onSuspend();
+    handlers.onDelete();
     handlers.onConfirmDelete();
     await Promise.all(tasks.map((task) => task()));
     expect(io.client.setTags).toHaveBeenCalledWith({
@@ -241,7 +244,13 @@ describe('browse handlers', () => {
     });
     expect(io.client.suspend).toHaveBeenCalledWith([CARD_A]);
     expect(io.client.trash).toHaveBeenCalledWith([NOTE_A]);
-    setSnap({ ...snap(), tagText: 'bad tag', selected: [] });
+    setSnap({
+      ...snap(),
+      tagText: 'bad tag',
+      selected: [],
+      pendingNotes: [],
+      modalOpen: false,
+    });
     const count = tasks.length;
     handlers.onAdd();
     handlers.onMove();
@@ -253,14 +262,62 @@ describe('browse handlers', () => {
   it('opens and closes the delete dialog', () => {
     const { handlers, patches, setSnap, snap } = harness();
     handlers.onDelete();
-    expect(patches.at(-1)).toEqual({ message: '', modalOpen: true });
+    expect(patches.at(-1)).toEqual({ message: '', modalOpen: true, pendingNotes: [NOTE_A] });
     handlers.onCloseDelete();
-    expect(patches.at(-1)).toEqual({ modalOpen: false });
+    expect(patches.at(-1)).toEqual({ modalOpen: false, pendingNotes: [] });
     setSnap({ ...snap(), busy: true, selected: [] });
     const count = patches.length;
     handlers.onDelete();
     handlers.onCloseDelete();
     expect(patches).toHaveLength(count);
+  });
+
+  it('confirms the notes selected when the dialog opened', async () => {
+    const { handlers, io, tasks, setSnap, snap } = harness();
+    handlers.onDelete();
+    setSnap({ ...snap(), selected: [CARD_B] });
+    handlers.onConfirmDelete();
+    expect(tasks).toHaveLength(1);
+    await tasks[0]?.();
+    expect(io.client.trash).toHaveBeenCalledWith([NOTE_A]);
+  });
+
+  it('does not change the selection while the dialog is open or a write is busy', () => {
+    const { handlers, setSnap, snap } = harness();
+    handlers.onDelete();
+    handlers.onCheck(CARD_B, 1);
+    expect(snap().selected).toEqual([CARD_A]);
+    handlers.onCloseDelete();
+    setSnap({ ...snap(), busy: true });
+    handlers.onCheck(CARD_B, 1);
+    handlers.onGridKey(keyEvent(' '));
+    handlers.onGridKey(keyEvent('Enter'));
+    handlers.onGridKey(keyEvent('a', { ctrlKey: true }));
+    expect(snap().selected).toEqual([CARD_A]);
+    expect(goto).not.toHaveBeenCalled();
+  });
+
+  it('reloads the query captured at the write, not a later edit', async () => {
+    const { handlers, io, tasks, setSnap, snap } = harness();
+    handlers.onSuspend();
+    setSnap({ ...snap(), query: 'deck:French', selected: [CARD_B] });
+    await tasks[0]?.();
+    expect(io.client.suspend).toHaveBeenCalledWith([CARD_A]);
+    expect(io.finishWrite).toHaveBeenCalledWith(expect.anything(), 'tag:animals');
+  });
+
+  it('does not write while a search is in flight or for an off-page id', async () => {
+    const { handlers, io, tasks, setSnap, snap } = harness();
+    const off = '123e4567-e89b-42d3-a456-000000000099';
+    setSnap({ ...snap(), searching: true });
+    handlers.onMove();
+    handlers.onDelete();
+    expect(tasks).toHaveLength(0);
+    expect(snap().modalOpen).toBe(false);
+    setSnap({ ...snap(), searching: false, selected: [CARD_A, off] });
+    handlers.onSuspend();
+    await tasks[0]?.();
+    expect(io.client.suspend).toHaveBeenCalledWith([CARD_A]);
   });
 
   it('skips bulk focus when the bar is missing', () => {

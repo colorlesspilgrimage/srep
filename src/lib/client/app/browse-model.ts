@@ -1,5 +1,6 @@
 // Contract: pure browse-screen values. No I/O.
 // A search path is built with URLSearchParams. The raw query is not concatenated.
+// A cursor is set only after the UUID check. A bad cursor returns null.
 // A note id enters a path only after the UUID check, then encodeURIComponent.
 // Row text is plain text. A bad row is dropped. A bad page is null.
 // A late search serial is ignored. The newest serial wins.
@@ -14,6 +15,7 @@ export const MAX_TAG_NOTES = 100;
 export const MAX_QUERY_CHARS = 500;
 export const MAX_ROWS = 100;
 export const MAX_CELL = 500;
+const MAX_TAGS_ON_ROW = 100;
 
 export const BAD_QUERY_TEXT = 'The search is not valid.';
 export const EMPTY_TEXT = 'No cards.';
@@ -87,7 +89,7 @@ function lapseCount(value: unknown): number | null {
 }
 
 function tagText(value: unknown): string | null {
-  if (!Array.isArray(value)) {
+  if (!Array.isArray(value) || value.length > MAX_TAGS_ON_ROW) {
     return null;
   }
   const tags: string[] = [];
@@ -103,12 +105,18 @@ function tagText(value: unknown): string | null {
   return tags.join(' ');
 }
 
-export function browseSearchPath(q: string): string | null {
+export function browseSearchPath(q: string, cursor: string | null = null): string | null {
   if (q.length > MAX_QUERY_CHARS || q.includes('\u0000')) {
+    return null;
+  }
+  if (cursor !== null && !isDeckUuid(cursor)) {
     return null;
   }
   const params = new URLSearchParams();
   params.set('q', q);
+  if (cursor !== null) {
+    params.set('cursor', cursor);
+  }
   return `/api/browse?${params.toString()}`;
 }
 
