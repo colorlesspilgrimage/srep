@@ -3,10 +3,7 @@ import Database from 'better-sqlite3';
 import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
 import { csrf, removeRootDecks } from './support/study-screen';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
-
-// Contract: browse keys, search, and bulk writes. IP .44; .43 is note-editor-race.
-
-const CLIENT_IP = '198.51.100.44';
+const CLIENT_IP = '198.51.100.44'; // .43 is used by note-editor-race.
 const BASIC_ID = '00000000-0000-4000-8000-000000000011';
 
 let context: BrowserContext;
@@ -183,12 +180,15 @@ test.describe.serial('browse screen', () => {
   });
 
   test('grid keys move three rows and do not delete', async () => {
-    await focusGrid();
+    await openBrowse();
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
+    const third = (await dataRows().nth(2).innerText()).trim();
+    await expect(selectedRow()).toHaveText(third);
     await page.keyboard.press('Home');
     const first = (await selectedRow().innerText()).trim();
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('j');
-    const third = (await dataRows().nth(2).innerText()).trim();
     await expect(selectedRow()).toHaveText(third);
     await page.keyboard.press('ArrowDown');
     await expect(selectedRow()).toHaveText(third);

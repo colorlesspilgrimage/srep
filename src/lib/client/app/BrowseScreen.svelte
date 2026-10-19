@@ -31,6 +31,8 @@
   // Contract: the browse page. Search uses URLSearchParams inside the client.
   // One bulk write runs at a time. A second call does not send another request.
   // A later search wins. A failed write stays on screen so the user can retry.
+  // A fresh load focuses the grid so ArrowDown moves a row.
+  // A search field or a dialog keeps its own focus.
   // Front text is a text node. It is not HTML.
 
   type Props = {
@@ -57,6 +59,7 @@
   let alive = true;
   let searchField = $state<HTMLInputElement | null>(null);
   let grid = $state<HTMLElement | null>(null);
+  let gaveFocus = false;
 
   const cardCount = $derived(selectedCardIds(rows, selected).length);
   const noteCount = $derived(selectedNoteIds(rows, selected).length);
@@ -217,6 +220,26 @@
     runBulk,
     finishWrite,
     onSearch,
+  });
+
+  function focusGridOnLoad(): void {
+    const node = grid;
+    if (gaveFocus || node === null) {
+      return;
+    }
+    gaveFocus = true;
+    const active = document.activeElement;
+    if (active === node) {
+      return;
+    }
+    if (active instanceof HTMLElement && active !== document.body) {
+      return;
+    }
+    node.focus();
+  }
+
+  $effect(() => {
+    focusGridOnLoad();
   });
 
   onMount(() => {
