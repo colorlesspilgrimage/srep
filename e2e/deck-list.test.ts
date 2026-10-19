@@ -286,6 +286,7 @@ test.describe.serial('deck list', () => {
     expect(fit).toBe(true);
     const tab = page.getByRole('tab', { name: 'Decks' });
     const studyTab = page.getByRole('tab', { name: 'Study' });
+    const browseTab = page.getByRole('tab', { name: 'Browse' });
     await expect(studyTab).toBeVisible();
     await tab.click();
     await page.keyboard.press('ArrowRight');
@@ -293,7 +294,7 @@ test.describe.serial('deck list', () => {
     await page.keyboard.press('ArrowLeft');
     await expect(tab).toBeFocused();
     await page.keyboard.press('End');
-    await expect(studyTab).toBeFocused();
+    await expect(browseTab).toBeFocused();
     await page.keyboard.press('Home');
     await expect(tab).toBeFocused();
     for (const key of ['ArrowDown', 'j', 'k', '1', '2', '3', '4']) {
