@@ -150,20 +150,31 @@ function onGridKey(io: HandlerIo, event: KeyboardEvent): void {
   io.grid()?.blur();
 }
 
-function onMove(io: HandlerIo): void {
-  const snap = io.snap();
+function runCardBulk(
+  io: HandlerIo,
+  snap: BrowseSnap,
+  send: (ids: string[]) => Promise<ApiResult<unknown>>,
+): void {
   if (writeBlocked(snap)) {
     return;
   }
   const ids = [...selectedCardIds(snap.rows, snap.selected)];
-  const deckId = snap.decks[snap.deckIndex]?.id;
   const query = snap.query;
-  if (deckId === undefined || !moveAllowed(ids.length)) {
+  if (!moveAllowed(ids.length)) {
     return;
   }
   io.runBulk(async () => {
-    await io.finishWrite(await io.client.move(ids, deckId), query);
+    await io.finishWrite(await send(ids), query);
   });
+}
+
+function onMove(io: HandlerIo): void {
+  const snap = io.snap();
+  const deckId = snap.decks[snap.deckIndex]?.id;
+  if (deckId === undefined) {
+    return;
+  }
+  runCardBulk(io, snap, (ids) => io.client.move(ids, deckId));
 }
 
 function onTag(io: HandlerIo, mode: 'add' | 'remove'): void {
@@ -182,18 +193,7 @@ function onTag(io: HandlerIo, mode: 'add' | 'remove'): void {
 }
 
 function onSuspend(io: HandlerIo): void {
-  const snap = io.snap();
-  if (writeBlocked(snap)) {
-    return;
-  }
-  const ids = [...selectedCardIds(snap.rows, snap.selected)];
-  const query = snap.query;
-  if (!moveAllowed(ids.length)) {
-    return;
-  }
-  io.runBulk(async () => {
-    await io.finishWrite(await io.client.suspend(ids), query);
-  });
+  runCardBulk(io, io.snap(), (ids) => io.client.suspend(ids));
 }
 
 function onDelete(io: HandlerIo): void {

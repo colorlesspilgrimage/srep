@@ -269,11 +269,15 @@ export function toggleCard(selected: readonly string[], cardId: string): string[
 export function pageCardIds(rows: readonly { cardId: string }[]): string[] {
   const ids: string[] = [];
   for (const row of rows) {
-    if (isDeckUuid(row.cardId) && !ids.includes(row.cardId)) {
-      ids.push(row.cardId);
-    }
+    pushUniqueUuid(ids, row.cardId);
   }
   return ids;
+}
+
+function pushUniqueUuid(ids: string[], id: string): void {
+  if (isDeckUuid(id) && !ids.includes(id)) {
+    ids.push(id);
+  }
 }
 
 function selectedIds(
@@ -283,12 +287,10 @@ function selectedIds(
 ): string[] {
   const ids: string[] = [];
   for (const row of rows) {
-    if (!selected.includes(row.cardId) || !isDeckUuid(row[key])) {
+    if (!selected.includes(row.cardId)) {
       continue;
     }
-    if (!ids.includes(row[key])) {
-      ids.push(row[key]);
-    }
+    pushUniqueUuid(ids, row[key]);
   }
   return ids;
 }
