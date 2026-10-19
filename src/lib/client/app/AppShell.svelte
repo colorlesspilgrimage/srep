@@ -93,12 +93,19 @@
 
   function runCommand(name: string): void {
     const target = commandTarget(name);
+    if (target === null) {
+      return;
+    }
     if (target === '/') {
       void goto(resolve('/'));
       return;
     }
     if (target === '/study') {
       void goto(resolve('/study'));
+      return;
+    }
+    if (target === '/browse') {
+      void goto(resolve('/browse'));
       return;
     }
     if (target === '/gallery') {
@@ -110,22 +117,26 @@
     }
   }
 
-  function navTarget(href: '/' | '/study'): string {
+  function navTarget(href: '/' | '/study' | '/browse'): string {
     if (href === '/study') {
       return resolve('/study');
+    }
+    if (href === '/browse') {
+      return resolve('/browse');
     }
     return resolve('/');
   }
 
-  function openNav(href: '/' | '/study'): void {
+  function openNav(href: '/' | '/study' | '/browse'): void {
+    if (window.location.pathname === navTarget(href)) {
+      return;
+    }
     if (href === '/study') {
-      if (window.location.pathname === resolve('/study')) {
-        return;
-      }
       void goto(resolve('/study'));
       return;
     }
-    if (window.location.pathname === resolve('/')) {
+    if (href === '/browse') {
+      void goto(resolve('/browse'));
       return;
     }
     void goto(resolve('/'));

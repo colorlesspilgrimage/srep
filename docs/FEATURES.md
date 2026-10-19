@@ -297,6 +297,23 @@ A signed-in page edits note fields, tags, and the deck. A live preview shows the
   - Code: `src/lib/server/domain/note-preview.ts`, `src/routes/api/notes/preview/+server.ts`, `src/lib/client/app/NoteEditor.svelte`.
   - Tests: `src/lib/server/domain/note-preview.test.ts`, `src/routes/api/notes/preview/server.test.ts`, `e2e/note-editor.test.ts`.
 
+## Browse screen (M5 slice 13)
+
+A signed-in page searches cards and runs bulk move, tag, suspend, and delete.
+
+- Entry point: browser path `/browse` after sign-in.
+- Use:
+  1. Sign in and add three notes (see "Note editor (M5 slice 11)").
+  2. Open `/browse`.
+  3. Search `tag:animals`.
+  4. Select a row. Press `Add tag` or `Confirm delete` as needed.
+- Check:
+  - `npx playwright test e2e/browse-screen.test.ts` exits 0.
+  - `npx vitest run src/lib/client/app/browse-keys.test.ts` exits 0.
+- Code and tests:
+  - Code: `src/lib/client/app/BrowseScreen.svelte`, `src/routes/browse/+page.svelte`.
+  - Tests: `src/lib/client/app/browse-keys.test.ts`, `e2e/browse-screen.test.ts`.
+
 ## Browse query (M5 slice 12)
 
 A signed-in client can search cards and can tag or trash notes in one transaction.
