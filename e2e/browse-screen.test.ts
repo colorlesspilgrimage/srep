@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import Database from 'better-sqlite3';
+import { setCardLapses } from './support/card-lapses';
 import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
 import { csrf, removeRootDecks } from './support/study-screen';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
@@ -59,22 +59,9 @@ async function postNote(deckId: string, front: string, tags: string[]): Promise<
   }
   if (front === 'perro') {
     perroCard = cardId;
-    setLapses(cardId, 4);
+    await setCardLapses(cardId, 4);
   }
   return body.note.id;
-}
-
-function setLapses(cardId: string, lapses: number): void {
-  const db = new Database('data/e2e.db');
-  try {
-    db.pragma('busy_timeout = 5000');
-    const info = db.prepare('update card set lapses = ? where id = ?').run(lapses, cardId);
-    if (info.changes !== 1) {
-      throw new Error('lapse update missed');
-    }
-  } finally {
-    db.close();
-  }
 }
 
 async function createDeck(name: string): Promise<string> {
@@ -142,7 +129,7 @@ test.describe.serial('browse screen', () => {
 
   test.afterAll(async () => {
     if (perroCard !== '') {
-      setLapses(perroCard, 0);
+      await setCardLapses(perroCard, 0);
     }
     await context.close();
   });
