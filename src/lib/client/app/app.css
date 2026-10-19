@@ -130,6 +130,17 @@
   max-width: 100%;
 }
 
+.browse-grid [role='gridcell'] {
+  unicode-bidi: isolate;
+  overflow-wrap: anywhere;
+}
+
+.browse-screen[data-modal='open'] .browse-search,
+.browse-screen[data-modal='open'] .browse-grid,
+.browse-screen[data-modal='open'] .browse-bulk {
+  pointer-events: none;
+}
+
 .app-tree-row[data-level='2'] {
   padding-left: 1rem;
 }
@@ -182,6 +193,7 @@
 
   .browse-search button,
   .browse-bulk button,
+  .browse-delete button,
   .browse-row {
     min-height: 44px;
     min-width: 44px;

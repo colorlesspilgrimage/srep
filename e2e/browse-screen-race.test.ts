@@ -104,10 +104,12 @@ test.describe.serial('browse races', () => {
       await expect.poll(() => seen.posts).toBe(1);
       await expect(page.getByRole('button', { name: 'Move', exact: true })).toBeDisabled();
       await expect(page.getByRole('button', { name: 'Delete' })).toBeDisabled();
-      await page.getByRole('checkbox', { name: 'Select beta' }).check();
+      const beta = page.getByRole('checkbox', { name: 'Select beta' });
+      await expect(beta).toBeDisabled();
       await page.getByRole('button', { name: 'Suspend' }).click({ force: true });
       await page.getByRole('button', { name: 'Move', exact: true }).click({ force: true });
       await page.getByRole('button', { name: 'Delete' }).click({ force: true });
+      await expect(beta).not.toBeChecked();
       expect(seen.posts).toBe(1);
       expect(seen.moves).toBe(0);
       await expect(page.getByRole('dialog', { name: 'Delete selected notes' })).toBeHidden();
