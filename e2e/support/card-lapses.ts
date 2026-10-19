@@ -1,12 +1,16 @@
 // Sets card.lapses on the end-to-end database.
-// The URL is E2E_DATABASE_URL. When that variable is empty, the URL is sqlite:./data/e2e.db.
-// The statement binds the card id. The same call works for SQLite and Postgres.
+// The child process reads SREP_DATABASE_URL. This file sets it from E2E_DATABASE_URL.
+// When E2E_DATABASE_URL is empty, the URL is sqlite:./data/e2e.db.
+// The card id is a UUID. The lapse count is a whole number from 0 to 1000000.
 
-import { sql } from 'drizzle-orm';
-import { parseConfig } from '../../src/lib/server/config.js';
-import { createDb, type DbHandle } from '../../src/lib/server/db/client.js';
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
 
-function e2eDatabaseUrl(): string {
+const root = path.resolve(import.meta.dirname, '..', '..');
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_LAPSES = 1_000_000;
+
+function databaseUrl(): string {
   const raw = process.env.E2E_DATABASE_URL;
   if (raw !== undefined && raw.length > 0) {
     return raw;
@@ -14,26 +18,21 @@ function e2eDatabaseUrl(): string {
   return 'sqlite:./data/e2e.db';
 }
 
-async function updatedRowCount(handle: DbHandle, cardId: string, lapses: number): Promise<number> {
-  const query = sql`update card set lapses = ${lapses} where id = ${cardId} returning id`;
-  if (handle.dialect === 'sqlite') {
-    return handle.db.all<{ id: string }>(query).length;
+export function setCardLapses(cardId: string, lapses: number): void {
+  if (!UUID.test(cardId) || !Number.isInteger(lapses) || lapses < 0 || lapses > MAX_LAPSES) {
+    throw new Error('lapse update missed');
   }
-  const rows = await handle.db.execute<{ id: string }>(query);
-  return rows.length;
-}
-
-export async function setCardLapses(cardId: string, lapses: number): Promise<void> {
-  if (!Number.isInteger(lapses) || lapses < 0) {
-    throw new Error('lapses must be a whole number');
-  }
-  const handle = createDb(parseConfig({ SREP_DATABASE_URL: e2eDatabaseUrl() }));
-  try {
-    const count = await updatedRowCount(handle, cardId, lapses);
-    if (count !== 1) {
-      throw new Error('lapse update missed');
-    }
-  } finally {
-    await handle.close();
+  const result = spawnSync(
+    'npx',
+    ['tsx', 'e2e/support/set-card-lapses.ts', cardId, String(lapses)],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      env: { ...process.env, SREP_DATABASE_URL: databaseUrl() },
+    },
+  );
+  if (result.error !== undefined || result.status !== 0) {
+    const detail = result.stderr || result.error?.message || 'no status';
+    throw new Error(`lapse update missed: ${detail}`);
   }
 }
