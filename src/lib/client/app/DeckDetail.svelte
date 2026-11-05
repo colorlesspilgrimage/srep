@@ -76,30 +76,42 @@
   }
 </script>
 
-<div class="app-detail">
-  <label for="deck-name">Deck name</label>
-  <input
-    id="deck-name"
-    type="text"
-    maxlength="100"
-    autocomplete="off"
-    value={name}
-    disabled={locked}
-    bind:this={nameField}
-    oninput={onInput}
-    onkeydown={onNameKey}
-  />
-  <button type="button" disabled={locked || !canEdit} onclick={onCreateChild}>Create child</button>
-  <button type="button" disabled={locked} onclick={onCreateRoot}>Create root</button>
-  <button type="button" disabled={locked || !canEdit} onclick={onRename}>Rename</button>
-  <button type="button" disabled={locked || !canEdit} onclick={onDelete}>Delete</button>
+<section class="app-detail" aria-label="Deck actions">
+  <p class="tui-eyebrow">Selected deck</p>
+  {#if !canEdit}
+    <p class="app-lead">
+      Pick a deck in the tree, or create a root deck to start a library.
+    </p>
+  {/if}
+  <div class="app-detail-field">
+    <label for="deck-name">Deck name</label>
+    <input
+      id="deck-name"
+      type="text"
+      maxlength="100"
+      autocomplete="off"
+      value={name}
+      disabled={locked}
+      bind:this={nameField}
+      oninput={onInput}
+      onkeydown={onNameKey}
+    />
+  </div>
   <!-- resolve() has no query slot. The id is encoded after the UUID check. -->
   <!-- eslint-disable svelte/no-navigation-without-resolve -->
-  {#if studyHref !== null}
-    <a href={studyHref}>Study</a>
-  {/if}
-  {#if addHref !== null}
-    <a href={addHref}>Add note</a>
-  {/if}
+  <div class="app-detail-primary">
+    {#if studyHref !== null}
+      <a class="app-pill-link app-pill-link-strong" href={studyHref}>Study</a>
+    {/if}
+    {#if addHref !== null}
+      <a class="app-pill-link" href={addHref}>Add note</a>
+    {/if}
+  </div>
   <!-- eslint-enable svelte/no-navigation-without-resolve -->
-</div>
+  <div class="app-detail-secondary" role="group" aria-label="Deck edits">
+    <button type="button" disabled={locked} onclick={onCreateRoot}>Create root</button>
+    <button type="button" disabled={locked || !canEdit} onclick={onCreateChild}>Create child</button>
+    <button type="button" disabled={locked || !canEdit} onclick={onRename}>Rename</button>
+    <button type="button" disabled={locked || !canEdit} onclick={onDelete}>Delete</button>
+  </div>
+</section>

@@ -273,7 +273,11 @@
 </script>
 
 <main class="app-screen browse-screen" data-modal={modalOpen ? 'open' : 'closed'}>
-  <h1>Browse</h1>
+  <header class="app-page-header">
+    <p class="tui-eyebrow">Library</p>
+    <h1>Browse</h1>
+    <p class="app-lead">Search notes and cards, then tag, move, or trash in bulk.</p>
+  </header>
   {#if message !== ''}
     <p role="alert">{message}</p>
   {/if}

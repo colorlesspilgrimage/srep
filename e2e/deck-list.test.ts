@@ -71,7 +71,7 @@ async function openHome(): Promise<void> {
   const response = await page.goto('/');
   await page.waitForFunction(() => document.body.classList.contains('tui-page'));
   expect(response?.headers()['cache-control']).toBe('no-store');
-  await expect(page.getByRole('heading', { name: 'srep', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Decks', level: 1 })).toBeVisible();
   await expect(page.locator('.tui-theme-xai-dark')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Create root' })).toBeEnabled();
 }

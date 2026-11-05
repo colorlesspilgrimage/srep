@@ -190,6 +190,25 @@
 </script>
 
 <div class="tui-root app-root {themeClass(themeId)} {displayRootClass(display)}">
+  <header class="app-topbar">
+    <a class="app-brand" href={resolve('/')}>srep</a>
+    <nav class="app-nav tui-only-desktop" aria-label="Primary">
+      {#each NAV_ITEMS as item (item.id)}
+        <button
+          type="button"
+          class="app-nav-item"
+          aria-current={pathNow === navTarget(item.href) ? 'page' : undefined}
+          onclick={() => openNav(item.href)}
+        >
+          {item.label}
+        </button>
+      {/each}
+    </nav>
+    <div class="app-topbar-tools tui-only-desktop">
+      <a href={resolve('/gallery')}>Gallery</a>
+      <a href={resolve('/security')}>Security</a>
+    </div>
+  </header>
   <div class="tui-tabbar" role="tablist" aria-label="App sections">
     {#each NAV_ITEMS as item (item.id)}
       <button

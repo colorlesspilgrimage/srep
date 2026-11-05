@@ -264,7 +264,11 @@
 </script>
 
 <main class="app-screen">
-  <h1>Settings</h1>
+  <header class="app-page-header">
+    <p class="tui-eyebrow">Preferences</p>
+    <h1>Settings</h1>
+    <p class="app-lead">Theme, keys, study day, presets, security, and data for this instance.</p>
+  </header>
   <div class="tui-layout">
     <div class="tui-side">
       <List

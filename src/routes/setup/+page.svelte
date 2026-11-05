@@ -30,8 +30,11 @@
 </script>
 
 <svelte:head><title>srep setup</title></svelte:head>
-<main>
+<main class="auth-panel">
+  <p class="auth-brand">srep</p>
+  <p class="auth-eyebrow">First run</p>
   <h1>Set up srep</h1>
+  <p class="auth-lead">Enroll the first credential with the setup token from the server log.</p>
   {#if recoveryCodes.length === 0}
     <form onsubmit={create}>
       <label class="field">
@@ -42,23 +45,23 @@
         Nickname
         <input type="text" autocomplete="off" required maxlength="64" bind:value={nickname} />
       </label>
-      <fieldset>
+      <fieldset class="auth-fieldset">
         <legend>Credential type</legend>
         <label><input type="radio" name="kind" value="passkey" bind:group={kind} /> Passkey</label>
         <label
           ><input type="radio" name="kind" value="security_key" bind:group={kind} /> Security key</label
         >
       </fieldset>
-      <p>
-        <button type="submit" disabled={busy}>Create</button>
+      <p class="auth-actions">
+        <button type="submit" class="auth-primary" disabled={busy}>Create</button>
       </p>
     </form>
     {#if error !== ''}<p class="error" role="alert">{error}</p>{/if}
   {:else}
     <p role="status">Save these codes now. They are shown once.</p>
-    <pre aria-label="Recovery codes">{recoveryCodes.join('\n')}</pre>
-    <p>Add a second credential on the security page, so you cannot lose access.</p>
-    <button type="button" onclick={() => goto(resolve('/security'), { invalidateAll: true })}>
+    <pre class="auth-codes" aria-label="Recovery codes">{recoveryCodes.join('\n')}</pre>
+    <p class="auth-lead">Add a second credential on the security page, so you cannot lose access.</p>
+    <button type="button" class="auth-primary" onclick={() => goto(resolve('/security'), { invalidateAll: true })}>
       Continue
     </button>
   {/if}

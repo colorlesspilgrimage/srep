@@ -40,6 +40,69 @@
     padding: 3rem 1.25rem;
     min-height: 100dvh;
     box-sizing: border-box;
+    background-image: radial-gradient(
+      120% 80% at 50% -10%,
+      rgba(255, 255, 255, 0.06),
+      transparent 55%
+    );
+  }
+
+  .auth-shell:not(:has(.tui-root)) :global(.auth-brand) {
+    font-family: 'Inter Display', Inter, system-ui, sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: -0.04em;
+    margin: 0 0 1.75rem;
+  }
+
+  .auth-shell:not(:has(.tui-root)) :global(.auth-eyebrow) {
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #a3a3a3;
+    margin: 0 0 0.65rem;
+  }
+
+  .auth-shell:not(:has(.tui-root)) :global(.auth-lead) {
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0 0 1.5rem;
+    line-height: 1.55;
+  }
+
+  .auth-shell:not(:has(.tui-root)) :global(.auth-actions) {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    margin: 0 0 1.25rem;
+  }
+
+  .auth-shell:not(:has(.tui-root)) :global(.auth-primary) {
+    background: #ffffff !important;
+    color: #0a0a0a !important;
+    border-color: #ffffff !important;
+  }
+
+  .auth-shell:not(:has(.tui-root)) :global(.auth-details) {
+    margin-top: 1.5rem;
+    color: #a3a3a3;
+  }
+
+  .auth-shell:not(:has(.tui-root)) :global(.auth-fieldset) {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+  }
+
+  .auth-shell:not(:has(.tui-root)) :global(.auth-codes) {
+    background: #191919;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    overflow: auto;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 0.85rem;
   }
 
   .auth-shell:not(:has(.tui-root)) :global(h1) {
@@ -48,7 +111,7 @@
     font-size: clamp(2rem, 6vw, 2.75rem);
     letter-spacing: -0.04em;
     line-height: 1.1;
-    margin: 0 0 1.25rem;
+    margin: 0 0 0.75rem;
   }
 
   .auth-shell:not(:has(.tui-root)) :global(.error) {

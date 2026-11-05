@@ -53,24 +53,30 @@
   bind:this={root}
   onkeydown={onKeydown}
 >
-  {#each visible as row (row.id)}
-    {@const level = deckLevel(decks, row.id)}
-    <div
-      id={deckRowDomId(row.id) ?? undefined}
-      class="app-tree-row"
-      role="treeitem"
-      aria-level={level}
-      aria-selected={row.id === selectedId}
-      aria-expanded={hasChildren(row.id) ? expanded.has(row.id) : undefined}
-      data-level={level}
-      tabindex="-1"
-      onclick={() => pick(row.id)}
-      onkeydown={(event) => onRowKey(event, row.id)}
-    >
-      <span>{row.name}</span>
-      <span>New {row.subtree.new}</span>
-      <span>Learning {row.subtree.learning}</span>
-      <span>Due {row.subtree.due}</span>
-    </div>
-  {/each}
+  {#if visible.length === 0}
+    <p class="app-empty-inline">No decks yet.</p>
+  {:else}
+    {#each visible as row (row.id)}
+      {@const level = deckLevel(decks, row.id)}
+      <div
+        id={deckRowDomId(row.id) ?? undefined}
+        class="app-tree-row"
+        role="treeitem"
+        aria-level={level}
+        aria-selected={row.id === selectedId}
+        aria-expanded={hasChildren(row.id) ? expanded.has(row.id) : undefined}
+        data-level={level}
+        tabindex="-1"
+        onclick={() => pick(row.id)}
+        onkeydown={(event) => onRowKey(event, row.id)}
+      >
+        <span class="app-tree-name">{row.name}</span>
+        <span class="app-tree-counts">
+          <span class="app-metric">New {row.subtree.new}</span>
+          <span class="app-metric">Learning {row.subtree.learning}</span>
+          <span class="app-metric">Due {row.subtree.due}</span>
+        </span>
+      </div>
+    {/each}
+  {/if}
 </div>

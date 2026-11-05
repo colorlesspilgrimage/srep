@@ -261,26 +261,36 @@
 {/snippet}
 
 <main class="app-screen">
-  <h1>Study</h1>
+  <header class="app-page-header">
+    <p class="tui-eyebrow">Session</p>
+    <h1>Study</h1>
+    <p class="app-lead">Reveal, rate, and keep the queue moving. Keys 1–4 rate after the back.</p>
+  </header>
   {#if screen.message !== ''}
     <p role="alert">{screen.message}</p>
   {/if}
   {#if screen.phase.kind === 'bad-deck'}
     <p role="alert">That deck id is not valid.</p>
   {:else if screen.phase.kind === 'loading'}
-    <p>Loading.</p>
+    <p class="app-lead">Loading the next card…</p>
   {:else if screen.phase.kind === 'error'}
     <p role="alert">{screen.phase.message}</p>
   {:else if counts !== null}
-    <p class="study-progress">New {counts.new} Learning {counts.learning} Due {counts.review}</p>
+    <div class="study-progress" aria-label="Queue counts">
+      <span class="app-metric">New {counts.new}</span>
+      <span class="app-metric">Learning {counts.learning}</span>
+      <span class="app-metric">Due {counts.review}</span>
+    </div>
     {#if screen.phase.kind === 'card'}
       <CardHtml
         text={screen.phase.side === 'front' ? screen.phase.card.front : screen.phase.card.back}
       />
       {#if screen.phase.side === 'front'}
-        <button type="button" disabled={locked} onclick={() => (screen = reveal(screen))}>
-          Reveal
-        </button>
+        <div class="study-actions">
+          <button type="button" class="app-pill-strong" disabled={locked} onclick={() => (screen = reveal(screen))}>
+            Reveal
+          </button>
+        </div>
       {:else}
         <p class="study-meta">Rate</p>
         <div class="study-rate">
@@ -296,21 +306,30 @@
           {/each}
         </div>
       {/if}
-      {@render undoButton()}
-      <button type="button" disabled={locked} onclick={() => void suspend()}>Suspend</button>
-      <button type="button" disabled={locked} onclick={() => (screen = openEdit(screen))}>
-        Edit
-      </button>
-      {#if isDeckUuid(screen.phase.card.noteId)}
-        <a href={resolve('/notes/[id]', { id: screen.phase.card.noteId })}>Full editor</a>
-      {/if}
+      <div class="study-toolbar" role="group" aria-label="Card tools">
+        {@render undoButton()}
+        <button type="button" disabled={locked} onclick={() => void suspend()}>Suspend</button>
+        <button type="button" disabled={locked} onclick={() => (screen = openEdit(screen))}>
+          Edit
+        </button>
+        {#if isDeckUuid(screen.phase.card.noteId)}
+          <a href={resolve('/notes/[id]', { id: screen.phase.card.noteId })}>Full editor</a>
+        {/if}
+      </div>
     {:else if screen.phase.kind === 'wait'}
-      <p>Next card at {screen.phase.untilText}</p>
-      {@render undoButton()}
+      <section class="app-empty" aria-live="polite">
+        <p class="tui-eyebrow">Waiting</p>
+        <h2 class="app-empty-title">Next card soon</h2>
+        <p class="app-lead">Available at {screen.phase.untilText}.</p>
+        {@render undoButton()}
+      </section>
     {:else}
-      <p>No cards left.</p>
-      <p>Next due in {screen.phase.dueText}</p>
-      {@render undoButton()}
+      <section class="app-empty" aria-live="polite">
+        <p class="tui-eyebrow">Done for now</p>
+        <h2 class="app-empty-title">No cards left.</h2>
+        <p class="app-lead">Next due in {screen.phase.dueText}.</p>
+        {@render undoButton()}
+      </section>
     {/if}
   {/if}
 </main>

@@ -41,18 +41,21 @@
 </script>
 
 <svelte:head><title>srep login</title></svelte:head>
-<main>
+<main class="auth-panel">
+  <p class="auth-brand">srep</p>
+  <p class="auth-eyebrow">Sign in</p>
   <h1>Log in</h1>
-  <p>
-    <button type="button" disabled={busy} onclick={() => login('passkey')}>
+  <p class="auth-lead">Passwordless access with a passkey or security key for this instance.</p>
+  <div class="auth-actions">
+    <button type="button" class="auth-primary" disabled={busy} onclick={() => login('passkey')}>
       Log in with a passkey
     </button>
     <button type="button" disabled={busy} onclick={() => login('security_key')}>
       Log in with a security key
     </button>
-  </p>
+  </div>
   {#if error !== ''}<p class="error" role="alert">{error}</p>{/if}
-  <details>
+  <details class="auth-details">
     <summary>Use a recovery code</summary>
     <form onsubmit={useRecoveryCode}>
       <label class="field">

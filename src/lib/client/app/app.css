@@ -54,18 +54,123 @@
   transition: none !important;
 }
 
+.app-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  max-width: 72rem;
+  margin: 0 auto 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+}
+
+.app-brand {
+  font-family: 'Inter Display', Inter, system-ui, sans-serif;
+  font-size: 1.25rem;
+  letter-spacing: -0.04em;
+  color: var(--tui-fg) !important;
+  text-decoration: none !important;
+}
+
+.app-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex: 1 1 auto;
+}
+
+.app-nav-item {
+  border-radius: 9999px !important;
+  border-color: transparent !important;
+  padding: 0.45rem 0.9rem !important;
+}
+
+.app-nav-item[aria-current='page'] {
+  border-color: var(--tui-border-strong, rgba(255, 255, 255, 0.2)) !important;
+  background: var(--tui-selection);
+}
+
+.app-topbar-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-inline-start: auto;
+  font-size: 0.875rem;
+}
+
+.app-topbar-tools a {
+  color: var(--tui-dim) !important;
+  text-decoration: none !important;
+}
+
+.app-topbar-tools a:hover {
+  color: var(--tui-fg) !important;
+}
+
 .app-screen {
   max-width: 72rem;
   margin: 0 auto;
 }
 
-.app-screen > h1 {
+.app-page-header {
+  margin: 0 0 1.5rem;
+  max-width: 40rem;
+}
+
+.app-page-header h1,
+.app-screen > h1,
+.app-empty-title {
   font-family: 'Inter Display', Inter, system-ui, sans-serif;
   font-weight: 400;
   font-size: clamp(1.75rem, 4vw, 2.5rem);
   letter-spacing: -0.04em;
   line-height: 1.15;
-  margin: 0 0 1.25rem;
+  margin: 0 0 0.75rem;
+}
+
+.app-empty-title {
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+}
+
+.app-lead {
+  margin: 0;
+  color: var(--tui-muted, rgba(255, 255, 255, 0.5));
+  max-width: 36rem;
+  line-height: 1.55;
+}
+
+.app-page-tools {
+  margin-top: 1rem;
+}
+
+.app-ghost {
+  border-color: transparent !important;
+  color: var(--tui-dim) !important;
+  padding-inline: 0.75rem !important;
+}
+
+.app-decks {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.app-panel,
+.app-detail,
+.app-empty {
+  background: var(--tui-surface, #191919);
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: 0.75rem;
+  padding: 1.1rem 1.25rem;
+  box-sizing: border-box;
+}
+
+.app-empty {
+  max-width: 40rem;
+  margin: 1.5rem auto;
+  text-align: center;
 }
 
 .app-tree {
@@ -75,12 +180,20 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  min-height: 8rem;
+}
+
+.app-empty-inline {
+  margin: 0.5rem 0;
+  color: var(--tui-dim);
 }
 
 .app-tree-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -89,10 +202,29 @@
   border-radius: 9999px;
   border: 1px solid transparent;
   background: transparent;
-  padding: 0.6rem 1rem;
+  padding: 0.65rem 1rem;
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+
+.app-tree-name {
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+.app-tree-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.app-metric {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tui-dim);
 }
 
 .app-tree-row:hover {
@@ -106,15 +238,58 @@
 
 .app-detail {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.85rem;
+  max-width: 100%;
+  margin: 0;
+}
+
+.app-detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.app-detail-field label {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tui-dim);
+}
+
+.app-detail-primary,
+.app-detail-secondary,
+.study-actions,
+.study-toolbar {
+  display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  max-width: 100%;
   align-items: center;
-  margin-top: 1rem;
-  padding: 1rem;
-  background: var(--tui-surface, #191919);
-  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
-  border-radius: 0.75rem;
+}
+
+.app-pill-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--tui-border-strong, rgba(255, 255, 255, 0.2));
+  border-radius: 9999px;
+  text-decoration: none !important;
+  color: var(--tui-fg) !important;
+}
+
+.app-pill-link-strong,
+.app-pill-strong {
+  background: var(--tui-fg) !important;
+  color: var(--tui-bg) !important;
+  border-color: var(--tui-fg) !important;
+}
+
+.app-pill-strong {
+  padding: 0.65rem 1.25rem !important;
 }
 
 .app-detail input[type='text'],
@@ -130,18 +305,32 @@
   max-width: 100%;
 }
 
+.study-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: 9999px;
+  max-width: 40rem;
+  margin-inline: auto;
+}
+
 .study-card {
   max-width: 40rem;
   margin: 1.5rem auto;
-  padding: 2rem 1.5rem;
+  padding: 2.25rem 1.75rem;
   background: var(--tui-surface, #191919);
   border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
   border-radius: 1rem;
   overflow-wrap: anywhere;
-  font-size: 1.25rem;
-  line-height: 1.5;
+  font-size: 1.35rem;
+  line-height: 1.55;
   letter-spacing: -0.02em;
   transition: opacity 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  min-height: 8rem;
 }
 
 .study-meta {
@@ -152,6 +341,20 @@
   color: var(--tui-dim);
   text-align: center;
   margin: 0 0 0.5rem;
+}
+
+.study-actions {
+  justify-content: center;
+  margin: 1rem auto 0;
+  max-width: 40rem;
+}
+
+.study-toolbar {
+  justify-content: center;
+  margin: 1.25rem auto 0;
+  max-width: 40rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
 }
 
 .study-rate {
@@ -306,8 +509,18 @@
 }
 
 @media (max-width: 720px) {
+  .app-topbar {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .app-decks {
+    grid-template-columns: 1fr;
+  }
+
   .app-tree-row,
-  .app-tab {
+  .app-tab,
+  .app-nav-item {
     min-height: 44px;
     min-width: 44px;
   }
