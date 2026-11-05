@@ -122,12 +122,13 @@ test.describe.serial('gallery shell', () => {
     await expect(page.locator('.tui-root')).toHaveCount(0);
     const narrow = await page.evaluate(() => {
       const body = document.body;
+      const shell = document.querySelector('.auth-shell');
       return {
-        maxWidth: getComputedStyle(body).maxWidth,
+        shellMaxWidth: shell === null ? '' : getComputedStyle(shell).maxWidth,
         hasPageClass: body.classList.contains('tui-page'),
       };
     });
     expect(narrow.hasPageClass).toBe(false);
-    expect(narrow.maxWidth).toBe('640px');
+    expect(narrow.shellMaxWidth).toBe('448px');
   });
 });
