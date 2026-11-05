@@ -5,6 +5,7 @@
   import { apiFetch } from '#lib/client/api.js';
   import { enroll, signOut, type Kind } from '#lib/client/ceremonies.js';
   import { messageFor } from '#lib/client/messages.js';
+  import AppIcon from './AppIcon.svelte';
 
   // Contract: lean credentials + recovery count + logout. Reuses apiFetch/ceremonies.
 
@@ -134,12 +135,22 @@
       maxlength="64"
       bind:value={newNickname}
     />
-    <button type="button" disabled={busy} onclick={() => add('passkey')}>Add a passkey</button>
-    <button type="button" disabled={busy} onclick={() => add('security_key')}
-      >Add a security key</button
-    >
-    <button type="button" onclick={() => logOut(false)}>Log out</button>
-    <button type="button" onclick={() => logOut(true)}>Log out everywhere</button>
+    <button type="button" disabled={busy} onclick={() => add('passkey')}>
+      <AppIcon name="passkey" size={15} />
+      <span>Add a passkey</span>
+    </button>
+    <button type="button" disabled={busy} onclick={() => add('security_key')}>
+      <AppIcon name="key" size={15} />
+      <span>Add a security key</span>
+    </button>
+    <button type="button" onclick={() => logOut(false)}>
+      <AppIcon name="logout" size={15} />
+      <span>Log out</span>
+    </button>
+    <button type="button" onclick={() => logOut(true)}>
+      <AppIcon name="logout" size={15} />
+      <span>Log out everywhere</span>
+    </button>
   </div>
 {:else}
   <p>Loading security…</p>

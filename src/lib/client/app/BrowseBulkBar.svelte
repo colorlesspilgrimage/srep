@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AppIcon from './AppIcon.svelte';
   import NoteDeckList from './NoteDeckList.svelte';
   import type { BrowseDeck } from './browse-model.js';
 
@@ -62,11 +63,26 @@
     <p>{noteCap}</p>
   {/if}
   <NoteDeckList {decks} index={deckIndex} locked={busy} onIndex={onDeckIndex} />
-  <button type="button" disabled={busy || !moveOn} onclick={onMove}>Move</button>
+  <button type="button" disabled={busy || !moveOn} onclick={onMove}>
+    <AppIcon name="move" size={15} />
+    <span>Move</span>
+  </button>
   <label for="browse-tag">Tag</label>
   <input id="browse-tag" type="text" value={tagText} disabled={busy} oninput={onTagInput} />
-  <button type="button" disabled={busy || !tagOn} onclick={onAdd}>Add tag</button>
-  <button type="button" disabled={busy || !tagOn} onclick={onRemove}>Remove tag</button>
-  <button type="button" disabled={busy || !suspendOn} onclick={onSuspend}>Suspend</button>
-  <button type="button" disabled={busy || !deleteOn} onclick={onDelete}>Delete</button>
+  <button type="button" disabled={busy || !tagOn} onclick={onAdd}>
+    <AppIcon name="tag" size={15} />
+    <span>Add tag</span>
+  </button>
+  <button type="button" disabled={busy || !tagOn} onclick={onRemove}>
+    <AppIcon name="tag" size={15} />
+    <span>Remove tag</span>
+  </button>
+  <button type="button" disabled={busy || !suspendOn} onclick={onSuspend}>
+    <AppIcon name="suspend" size={15} />
+    <span>Suspend</span>
+  </button>
+  <button type="button" class="app-danger" disabled={busy || !deleteOn} onclick={onDelete}>
+    <AppIcon name="trash" size={15} />
+    <span>Delete</span>
+  </button>
 </div>

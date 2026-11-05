@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import './tui.css';
   import './themes.css';
+  import '../app/app.css';
+
   import { apiFetch } from '#lib/client/api.js';
   import CommandPalette from './CommandPalette.svelte';
   import Form from './Form.svelte';
@@ -200,8 +202,12 @@
 </script>
 
 <div class="tui-root {themeClass(active.id)}">
-  <main>
-    <h1>Gallery</h1>
+  <main class="app-screen">
+    <header class="app-page-header">
+      <p class="tui-eyebrow">UI kit</p>
+      <h1>Gallery</h1>
+      <p class="app-lead">Specimen panes, lists, forms, and themes for the product chrome.</p>
+    </header>
     <div class="tui-tabbar" role="tablist" aria-label="Gallery sections">
       {#each SECTIONS as item, index (item.id)}
         <button

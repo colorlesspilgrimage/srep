@@ -31,7 +31,7 @@ describe('theme store binding', () => {
   it('keeps the id out of the SQL text', async () => {
     const { sqlite, sqls, store } = openTraced();
     await store.putThemeValue({ id: EVIL_ID });
-    await store.putThemeValue({ id: 'nord' });
+    await store.putThemeValue({ id: 'xai-light' });
     const writes = sqls.filter((sql) => sql.includes('insert'));
     expect(writes.length).toBeGreaterThan(0);
     for (const sql of writes) {
@@ -41,7 +41,7 @@ describe('theme store binding', () => {
     }
     const names = sqlite.prepare("select name from sqlite_master where type = 'table'").all();
     expect(names).toEqual([{ name: 'app_settings' }]);
-    expect(await store.getThemeValue()).toEqual({ id: 'nord' });
+    expect(await store.getThemeValue()).toEqual({ id: 'xai-light' });
     sqlite.close();
   });
 
@@ -49,8 +49,8 @@ describe('theme store binding', () => {
     const { sqlite, db, store } = openTraced();
     db.insert(appSettings).values({ key: 'study', value: STUDY_VALUE }).run();
     db.insert(appSettings).values({ key: 'auth.setup_complete', value: AUTH_VALUE }).run();
-    await store.putThemeValue({ id: 'nord', key: 'auth.user_id' } as { id: string });
-    expect(await store.getThemeValue()).toEqual({ id: 'nord' });
+    await store.putThemeValue({ id: 'xai-light', key: 'auth.user_id' } as { id: string });
+    expect(await store.getThemeValue()).toEqual({ id: 'xai-light' });
     const study = db.select().from(appSettings).where(eq(appSettings.key, 'study')).get();
     const auth = db
       .select()
@@ -64,9 +64,9 @@ describe('theme store binding', () => {
       .get();
     expect(study?.value).toEqual(STUDY_VALUE);
     expect(auth?.value).toEqual(AUTH_VALUE);
-    expect(theme?.value).toEqual({ id: 'nord' });
+    expect(theme?.value).toEqual({ id: 'xai-light' });
     const logger = { error: () => undefined };
-    expect(await getThemeSettings(store, logger)).toEqual({ ok: true, id: 'nord' });
+    expect(await getThemeSettings(store, logger)).toEqual({ ok: true, id: 'xai-light' });
     sqlite.close();
   });
 });

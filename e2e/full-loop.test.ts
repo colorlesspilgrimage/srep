@@ -40,7 +40,7 @@ async function openHome(): Promise<void> {
   const response = await page.goto('/');
   await page.waitForFunction(() => document.body.classList.contains('tui-page'));
   expect(response?.headers()['cache-control']).toBe('no-store');
-  await expect(page.getByRole('heading', { name: 'srep', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Decks', level: 1 })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Create root' })).toBeEnabled();
 }
 
@@ -121,7 +121,7 @@ test.describe.serial('full loop', () => {
     await addBasicNoteViaUi('Loop Phone', 'perro', 'dog');
     await page.getByRole('tab', { name: 'Decks' }).click();
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('heading', { name: 'srep', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Decks', level: 1 })).toBeVisible();
     await expect(row('Loop Phone')).toContainText('New 1');
     await row('Loop Phone').click();
     await page.getByRole('link', { name: 'Study' }).click();
@@ -135,7 +135,7 @@ test.describe.serial('full loop', () => {
     await expect(page.getByText('Next due in 8d')).toBeVisible();
     await page.getByRole('tab', { name: 'Decks' }).click();
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('heading', { name: 'srep', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Decks', level: 1 })).toBeVisible();
     await expect(row('Loop Phone')).toContainText('New 0');
     await expect(row('Loop Phone')).toContainText('Learning 0');
     await expect(row('Loop Phone')).toContainText('Due 0');

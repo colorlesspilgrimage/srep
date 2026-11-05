@@ -39,7 +39,7 @@ async function headers() {
 async function restoreDefaults(): Promise<void> {
   const theme = await page.request.put('/api/settings/theme', {
     headers: await headers(),
-    data: { id: 'phosphor-green' },
+    data: { id: 'xai-dark' },
   });
   expect(theme.status()).toBe(200);
   const keys = await page.request.put('/api/settings/keybinds', {
@@ -124,19 +124,19 @@ test.describe.serial('settings screen', () => {
     await expect(page.getByRole('button', { name: 'Save keys' })).toBeVisible();
   });
 
-  test('Save theme keeps Nord after reload', async () => {
+  test('Save theme keeps xAI Light after reload', async () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await openSettings();
-    await chooseOption('Theme setting', 'Nord');
+    await chooseOption('Theme setting', 'xAI Light');
     await page.getByRole('button', { name: 'Save theme' }).click();
     await expect(page.getByRole('status', { name: 'Saved.' })).toHaveText('Saved.');
     const response = await page.reload();
     await page.waitForFunction(() => document.body.classList.contains('tui-page'));
     const html = (await response?.text()) ?? '';
-    expect(html).toContain('tui-root app-root tui-theme-nord');
+    expect(html).toContain('tui-root app-root tui-theme-xai-light');
     expect(
       await page.locator('.tui-root').evaluate((node) => getComputedStyle(node).backgroundColor),
-    ).toBe('rgb(46, 52, 64)');
+    ).toBe('rgb(243, 246, 250)');
   });
 
   test('Save keys remaps Open palette to Alt+K', async () => {
@@ -179,14 +179,12 @@ test.describe.serial('settings screen', () => {
     });
   });
 
-  test('Save display keeps font size and flags after reload', async () => {
+  test('Save display keeps font size and reduced motion after reload', async () => {
     await openSettings();
     await chooseOption('Settings sections', 'Display');
     await expect(page.getByRole('tabpanel', { name: 'Display' })).toBeVisible();
     await page.getByLabel('Font size').fill('18');
     await page.getByLabel('Reduced motion').check();
-    await page.getByLabel('Scanline').check();
-    await page.getByLabel('Cursor blink').check();
     await page.getByRole('button', { name: 'Save display' }).click();
     await expect(page.getByRole('status', { name: 'Display status' })).toHaveText('Saved.');
     const response = await page.reload();
@@ -194,20 +192,20 @@ test.describe.serial('settings screen', () => {
     const html = (await response?.text()) ?? '';
     expect(html).toContain('tui-font-18');
     expect(html).toContain('tui-display-reduced-motion');
-    expect(html).toContain('tui-display-scanline');
-    expect(html).toContain('tui-display-cursor-blink');
+    expect(html).not.toContain('tui-display-scanline');
+    expect(html).not.toContain('tui-display-cursor-blink');
     await chooseOption('Settings sections', 'Display');
     await expect(page.getByLabel('Font size')).toHaveValue('18');
     await expect(page.getByLabel('Reduced motion')).toBeChecked();
-    await expect(page.getByLabel('Scanline')).toBeChecked();
-    await expect(page.getByLabel('Cursor blink')).toBeChecked();
+    await expect(page.getByLabel('Scanline')).toHaveCount(0);
+    await expect(page.getByLabel('Cursor blink')).toHaveCount(0);
     const read = await page.request.get('/api/settings/display');
     expect(await read.json()).toEqual({
       display: {
         fontSize: 18,
         reducedMotion: true,
-        scanline: true,
-        cursorBlink: true,
+        scanline: false,
+        cursorBlink: false,
       },
     });
   });

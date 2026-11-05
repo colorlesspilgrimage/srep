@@ -123,7 +123,7 @@ test.describe.serial('authentication', () => {
     await page.goto('/');
     await expect(page).toHaveURL(/\/login$/);
     await page.getByRole('button', { name: 'Log in with a passkey' }).click();
-    await expect(page.getByRole('heading', { name: 'srep' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Decks' })).toBeVisible();
     await expect(page).toHaveURL(/\/$/);
     const cookies = await context.cookies();
     const session = cookies.find((c) => c.name === 'srep_session');
@@ -145,7 +145,7 @@ test.describe.serial('authentication', () => {
     await logOut();
     await removeAuthenticator(cdp, platformId);
     await page.getByRole('button', { name: 'Log in with a security key' }).click();
-    await expect(page.getByRole('heading', { name: 'srep' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Decks' })).toBeVisible();
   });
 
   test('6. rename, revoke, and refuse to revoke the last credential', async () => {

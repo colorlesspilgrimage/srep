@@ -36,8 +36,8 @@ const BAD_THEME_QUERIES = [
   '\ufeffnord',
   'nord\u0000',
   'a'.repeat(41),
-  'phosphor-green ',
-  ' phosphor-green',
+  'xai-dark ',
+  ' xai-dark',
 ];
 
 let h: DomainHarness | undefined;
@@ -111,34 +111,34 @@ function pgHandle(
 }
 
 describe('gallery settings read', () => {
-  it('returns phosphor-green and the default chords when no rows exist', async () => {
+  it('returns xai-dark and the default chords when no rows exist', async () => {
     const db = await openDb();
     const result = await readGallerySettings(h?.handle as DbHandle, null);
     expect(result).toEqual({
       ok: true,
-      themeId: 'phosphor-green',
+      themeId: 'xai-dark',
       keybinds: DEFAULT_KEYBINDS,
       display: DEFAULT_DISPLAY,
     });
     expect(themeRow(db)).toBeUndefined();
   });
 
-  it('uses the nord query and does not rewrite the stored theme', async () => {
+  it('uses the xai-light query and does not rewrite the stored theme', async () => {
     const db = await openDb();
     db.insert(appSettings)
       .values({ key: THEME_SETTINGS_KEY, value: { id: 'amber-crt' } })
       .run();
-    const result = await readGallerySettings(h?.handle as DbHandle, 'nord');
+    const result = await readGallerySettings(h?.handle as DbHandle, 'xai-light');
     expect(result).toEqual({
       ok: true,
-      themeId: 'nord',
+      themeId: 'xai-light',
       keybinds: DEFAULT_KEYBINDS,
       display: DEFAULT_DISPLAY,
     });
     expect(themeRow(db)?.value).toEqual({ id: 'amber-crt' });
   });
 
-  it('uses the stored nord theme when the query is null', async () => {
+  it('migrates a stored legacy theme when the query is null', async () => {
     const db = await openDb();
     db.insert(appSettings)
       .values({ key: THEME_SETTINGS_KEY, value: { id: 'nord' } })
@@ -146,7 +146,7 @@ describe('gallery settings read', () => {
     const result = await readGallerySettings(h?.handle as DbHandle, null);
     expect(result).toEqual({
       ok: true,
-      themeId: 'nord',
+      themeId: 'xai-dark',
       keybinds: DEFAULT_KEYBINDS,
       display: DEFAULT_DISPLAY,
     });
@@ -204,7 +204,7 @@ describe('gallery settings read', () => {
     expect(themeRow(db)?.value).toEqual({ id: 'nope' });
   });
 
-  it('returns phosphor-green for a script query and keeps the stored theme', async () => {
+  it('returns xai-dark for a script query and keeps the stored theme', async () => {
     const db = await openDb();
     db.insert(appSettings)
       .values({ key: THEME_SETTINGS_KEY, value: { id: 'amber-crt' } })
@@ -212,7 +212,7 @@ describe('gallery settings read', () => {
     const result = await readGallerySettings(h?.handle as DbHandle, '<script>');
     expect(result).toEqual({
       ok: true,
-      themeId: 'phosphor-green',
+      themeId: 'xai-dark',
       keybinds: DEFAULT_KEYBINDS,
       display: DEFAULT_DISPLAY,
     });
@@ -229,7 +229,7 @@ describe('gallery settings read', () => {
       const result = await readGallerySettings(h?.handle as DbHandle, query);
       expect(result, query).toEqual({
         ok: true,
-        themeId: 'phosphor-green',
+        themeId: 'xai-dark',
         keybinds: DEFAULT_KEYBINDS,
         display: DEFAULT_DISPLAY,
       });
@@ -245,13 +245,13 @@ describe('gallery settings read', () => {
     const objectQuery = { toString: () => 'nord' } as unknown as string;
     expect(await readGallerySettings(h?.handle as DbHandle, arrayQuery)).toEqual({
       ok: true,
-      themeId: 'phosphor-green',
+      themeId: 'xai-dark',
       keybinds: DEFAULT_KEYBINDS,
       display: DEFAULT_DISPLAY,
     });
     expect(await readGallerySettings(h?.handle as DbHandle, objectQuery)).toEqual({
       ok: true,
-      themeId: 'phosphor-green',
+      themeId: 'xai-dark',
       keybinds: DEFAULT_KEYBINDS,
       display: DEFAULT_DISPLAY,
     });
@@ -263,7 +263,7 @@ describe('gallery settings read', () => {
     const result = await readGallerySettings(stub.handle, null);
     expect(result).toEqual({
       ok: true,
-      themeId: 'nord',
+      themeId: 'xai-dark',
       keybinds: stored,
       display: DEFAULT_DISPLAY,
     });

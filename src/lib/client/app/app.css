@@ -1,5 +1,4 @@
-/* App shell layout. BREAKPOINT_PX is 720, same as the gallery tab bar.
-   .tui-tabbar is display:none above 720px. Do not edit tui.css. */
+/* App shell layout. BREAKPOINT_PX is 720. */
 
 .tui-root.app-root {
   position: relative;
@@ -9,7 +8,6 @@
   font-size: var(--tui-font-size, 16px);
 }
 
-/* Font sizes 12–24. Classes avoid inline style attrs (CSP style-src-attr). */
 .tui-root.app-root.tui-font-12 {
   --tui-font-size: 12px;
 }
@@ -50,68 +48,401 @@
   --tui-font-size: 24px;
 }
 
-/* Display prefs: scanline and cursor blink are CSS-only. No media assets.
-   Reduced-motion disables both effects even when those flags are saved. */
-.tui-root.app-root.tui-display-scanline:not(.tui-display-reduced-motion)::before {
-  content: '';
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent 2px,
-    rgba(0, 0, 0, 0.14) 2px,
-    rgba(0, 0, 0, 0.14) 3px
-  );
-}
-
-@keyframes tui-cursor-blink {
-  50% {
-    opacity: 0;
-  }
-}
-
-.tui-root.app-root.tui-display-cursor-blink:not(.tui-display-reduced-motion) .tui-status::after {
-  content: '█';
-  margin-inline-start: 0.5ch;
-  animation: tui-cursor-blink 1s step-end infinite;
-}
-
 .tui-root.app-root.tui-display-reduced-motion,
 .tui-root.app-root.tui-display-reduced-motion * {
   animation: none !important;
   transition: none !important;
 }
 
+.app-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  max-width: 72rem;
+  margin: 0 auto 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+}
+
+.app-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: 'Inter Display', Inter, system-ui, sans-serif;
+  font-size: 1.25rem;
+  letter-spacing: -0.04em;
+  color: var(--tui-fg) !important;
+  text-decoration: none !important;
+}
+
+.app-brand .app-icon {
+  color: var(--tui-accent);
+}
+
+.app-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex: 1 1 auto;
+}
+
+.app-nav-item {
+  border-radius: var(--tui-radius-sm, 0.55rem) !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  padding: 0.45rem 0.85rem !important;
+  color: var(--tui-dim) !important;
+}
+
+.app-nav-item:hover {
+  color: var(--tui-fg) !important;
+  background: var(--tui-selection) !important;
+}
+
+.app-nav-item[aria-current='page'] {
+  border-color: color-mix(in srgb, var(--tui-accent) 45%, transparent) !important;
+  background: color-mix(in srgb, var(--tui-accent) 14%, var(--tui-selection)) !important;
+  color: var(--tui-fg) !important;
+}
+
+.app-nav-item[aria-current='page'] .app-icon {
+  color: var(--tui-accent);
+}
+
+.app-topbar-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-inline-start: auto;
+  font-size: 0.875rem;
+}
+
+.app-tool-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--tui-dim) !important;
+  text-decoration: none !important;
+  padding: 0.35rem 0.55rem;
+  border-radius: var(--tui-radius-sm, 0.55rem);
+}
+
+.app-tool-link:hover {
+  color: var(--tui-fg) !important;
+  background: var(--tui-selection);
+}
+
 .app-screen {
-  max-width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.app-page-header {
+  margin: 0 0 1.5rem;
+  max-width: 40rem;
+}
+
+.app-page-header h1,
+.app-screen > h1,
+.app-empty-title {
+  font-family: 'Inter Display', Inter, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  margin: 0 0 0.75rem;
+}
+
+.app-empty-title {
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+}
+
+.app-lead {
+  margin: 0;
+  color: var(--tui-muted, rgba(255, 255, 255, 0.5));
+  max-width: 36rem;
+  line-height: 1.55;
+}
+
+.app-eyebrow-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.app-eyebrow-icon .app-icon {
+  color: var(--tui-accent);
+}
+
+.app-page-tools {
+  margin-top: 1rem;
+}
+
+.app-ghost {
+  border-color: transparent !important;
+  background: transparent !important;
+  color: var(--tui-dim) !important;
+  padding-inline: 0.75rem !important;
+}
+
+.app-ghost:hover {
+  color: var(--tui-fg) !important;
+  background: var(--tui-selection) !important;
+}
+
+.app-decks {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.app-panel,
+.app-detail,
+.app-empty {
+  background: var(--tui-surface, #191919);
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius, 0.75rem);
+  padding: 1.1rem 1.25rem;
+  box-sizing: border-box;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+
+.app-empty {
+  max-width: 40rem;
+  margin: 1.5rem auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.app-empty .app-icon {
+  color: var(--tui-accent);
+  margin-bottom: 0.25rem;
+}
+
+.app-empty .tui-eyebrow {
+  margin-bottom: 0;
 }
 
 .app-tree {
   max-width: 100%;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 8rem;
+}
+
+.app-empty-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.5rem 0;
+  color: var(--tui-dim);
+}
+
+.app-empty-inline .app-icon {
+  color: var(--tui-accent);
 }
 
 .app-tree-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   overflow-wrap: anywhere;
   text-align: left;
+  border-radius: var(--tui-radius-sm, 0.55rem);
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 0.65rem 0.85rem;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.app-tree-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.app-tree-chevron {
+  display: inline-flex;
+  color: var(--tui-dim);
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.app-tree-chevron-open {
+  transform: rotate(90deg);
+  color: var(--tui-accent);
+}
+
+.app-tree-chevron-spacer {
+  width: 14px;
+  height: 14px;
+}
+
+.app-tree-name {
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+.app-tree-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.app-chip,
+.app-metric {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tui-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  background: color-mix(in srgb, var(--tui-surface-2, var(--tui-surface)) 80%, transparent);
+}
+
+.app-chip-new {
+  color: var(--tui-accent);
+  border-color: color-mix(in srgb, var(--tui-accent) 35%, transparent);
+  background: color-mix(in srgb, var(--tui-accent) 12%, transparent);
+}
+
+.app-chip-learn {
+  color: var(--tui-warn);
+  border-color: color-mix(in srgb, var(--tui-warn) 35%, transparent);
+  background: color-mix(in srgb, var(--tui-warn) 12%, transparent);
+}
+
+.app-chip-due {
+  color: var(--tui-good);
+  border-color: color-mix(in srgb, var(--tui-good) 35%, transparent);
+  background: color-mix(in srgb, var(--tui-good) 12%, transparent);
+}
+
+.app-tree-row:hover {
+  background: var(--tui-selection);
+}
+
+.app-tree-row[aria-selected='true'] {
+  background: color-mix(in srgb, var(--tui-accent) 12%, var(--tui-selection));
+  border-color: color-mix(in srgb, var(--tui-accent) 40%, transparent);
 }
 
 .app-detail {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.85rem;
+  max-width: 100%;
+  margin: 0;
+}
+
+.app-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-detail-head .app-icon {
+  color: var(--tui-accent);
+}
+
+.app-detail-head .tui-eyebrow {
+  margin: 0;
+}
+
+.app-detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.app-detail-field label {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tui-dim);
+}
+
+.app-detail-primary,
+.app-detail-secondary,
+.study-actions,
+.study-toolbar {
+  display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  max-width: 100%;
   align-items: center;
+}
+
+.app-action,
+.app-pill-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--tui-border-strong, rgba(255, 255, 255, 0.2));
+  border-radius: var(--tui-radius-sm, 0.55rem);
+  text-decoration: none !important;
+  color: var(--tui-fg) !important;
+  background: var(--tui-surface-2, var(--tui-surface));
+}
+
+.app-action:hover,
+.app-pill-link:hover {
+  border-color: color-mix(in srgb, var(--tui-accent) 50%, transparent);
+  background: var(--tui-selection);
+}
+
+.app-action-strong,
+.app-pill-link-strong,
+.app-pill-strong {
+  background: var(--tui-accent) !important;
+  color: var(--tui-bg) !important;
+  border-color: var(--tui-accent) !important;
+}
+
+.app-action-strong:hover,
+.app-pill-link-strong:hover,
+.app-pill-strong:hover {
+  filter: brightness(1.08);
+}
+
+.app-pill-strong {
+  padding: 0.65rem 1.25rem !important;
+}
+
+.app-danger {
+  color: var(--tui-bad) !important;
+  border-color: color-mix(in srgb, var(--tui-bad) 45%, transparent) !important;
+}
+
+.app-danger:hover {
+  background: color-mix(in srgb, var(--tui-bad) 12%, transparent) !important;
 }
 
 .app-detail input[type='text'],
@@ -127,16 +458,91 @@
   max-width: 100%;
 }
 
+.study-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius, 0.75rem);
+  max-width: 40rem;
+  background: color-mix(in srgb, var(--tui-surface) 70%, transparent);
+}
+
 .study-card {
-  max-width: 100%;
+  max-width: 40rem;
+  margin: 1.5rem auto;
+  padding: 2.25rem 1.75rem;
+  background: var(--tui-surface, #191919);
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: 1rem;
   overflow-wrap: anywhere;
+  font-size: 1.35rem;
+  line-height: 1.55;
+  letter-spacing: -0.02em;
+  transition: opacity 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  min-height: 8rem;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+}
+
+.study-meta {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tui-dim);
+  text-align: center;
+  margin: 0 0 0.5rem;
+}
+
+.study-actions {
+  justify-content: center;
+  margin: 1rem auto 0;
+  max-width: 40rem;
+}
+
+.study-toolbar {
+  justify-content: center;
+  margin: 1.25rem auto 0;
+  max-width: 40rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
 }
 
 .study-rate {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  max-width: 100%;
+  max-width: 40rem;
+  margin: 1rem auto 0;
+  justify-content: center;
+}
+
+.study-rate button {
+  flex: 1 1 5rem;
+  min-width: 5rem;
+}
+
+.study-rate button[data-rating='1'] {
+  border-color: var(--tui-bad);
+  color: var(--tui-bad);
+}
+
+.study-rate button[data-rating='2'] {
+  border-color: var(--tui-warn);
+  color: var(--tui-warn);
+}
+
+.study-rate button[data-rating='3'] {
+  border-color: var(--tui-good);
+  color: var(--tui-good);
+}
+
+.study-rate button[data-rating='4'] {
+  border-color: var(--tui-accent);
+  color: var(--tui-accent);
 }
 
 .app-dialog textarea {
@@ -149,13 +555,17 @@
 .note-editor {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
   max-width: 100%;
 }
 
 .note-preview {
   max-width: 100%;
   overflow-wrap: anywhere;
+  padding: 1rem;
+  background: var(--tui-surface, #191919);
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius, 0.75rem);
 }
 
 .note-editor textarea,
@@ -187,7 +597,7 @@
 .browse-screen {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
   max-width: 100%;
 }
 
@@ -201,6 +611,20 @@
   align-items: center;
 }
 
+.browse-search {
+  padding: 0.75rem;
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius, 0.75rem);
+  background: var(--tui-surface, #191919);
+}
+
+.browse-bulk {
+  padding: 0.85rem;
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius, 0.75rem);
+  background: color-mix(in srgb, var(--tui-surface) 85%, transparent);
+}
+
 .browse-grid,
 .browse-search input,
 .browse-bulk input {
@@ -208,9 +632,18 @@
   max-width: 100%;
 }
 
+.browse-grid {
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius, 0.75rem);
+  overflow: hidden;
+  background: var(--tui-surface, #191919);
+}
+
 .browse-grid [role='gridcell'] {
   unicode-bidi: isolate;
   overflow-wrap: anywhere;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
 }
 
 .browse-screen[data-modal='open'] .browse-search,
@@ -220,28 +653,51 @@
 }
 
 .app-tree-row[data-level='2'] {
-  padding-left: 1rem;
+  padding-left: 1.5rem;
 }
 
 .app-tree-row[data-level='3'] {
-  padding-left: 2rem;
+  padding-left: 2.5rem;
 }
 
 .app-tree-row[data-level='4'] {
-  padding-left: 3rem;
+  padding-left: 3.5rem;
 }
 
 .app-tree-row[data-level='5'] {
-  padding-left: 4rem;
+  padding-left: 4.5rem;
 }
 
 .app-tree-row[data-level='6'] {
-  padding-left: 5rem;
+  padding-left: 5.5rem;
+}
+
+.app-tab {
+  border-radius: var(--tui-radius-sm, 0.55rem) !important;
+}
+
+.app-tab[aria-selected='true'] {
+  border-color: color-mix(in srgb, var(--tui-accent) 45%, transparent) !important;
+  background: color-mix(in srgb, var(--tui-accent) 14%, var(--tui-selection)) !important;
+}
+
+.app-tab[aria-selected='true'] .app-icon {
+  color: var(--tui-accent);
 }
 
 @media (max-width: 720px) {
+  .app-topbar {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .app-decks {
+    grid-template-columns: 1fr;
+  }
+
   .app-tree-row,
-  .app-tab {
+  .app-tab,
+  .app-nav-item {
     min-height: 44px;
     min-width: 44px;
   }

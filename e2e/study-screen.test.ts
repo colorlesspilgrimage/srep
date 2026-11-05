@@ -194,7 +194,7 @@ test.describe.serial('study screen', () => {
     await page.keyboard.press('Tab');
     await expect(page.getByRole('button', { name: /^Good / })).toBeFocused();
     await page.keyboard.press('Enter');
-    await expect(page.getByText('Next card at')).toBeVisible();
+    await expect(page.getByText('Available at')).toBeVisible();
     await page.keyboard.press('u');
     await expect(card()).toContainText('casa');
     await expect(page.getByText('house', { exact: true })).toHaveCount(0);
@@ -225,11 +225,11 @@ test.describe.serial('study screen', () => {
     await openStudy(page, deckId);
     await page.keyboard.press('Space');
     await page.keyboard.press('1');
-    await expect(page.getByText('Next card at')).toBeVisible();
+    await expect(page.getByText('Available at')).toBeVisible();
     const next = await page.request.get(`/api/study/next?deckId=${encodeURIComponent(deckId)}`);
     const body: { status: string; until: number } = await next.json();
     expect(body.status).toBe('wait');
-    await expect(page.getByText(`Next card at ${untilText(body.until)}`)).toBeVisible();
+    await expect(page.getByText(`Available at ${untilText(body.until)}.`)).toBeVisible();
     const hits: string[] = [];
     const onRequest = (req: Request): void => {
       if (req.method() === 'POST' && req.url().includes('/api/study/answer')) {
@@ -243,7 +243,7 @@ test.describe.serial('study screen', () => {
     await page.keyboard.press('e');
     await expect(editDialog()).toBeHidden();
     await page.keyboard.press('s');
-    await expect(page.getByText(`Next card at ${untilText(body.until)}`)).toBeVisible();
+    await expect(page.getByText(`Available at ${untilText(body.until)}.`)).toBeVisible();
     expect(hits).toEqual([]);
     page.off('request', onRequest);
     await page.keyboard.press('u');
@@ -341,7 +341,7 @@ test.describe.serial('study screen', () => {
     await page.setExtraHTTPHeaders(studyClockHeader());
     try {
       await good.click();
-      await expect(page.getByText('Next card at')).toBeVisible();
+      await expect(page.getByText('Available at')).toBeVisible();
     } finally {
       await page.setExtraHTTPHeaders({});
       await page.setViewportSize({ width: 1440, height: 900 });

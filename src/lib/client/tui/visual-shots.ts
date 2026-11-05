@@ -1,4 +1,4 @@
-// Contract: screenshot names for the 12 themes at two widths.
+// Contract: screenshot names for the 3 themes at two widths.
 // A name is one file segment. The segment stays in the snapshot folder.
 
 import { PREMADE_THEMES, themeById } from './themes.js';

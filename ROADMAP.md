@@ -1,6 +1,6 @@
 # srep Roadmap: zero code to v1.0
 
-srep is an open-source, self-hosted spaced-repetition web app (an Anki alternative) with a TUI-style interface, passwordless single-user auth, and a database backend. It works on desktop and mobile.
+srep is an open-source, self-hosted spaced-repetition web app (an Anki alternative) with an xAI-inspired sparse UI, passwordless single-user auth, and a database backend. It works on desktop and mobile.
 
 ## 1. Product decisions (fixed for 1.0)
 
@@ -14,7 +14,7 @@ srep is an open-source, self-hosted spaced-repetition web app (an Anki alternati
 | Stack | TypeScript. SvelteKit (adapter-node) for UI and API, Drizzle ORM, `@simplewebauthn/server`, `ts-fsrs`. | One language and one deployable. Mature WebAuthn and FSRS libraries exist. |
 | Database | SQLite (WAL) by default, one file, easy backup. Postgres supported through the same Drizzle schema, with CI running both. | Single-user self-hosting suits SQLite. Postgres is the escape hatch. |
 | Deploy | One Docker image plus a compose file. A reverse proxy with TLS is required because WebAuthn needs HTTPS (localhost is exempt). | |
-| UI | TUI aesthetic in the browser: monospace grid, box-drawing borders, keyboard-first, no images or rounded corners. Themes are CSS variables. Touch targets and layout adapt on mobile. | |
+| UI | xAI-inspired sparse UI: near-black canvas, Inter + Geist Mono, outline pills, keyboard-first. Themes are CSS variables (xAI Dark, xAI Light, High Contrast). Touch targets and layout adapt on mobile. | |
 | Offline | Not in 1.0. The app is an installable PWA that needs the network. Offline review sync is post-1.0. | Sync and conflict handling is a large separate project. |
 | Licence | MIT | Permissive and simple. Matches the OSS goal. |
 
@@ -80,14 +80,13 @@ JSON over HTTPS with cookie sessions (`HttpOnly`, `Secure`, `SameSite=Strict`) a
 
 ## 3. UI design
 
-- **Layout:** a fixed-width character grid with `ch`-based sizing. Panes use box-drawing borders and a status line at the bottom that shows the mode and key hints. A command palette (`:` or `Ctrl+K`) reaches every action.
+- **Layout:** a sparse product chrome with surface panels, hairline borders, and a status line for mode and key hints. A command palette (`:` or `Ctrl+K`) reaches every action.
 - **Desktop:** a multi-pane layout: deck tree on the left, content on the right. It is fully keyboard-driven, with vim-like navigation (`j/k`, `Enter`, `Esc`), `1-4` or `Space` to rate, and remappable keys.
-- **Mobile:** a single pane with a bottom tab bar (Decks, Study, Browse, Settings). Rating uses 4 large thumb-reachable buttons. Gestures are optional and never required. Layout respects safe-area insets and avoids hover-only affordances. Minimum touch target is 44px. The virtual keyboard must not cover the editor.
-- **Themes:** a settings pane with live preview. Themes are token maps (`bg, fg, dim, accent, good, warn, bad, border, selection`) and ship pre-made:
-  Phosphor Green, Amber CRT, Solarized Dark/Light, Gruvbox Dark/Light, Nord, Dracula, Monokai, Tokyo Night, VT100 White-on-Black, and a high-contrast theme. Themes must pass WCAG AA contrast on body text, checked in CI.
-- **Font:** a bundled monospace font (self-hosted, no CDN), with size and optional scanline or cursor-blink effects. A `prefers-reduced-motion` setting disables the effects.
+- **Mobile:** a single pane with a top tab bar (Decks, Study, Browse, Settings). Rating uses 4 large thumb-reachable outline pills. Gestures are optional and never required. Layout respects safe-area insets and avoids hover-only affordances. Minimum touch target is 44px. The virtual keyboard must not cover the editor.
+- **Themes:** a settings pane with live preview. Themes are token maps (`bg, fg, dim, accent, good, warn, bad, border, selection`) and ship pre-made: xAI Dark (default), xAI Light, and High Contrast. Legacy CRT theme ids migrate to these. Themes must pass WCAG AA contrast on body text, checked in CI.
+- **Font:** self-hosted Inter (body/display) and Geist Mono (eyebrows, status, metrics), no CDN. Font size and reduced motion are user settings. Motion uses opacity/transform only.
 - **Card rendering:** card content is sanitized HTML/Markdown subset rendered inside the theme. It never executes scripts. Cloze, images and audio are supported.
-- **Accessibility:** the TUI look must not harm screen readers. It uses real semantic elements, ARIA labels and visible focus states.
+- **Accessibility:** the look must not harm screen readers. It uses real semantic elements, ARIA labels and visible focus states.
 
 ## 4. Milestones
 

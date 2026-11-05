@@ -5,6 +5,7 @@
   import { onMount, untrack } from 'svelte';
   import CardHtml from '#lib/client/card/CardHtml.svelte';
   import { targetIsTextField } from '#lib/client/tui/text-target.js';
+  import AppIcon from './AppIcon.svelte';
   import EditCardDialog from './EditCardDialog.svelte';
   import {
     applyNext,
@@ -257,54 +258,97 @@
 </script>
 
 {#snippet undoButton()}
-  <button type="button" disabled={locked} onclick={() => void undo()}>Undo</button>
+  <button type="button" disabled={locked} onclick={() => void undo()}>
+    <AppIcon name="undo" size={15} />
+    <span>Undo</span>
+  </button>
 {/snippet}
 
 <main class="app-screen">
-  <h1>Study</h1>
+  <header class="app-page-header">
+    <p class="tui-eyebrow app-eyebrow-icon"><AppIcon name="study" size={14} /> Session</p>
+    <h1>Study</h1>
+    <p class="app-lead">Reveal, rate, and keep the queue moving. Keys 1–4 rate after the back.</p>
+  </header>
   {#if screen.message !== ''}
     <p role="alert">{screen.message}</p>
   {/if}
   {#if screen.phase.kind === 'bad-deck'}
     <p role="alert">That deck id is not valid.</p>
   {:else if screen.phase.kind === 'loading'}
-    <p>Loading.</p>
+    <p class="app-lead">Loading the next card…</p>
   {:else if screen.phase.kind === 'error'}
     <p role="alert">{screen.phase.message}</p>
   {:else if counts !== null}
-    <p class="study-progress">New {counts.new} Learning {counts.learning} Due {counts.review}</p>
+    <div class="study-progress" aria-label="Queue counts">
+      <span class="app-chip app-chip-new">New {counts.new}</span>
+      <span class="app-chip app-chip-learn">Learning {counts.learning}</span>
+      <span class="app-chip app-chip-due">Due {counts.review}</span>
+    </div>
     {#if screen.phase.kind === 'card'}
       <CardHtml
         text={screen.phase.side === 'front' ? screen.phase.card.front : screen.phase.card.back}
       />
       {#if screen.phase.side === 'front'}
-        <button type="button" disabled={locked} onclick={() => (screen = reveal(screen))}>
-          Reveal
-        </button>
+        <div class="study-actions">
+          <button
+            type="button"
+            class="app-action-strong"
+            disabled={locked}
+            onclick={() => (screen = reveal(screen))}
+          >
+            <AppIcon name="reveal" size={16} />
+            <span>Reveal</span>
+          </button>
+        </div>
       {:else}
+        <p class="study-meta">Rate</p>
         <div class="study-rate">
           {#each STUDY_RATINGS as rating (rating)}
-            <button type="button" disabled={locked} onclick={() => void rate(rating)}>
+            <button
+              type="button"
+              data-rating={rating}
+              disabled={locked}
+              onclick={() => void rate(rating)}
+            >
               {rateButtonText(rating, screen.phase.card.labels[rating])}
             </button>
           {/each}
         </div>
       {/if}
-      {@render undoButton()}
-      <button type="button" disabled={locked} onclick={() => void suspend()}>Suspend</button>
-      <button type="button" disabled={locked} onclick={() => (screen = openEdit(screen))}>
-        Edit
-      </button>
-      {#if isDeckUuid(screen.phase.card.noteId)}
-        <a href={resolve('/notes/[id]', { id: screen.phase.card.noteId })}>Full editor</a>
-      {/if}
+      <div class="study-toolbar" role="group" aria-label="Card tools">
+        {@render undoButton()}
+        <button type="button" disabled={locked} onclick={() => void suspend()}>
+          <AppIcon name="suspend" size={15} />
+          <span>Suspend</span>
+        </button>
+        <button type="button" disabled={locked} onclick={() => (screen = openEdit(screen))}>
+          <AppIcon name="pencil" size={15} />
+          <span>Edit</span>
+        </button>
+        {#if isDeckUuid(screen.phase.card.noteId)}
+          <a class="app-action" href={resolve('/notes/[id]', { id: screen.phase.card.noteId })}>
+            <AppIcon name="note" size={15} />
+            <span>Full editor</span>
+          </a>
+        {/if}
+      </div>
     {:else if screen.phase.kind === 'wait'}
-      <p>Next card at {screen.phase.untilText}</p>
-      {@render undoButton()}
+      <section class="app-empty" aria-live="polite">
+        <AppIcon name="study" size={28} />
+        <p class="tui-eyebrow">Waiting</p>
+        <h2 class="app-empty-title">Next card soon</h2>
+        <p class="app-lead">Available at {screen.phase.untilText}.</p>
+        {@render undoButton()}
+      </section>
     {:else}
-      <p>No cards left.</p>
-      <p>Next due in {screen.phase.dueText}</p>
-      {@render undoButton()}
+      <section class="app-empty" aria-live="polite">
+        <AppIcon name="check" size={28} />
+        <p class="tui-eyebrow">Done for now</p>
+        <h2 class="app-empty-title">No cards left.</h2>
+        <p class="app-lead">Next due in {screen.phase.dueText}.</p>
+        {@render undoButton()}
+      </section>
     {/if}
   {/if}
 </main>

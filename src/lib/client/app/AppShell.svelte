@@ -12,6 +12,7 @@
   import { targetIsTextField } from '../tui/text-target.js';
   import { themeClass } from '../tui/themes.js';
   import { page } from '$app/state';
+  import AppIcon from './AppIcon.svelte';
   import { APP_COMMANDS, commandTarget, NAV_ITEMS, tabKeyIndex, type NavPath } from './app-nav.js';
   import { DEFAULT_DISPLAY, displayRootClass, type DisplayPrefs } from './display-prefs.js';
 
@@ -190,6 +191,33 @@
 </script>
 
 <div class="tui-root app-root {themeClass(themeId)} {displayRootClass(display)}">
+  <header class="app-topbar">
+    <a class="app-brand" href={resolve('/')}>
+      <AppIcon name="brand" size={18} />
+      <span>srep</span>
+    </a>
+    <nav class="app-nav tui-only-desktop" aria-label="Primary">
+      {#each NAV_ITEMS as item (item.id)}
+        <button
+          type="button"
+          class="app-nav-item"
+          aria-current={pathNow === navTarget(item.href) ? 'page' : undefined}
+          onclick={() => openNav(item.href)}
+        >
+          <AppIcon name={item.icon} size={15} />
+          <span>{item.label}</span>
+        </button>
+      {/each}
+    </nav>
+    <div class="app-topbar-tools tui-only-desktop">
+      <a class="app-tool-link" href={resolve('/gallery')}
+        ><AppIcon name="gallery" size={14} /><span>Gallery</span></a
+      >
+      <a class="app-tool-link" href={resolve('/security')}
+        ><AppIcon name="security" size={14} /><span>Security</span></a
+      >
+    </div>
+  </header>
   <div class="tui-tabbar" role="tablist" aria-label="App sections">
     {#each NAV_ITEMS as item (item.id)}
       <button
@@ -200,7 +228,8 @@
         onclick={() => openNav(item.href)}
         onkeydown={onTabKey}
       >
-        {item.label}
+        <AppIcon name={item.icon} size={15} />
+        <span>{item.label}</span>
       </button>
     {/each}
   </div>

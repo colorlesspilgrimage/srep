@@ -4,6 +4,7 @@
   import { resolve } from '$app/paths';
   import { signOut } from '#lib/client/sign-out.js';
   import type { PageData } from './$types';
+  import AppIcon from '#lib/client/app/AppIcon.svelte';
   import AppShell from '#lib/client/app/AppShell.svelte';
   import TuiPage from '#lib/client/app/TuiPage.svelte';
   import DeckDetail from '#lib/client/app/DeckDetail.svelte';
@@ -233,29 +234,39 @@
   bind:paletteOpen
 >
   <main class="app-screen">
-    <h1>srep</h1>
-    <p>
-      <a href={resolve('/security')}>Security</a>
-      <a href={resolve('/gallery')}>Gallery</a>
-    </p>
-    <button type="button" onclick={logOut}>Log out</button>
+    <header class="app-page-header">
+      <p class="tui-eyebrow app-eyebrow-icon"><AppIcon name="decks" size={14} /> Library</p>
+      <h1>Decks</h1>
+      <p class="app-lead">Organize what you study. Counts include every deck below a parent.</p>
+      <div class="app-page-tools">
+        <button type="button" class="app-ghost" onclick={logOut}>
+          <AppIcon name="logout" size={15} />
+          <span>Log out</span>
+        </button>
+      </div>
+    </header>
     {#if message !== ''}
       <p role="alert">{message}</p>
     {/if}
-    <DeckTree {decks} {expanded} {selectedId} {onSelect} onKeydown={onTreeKey} />
-    <DeckDetail
-      {name}
-      {ready}
-      {busy}
-      canEdit={selectedId !== null}
-      deckId={selectedId}
-      bind:nameField
-      {onName}
-      {onCreateChild}
-      {onCreateRoot}
-      {onRename}
-      {onDelete}
-    />
+    <div class="app-decks">
+      <section class="app-panel" aria-label="Deck tree">
+        <p class="tui-eyebrow">Tree</p>
+        <DeckTree {decks} {expanded} {selectedId} {onSelect} onKeydown={onTreeKey} />
+      </section>
+      <DeckDetail
+        {name}
+        {ready}
+        {busy}
+        canEdit={selectedId !== null}
+        deckId={selectedId}
+        bind:nameField
+        {onName}
+        {onCreateChild}
+        {onCreateRoot}
+        {onRename}
+        {onDelete}
+      />
+    </div>
     {#if deleteOpen && selectedId !== null}
       <DeleteDeckDialog
         deckId={selectedId}

@@ -1,4 +1,4 @@
-// Contract: Phosphor Green tokens and WCAG 2.2 contrast checks.
+// Contract: xAI-inspired theme tokens and WCAG 2.2 contrast checks.
 
 export type ThemeTokens = {
   bg: string;
@@ -14,21 +14,24 @@ export type ThemeTokens = {
 
 export type Rgb = { red: number; green: number; blue: number };
 
-export const THEME_ID = 'phosphor-green';
-export const THEME_NAME = 'Phosphor Green';
+export const THEME_ID = 'xai-dark';
+export const THEME_NAME = 'xAI Dark';
 
-// These hex values are choices for this plan. They are not a published standard.
-export const PHOSPHOR_GREEN = {
-  bg: '#001a00',
-  fg: '#5dff5d',
-  dim: '#3dcc3d',
-  accent: '#d6ff4a',
-  good: '#7dffb3',
-  warn: '#ffe14a',
-  bad: '#ff6b6b',
-  border: '#1f8f1f',
-  selection: '#0d3d0d',
+// Near-black canvas, white ink, muted accents. Hex only so contrast checks stay strict.
+export const XAI_DARK = {
+  bg: '#0c0f14',
+  fg: '#f4f7fb',
+  dim: '#9aa8b8',
+  accent: '#2dd4bf',
+  good: '#4ade80',
+  warn: '#fbbf24',
+  bad: '#f87171',
+  border: '#6b7c90',
+  selection: '#1a2330',
 } as const satisfies ThemeTokens;
+
+/** @deprecated Use XAI_DARK. Kept as an alias for older test imports during the overhaul. */
+export const PHOSPHOR_GREEN = XAI_DARK;
 
 export const TEXT_TOKEN_KEYS = ['fg', 'dim', 'accent', 'good', 'warn', 'bad'] as const;
 

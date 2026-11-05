@@ -2,6 +2,7 @@
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { apiFetch, setCsrfToken } from '#lib/client/api.js';
+  import AppIcon from '#lib/client/app/AppIcon.svelte';
   import { loginWith, type Kind } from '#lib/client/ceremonies.js';
   import { messageFor } from '#lib/client/messages.js';
 
@@ -41,18 +42,23 @@
 </script>
 
 <svelte:head><title>srep login</title></svelte:head>
-<main>
+<main class="auth-panel">
+  <p class="auth-brand"><AppIcon name="brand" size={18} /><span>srep</span></p>
+  <p class="auth-eyebrow">Sign in</p>
   <h1>Log in</h1>
-  <p>
-    <button type="button" disabled={busy} onclick={() => login('passkey')}>
-      Log in with a passkey
+  <p class="auth-lead">Passwordless access with a passkey or security key for this instance.</p>
+  <div class="auth-actions">
+    <button type="button" class="auth-primary" disabled={busy} onclick={() => login('passkey')}>
+      <AppIcon name="passkey" size={16} />
+      <span>Log in with a passkey</span>
     </button>
     <button type="button" disabled={busy} onclick={() => login('security_key')}>
-      Log in with a security key
+      <AppIcon name="key" size={16} />
+      <span>Log in with a security key</span>
     </button>
-  </p>
+  </div>
   {#if error !== ''}<p class="error" role="alert">{error}</p>{/if}
-  <details>
+  <details class="auth-details">
     <summary>Use a recovery code</summary>
     <form onsubmit={useRecoveryCode}>
       <label class="field">
