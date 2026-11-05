@@ -20,7 +20,7 @@ import { createNote } from '#lib/server/domain/notes.js';
 import { SESSION as session } from '#lib/server/domain/test-support/route-support.js';
 import { addDeck, type StudyHarness } from '#lib/server/study/test-support/harness.js';
 import { useStudyRouteContext } from '#lib/server/study/test-support/route-support.js';
-import { POST } from './+server';
+import { GET, POST } from './+server';
 
 const ORIGIN = 'http://localhost:3000';
 const missing = '123e4567-e89b-42d3-a456-426614174000';
@@ -56,6 +56,40 @@ async function open(): Promise<StudyHarness> {
 function post(body: unknown) {
   return POST(makeEvent('/api/notes/trash', { body, session }).event);
 }
+
+describe('GET /api/notes/trash', () => {
+  it('lists trashed notes newest first', async () => {
+    const harness = await open();
+    harness.clock.now = 90;
+    const deck = await addDeck(harness, 'Spanish');
+    const first = await createNote(harness.deps, {
+      noteTypeId: BASIC_ID,
+      deckId: deck.id,
+      fields: ['gato', 'cat'],
+      tags: [],
+    });
+    const second = await createNote(harness.deps, {
+      noteTypeId: BASIC_ID,
+      deckId: deck.id,
+      fields: ['perro', 'dog'],
+      tags: [],
+    });
+    if (!first.ok || !second.ok) throw new Error('setup failed');
+    expect(await readBody(await GET(makeEvent('/api/notes/trash', { session }).event))).toEqual({
+      notes: [],
+    });
+    harness.clock.now = 100;
+    expect((await post({ noteIds: [first.note.id] })).status).toBe(200);
+    harness.clock.now = 110;
+    expect((await post({ noteIds: [second.note.id] })).status).toBe(200);
+    expect(await readBody(await GET(makeEvent('/api/notes/trash', { session }).event))).toEqual({
+      notes: [
+        { id: second.note.id, preview: 'perro', deletedAt: 110 },
+        { id: first.note.id, preview: 'gato', deletedAt: 100 },
+      ],
+    });
+  });
+});
 
 describe('POST /api/notes/trash', () => {
   it('returns 401 for a guest and 403 for a bad CSRF token', async () => {

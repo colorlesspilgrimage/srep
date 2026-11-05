@@ -51,10 +51,22 @@ test.describe.serial('authentication', () => {
     return body.csrfToken;
   }
 
-  async function logOut(): Promise<void> {
+  async function openSecurity(): Promise<void> {
     await page.goto('/security');
+    await expect(page).toHaveURL(/\/settings\?section=security/);
+    await page.waitForFunction(() => document.body.classList.contains('tui-page'));
+    await expect(page.getByRole('tabpanel', { name: 'Security' })).toBeVisible();
+    await expect(page.getByRole('list', { name: 'Credentials' })).toBeVisible();
+  }
+
+  async function logOut(): Promise<void> {
+    await openSecurity();
     await page.getByRole('button', { name: 'Log out', exact: true }).click();
     await expect(page).toHaveURL(/\/login$/);
+  }
+
+  function credentials() {
+    return page.getByRole('list', { name: 'Credentials' });
   }
 
   async function loginWithRecoveryCode(target: Page, code: string): Promise<void> {
@@ -119,15 +131,15 @@ test.describe.serial('authentication', () => {
   });
 
   test('5. add a security key, then log in with it', async () => {
-    await page.goto('/security');
+    await openSecurity();
     await expect(
       page.getByRole('status').filter({ hasText: 'You have one credential' }),
     ).toBeVisible();
     const usbId = await addAuthenticator(cdp, 'usb');
     await page.getByLabel('Nickname for the new credential').fill('YubiKey');
     await page.getByRole('button', { name: 'Add a security key' }).click();
-    await expect(page.getByRole('cell', { name: 'YubiKey', exact: true })).toBeVisible();
-    await expect(page.getByRole('row')).toHaveCount(3);
+    await expect(credentials()).toContainText('YubiKey');
+    await expect(credentials().getByRole('listitem')).toHaveCount(2);
     expect(await getCredentials(cdp, usbId)).toHaveLength(1);
 
     await logOut();
@@ -137,24 +149,24 @@ test.describe.serial('authentication', () => {
   });
 
   test('6. rename, revoke, and refuse to revoke the last credential', async () => {
-    await page.goto('/security');
+    await openSecurity();
     await page.getByRole('button', { name: 'Rename YubiKey' }).click();
     await page.getByLabel('New nickname').fill('Backup key');
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(page.getByRole('cell', { name: 'Backup key', exact: true })).toBeVisible();
+    await expect(credentials()).toContainText('Backup key');
 
     await page.getByRole('button', { name: 'Revoke Backup key' }).click();
     await page.getByRole('button', { name: 'Confirm revoke Backup key' }).click();
-    await expect(page.getByRole('row')).toHaveCount(2);
+    await expect(credentials().getByRole('listitem')).toHaveCount(1);
 
     await page.getByRole('button', { name: 'Revoke Laptop' }).click();
     await page.getByRole('button', { name: 'Confirm revoke Laptop' }).click();
     await expect(page.getByRole('alert')).toHaveText('You cannot remove your last credential.');
-    await expect(page.getByRole('cell', { name: 'Laptop', exact: true })).toBeVisible();
+    await expect(credentials()).toContainText('Laptop');
 
     const list = await page.request.get('/api/auth/credentials');
-    const { credentials }: { credentials: { id: string }[] } = await list.json();
-    const response = await page.request.delete(`/api/auth/credentials/${credentials[0]?.id}`, {
+    const { credentials: rows }: { credentials: { id: string }[] } = await list.json();
+    const response = await page.request.delete(`/api/auth/credentials/${rows[0]?.id}`, {
       headers: { ...sameOrigin, 'x-srep-csrf': await csrfToken() },
       data: {},
     });
@@ -169,7 +181,7 @@ test.describe.serial('authentication', () => {
     await expect(otherPage).toHaveURL(/\/$/);
     expect((await otherPage.request.get('/api/auth/credentials')).status()).toBe(200);
 
-    await page.goto('/security');
+    await openSecurity();
     await page.getByRole('button', { name: 'Log out everywhere' }).click();
     await expect(page).toHaveURL(/\/login$/);
     expect((await otherPage.request.get('/api/auth/credentials')).status()).toBe(401);

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_KEYBINDS } from '#lib/client/tui/keymap.js';
+import { DEFAULT_DISPLAY } from '#lib/client/app/display-prefs.js';
 
 const { readGallerySettings } = vi.hoisted(() => ({
   readGallerySettings: vi.fn(),
@@ -21,6 +22,7 @@ beforeEach(() => {
     ok: true,
     themeId: 'phosphor-green',
     keybinds: { ...DEFAULT_KEYBINDS },
+    display: { ...DEFAULT_DISPLAY },
   });
 });
 
@@ -43,7 +45,11 @@ describe('browse page load', () => {
     expect(headers.get('cache-control')).toBe('no-store');
     expect(headers.get('vary')).toBe('Cookie');
     expect([...headers.keys()].sort()).toEqual(['cache-control', 'vary']);
-    expect(page).toEqual({ themeId: 'phosphor-green', keybinds: DEFAULT_KEYBINDS });
+    expect(page).toEqual({
+      themeId: 'phosphor-green',
+      keybinds: DEFAULT_KEYBINDS,
+      display: DEFAULT_DISPLAY,
+    });
     expect(readGallerySettings).toHaveBeenCalledWith(expect.anything(), null);
   });
 

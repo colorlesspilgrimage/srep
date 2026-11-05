@@ -18,6 +18,7 @@
 <AppShell
   themeId={data.themeId}
   keybinds={data.keybinds}
+  display={data.display}
   bind:paletteOpen
   {modalOpen}
   mode="BROWSE"

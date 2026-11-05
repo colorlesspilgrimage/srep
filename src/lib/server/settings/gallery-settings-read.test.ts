@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { afterEach, describe, expect, it } from 'vitest';
+import { DEFAULT_DISPLAY } from '#lib/client/app/display-prefs.js';
 import { DEFAULT_KEYBINDS, PALETTE_OPEN } from '#lib/client/tui/keymap.js';
 import type { DbHandle } from '#lib/server/db/client.js';
 import { appSettings as pgSettings } from '#lib/server/db/schema/pg.js';
@@ -9,6 +10,7 @@ import {
   createDomainHarness,
   type DomainHarness,
 } from '#lib/server/domain/test-support/harness.js';
+import { DISPLAY_SETTINGS_KEY } from '#lib/server/settings/display-key.js';
 import { KEYBIND_SETTINGS_KEY } from '#lib/server/settings/keybind-key.js';
 import { readGallerySettings } from '#lib/server/settings/gallery-settings-read.js';
 import { THEME_SETTINGS_KEY } from '#lib/server/settings/theme-key.js';
@@ -66,9 +68,10 @@ type StubRow = { value: unknown } | undefined;
 function pgHandle(
   themeRowValue: StubRow,
   keyRow: StubRow,
+  displayRow: StubRow = undefined,
 ): { handle: DbHandle; configs: unknown[] } {
   const configs: unknown[] = [];
-  const rows = [themeRowValue, keyRow];
+  const rows = [themeRowValue, keyRow, displayRow];
   function chain(row: StubRow) {
     return {
       from() {
@@ -115,6 +118,7 @@ describe('gallery settings read', () => {
       ok: true,
       themeId: 'phosphor-green',
       keybinds: DEFAULT_KEYBINDS,
+      display: DEFAULT_DISPLAY,
     });
     expect(themeRow(db)).toBeUndefined();
   });
@@ -125,7 +129,12 @@ describe('gallery settings read', () => {
       .values({ key: THEME_SETTINGS_KEY, value: { id: 'amber-crt' } })
       .run();
     const result = await readGallerySettings(h?.handle as DbHandle, 'nord');
-    expect(result).toEqual({ ok: true, themeId: 'nord', keybinds: DEFAULT_KEYBINDS });
+    expect(result).toEqual({
+      ok: true,
+      themeId: 'nord',
+      keybinds: DEFAULT_KEYBINDS,
+      display: DEFAULT_DISPLAY,
+    });
     expect(themeRow(db)?.value).toEqual({ id: 'amber-crt' });
   });
 
@@ -135,7 +144,12 @@ describe('gallery settings read', () => {
       .values({ key: THEME_SETTINGS_KEY, value: { id: 'nord' } })
       .run();
     const result = await readGallerySettings(h?.handle as DbHandle, null);
-    expect(result).toEqual({ ok: true, themeId: 'nord', keybinds: DEFAULT_KEYBINDS });
+    expect(result).toEqual({
+      ok: true,
+      themeId: 'nord',
+      keybinds: DEFAULT_KEYBINDS,
+      display: DEFAULT_DISPLAY,
+    });
     expect(themeRow(db)?.value).toEqual({ id: 'nord' });
   });
 
@@ -200,6 +214,7 @@ describe('gallery settings read', () => {
       ok: true,
       themeId: 'phosphor-green',
       keybinds: DEFAULT_KEYBINDS,
+      display: DEFAULT_DISPLAY,
     });
     expect(JSON.stringify(result)).not.toContain('<script>');
     expect(themeRow(db)?.value).toEqual({ id: 'amber-crt' });
@@ -216,6 +231,7 @@ describe('gallery settings read', () => {
         ok: true,
         themeId: 'phosphor-green',
         keybinds: DEFAULT_KEYBINDS,
+        display: DEFAULT_DISPLAY,
       });
       expect(JSON.stringify(result), query).not.toContain('<');
       expect(JSON.stringify(result), query).not.toContain('://');
@@ -231,11 +247,13 @@ describe('gallery settings read', () => {
       ok: true,
       themeId: 'phosphor-green',
       keybinds: DEFAULT_KEYBINDS,
+      display: DEFAULT_DISPLAY,
     });
     expect(await readGallerySettings(h?.handle as DbHandle, objectQuery)).toEqual({
       ok: true,
       themeId: 'phosphor-green',
       keybinds: DEFAULT_KEYBINDS,
+      display: DEFAULT_DISPLAY,
     });
   });
 
@@ -243,8 +261,28 @@ describe('gallery settings read', () => {
     const stored = { ...DEFAULT_KEYBINDS, [PALETTE_OPEN]: 'Alt+K' };
     const stub = pgHandle({ value: { id: 'nord' } }, { value: stored });
     const result = await readGallerySettings(stub.handle, null);
-    expect(result).toEqual({ ok: true, themeId: 'nord', keybinds: stored });
+    expect(result).toEqual({
+      ok: true,
+      themeId: 'nord',
+      keybinds: stored,
+      display: DEFAULT_DISPLAY,
+    });
     expect(stub.configs).toEqual([]);
     expect(pgSettings.key).toBeDefined();
+  });
+
+  it('returns 500 for a corrupt display row and does not write', async () => {
+    const db = await openDb();
+    db.insert(appSettings)
+      .values({ key: DISPLAY_SETTINGS_KEY, value: { fontSize: 99 } })
+      .run();
+    const result = await readGallerySettings(h?.handle as DbHandle, null);
+    expect(result).toEqual({ ok: false, status: 500, error: 'settings_corrupt' });
+    const row = db
+      .select()
+      .from(appSettings)
+      .where(eq(appSettings.key, DISPLAY_SETTINGS_KEY))
+      .get();
+    expect(row?.value).toEqual({ fontSize: 99 });
   });
 });

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_DISPLAY } from '#lib/client/app/display-prefs.js';
 import { DEFAULT_KEYBINDS } from '#lib/client/tui/keymap.js';
 import { themeIdFromQuery } from '#lib/client/tui/themes.js';
 
@@ -26,6 +27,7 @@ beforeEach(() => {
     ok: true,
     themeId: query === null ? saved.id : themeIdFromQuery(query),
     keybinds: { ...DEFAULT_KEYBINDS },
+    display: { ...DEFAULT_DISPLAY },
   }));
 });
 
@@ -139,7 +141,7 @@ function expectSafePage(
   expect(result.headers.get('location')).toBeNull();
   expect(result.headers.get('set-cookie')).toBeNull();
   expect([...result.headers.keys()].sort()).toEqual(['cache-control', 'vary']);
-  expect(result.page).toEqual({ themeId, keybinds: DEFAULT_KEYBINDS });
+  expect(result.page).toEqual({ themeId, keybinds: DEFAULT_KEYBINDS, display: DEFAULT_DISPLAY });
   const body = JSON.stringify(result.page);
   expect(body).not.toContain('<');
   expect(body).not.toContain('://');

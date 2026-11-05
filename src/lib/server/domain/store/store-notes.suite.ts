@@ -124,7 +124,11 @@ export function defineNoteStoreSuite(make: MakeHarness): void {
       expect(await hh.store.restoreNote('n', undefined, 3)).toBe('not_trashed');
       expect(await hh.store.trashNote('n', 2)).toBe(true);
       expect(await hh.store.trashNote('n', 2)).toBe(false);
+      expect(await hh.store.listTrashedNotes()).toEqual([
+        { id: 'n', preview: 'front', deletedAt: 2 },
+      ]);
       expect(await hh.store.restoreNote('n', undefined, 3)).toBe('ok');
+      expect(await hh.store.listTrashedNotes()).toEqual([]);
       expect((await hh.store.getNoteState('n'))?.note).toMatchObject({
         deletedAt: null,
         updatedAt: 3,

@@ -24,6 +24,7 @@ import type {
   NoteRow,
   NoteState,
   NoteTypeWithTemplates,
+  TrashedNoteSummary,
 } from '#lib/server/domain/store/store-types.js';
 
 export type { CardView, NoteView } from '#lib/server/domain/note-view.js';
@@ -186,6 +187,12 @@ export async function getNote(deps: DomainDeps, id: string): NoteResult {
 
 export async function trashNote(deps: DomainDeps, id: string): Promise<Result<object>> {
   return (await deps.store.trashNote(id, deps.now())) ? { ok: true } : fail(404, 'not_found');
+}
+
+export async function listTrash(
+  deps: DomainDeps,
+): Promise<Result<{ notes: TrashedNoteSummary[] }>> {
+  return { ok: true, notes: await deps.store.listTrashedNotes() };
 }
 
 // A card whose deck was deleted needs a new deck before the note comes back.

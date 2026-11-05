@@ -14,5 +14,5 @@ export const load: PageServerLoad = async ({ setHeaders, url }) => {
   if (!result.ok) {
     error(result.status, result.error);
   }
-  return { themeId: result.themeId, keybinds: result.keybinds };
+  return { themeId: result.themeId, keybinds: result.keybinds, display: result.display };
 };

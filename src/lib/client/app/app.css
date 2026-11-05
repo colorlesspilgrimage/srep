@@ -2,9 +2,87 @@
    .tui-tabbar is display:none above 720px. Do not edit tui.css. */
 
 .tui-root.app-root {
+  position: relative;
   display: block;
   max-width: 100%;
   overflow-wrap: anywhere;
+  font-size: var(--tui-font-size, 16px);
+}
+
+/* Font sizes 12–24. Classes avoid inline style attrs (CSP style-src-attr). */
+.tui-root.app-root.tui-font-12 {
+  --tui-font-size: 12px;
+}
+.tui-root.app-root.tui-font-13 {
+  --tui-font-size: 13px;
+}
+.tui-root.app-root.tui-font-14 {
+  --tui-font-size: 14px;
+}
+.tui-root.app-root.tui-font-15 {
+  --tui-font-size: 15px;
+}
+.tui-root.app-root.tui-font-16 {
+  --tui-font-size: 16px;
+}
+.tui-root.app-root.tui-font-17 {
+  --tui-font-size: 17px;
+}
+.tui-root.app-root.tui-font-18 {
+  --tui-font-size: 18px;
+}
+.tui-root.app-root.tui-font-19 {
+  --tui-font-size: 19px;
+}
+.tui-root.app-root.tui-font-20 {
+  --tui-font-size: 20px;
+}
+.tui-root.app-root.tui-font-21 {
+  --tui-font-size: 21px;
+}
+.tui-root.app-root.tui-font-22 {
+  --tui-font-size: 22px;
+}
+.tui-root.app-root.tui-font-23 {
+  --tui-font-size: 23px;
+}
+.tui-root.app-root.tui-font-24 {
+  --tui-font-size: 24px;
+}
+
+/* Display prefs: scanline and cursor blink are CSS-only. No media assets.
+   Reduced-motion disables both effects even when those flags are saved. */
+.tui-root.app-root.tui-display-scanline:not(.tui-display-reduced-motion)::before {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 2px,
+    rgba(0, 0, 0, 0.14) 2px,
+    rgba(0, 0, 0, 0.14) 3px
+  );
+}
+
+@keyframes tui-cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.tui-root.app-root.tui-display-cursor-blink:not(.tui-display-reduced-motion) .tui-status::after {
+  content: '█';
+  margin-inline-start: 0.5ch;
+  animation: tui-cursor-blink 1s step-end infinite;
+}
+
+.tui-root.app-root.tui-display-reduced-motion,
+.tui-root.app-root.tui-display-reduced-motion * {
+  animation: none !important;
+  transition: none !important;
 }
 
 .app-screen {

@@ -225,7 +225,13 @@
 <TuiPage />
 <svelte:head><title>srep</title></svelte:head>
 
-<AppShell themeId={data.themeId} keybinds={data.keybinds} modalOpen={deleteOpen} bind:paletteOpen>
+<AppShell
+  themeId={data.themeId}
+  keybinds={data.keybinds}
+  display={data.display}
+  modalOpen={deleteOpen}
+  bind:paletteOpen
+>
   <main class="app-screen">
     <h1>srep</h1>
     <p>

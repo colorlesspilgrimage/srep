@@ -25,7 +25,13 @@
 <TuiPage />
 <svelte:head><title>Add note</title></svelte:head>
 
-<AppShell themeId={data.themeId} keybinds={data.keybinds} bind:paletteOpen mode="NOTE">
+<AppShell
+  themeId={data.themeId}
+  keybinds={data.keybinds}
+  display={data.display}
+  bind:paletteOpen
+  mode="NOTE"
+>
   {#key initialDeckId ?? ''}
     <NoteEditor mode="new" noteId={null} {initialDeckId} />
   {/key}
