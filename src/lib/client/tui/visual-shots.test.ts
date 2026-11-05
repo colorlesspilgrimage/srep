@@ -11,7 +11,7 @@ import {
   visualShotPlan,
 } from './visual-shots.js';
 
-// Contract: the 24 screenshot names. A bad id or a bad width throws.
+// Contract: the 6 screenshot names. A bad id or a bad width throws.
 // A file name is one safe segment. Shots do not use the clock or the network.
 
 const ROOT = path.resolve(import.meta.dirname, '../../../..');
@@ -84,12 +84,12 @@ function pngHasTextChunk(bytes: Buffer): boolean {
 }
 
 describe('visualShotPlan', () => {
-  it('returns 24 names in theme order, 360 then 1440', () => {
+  it('returns 6 names in theme order, 360 then 1440', () => {
     const files = planFiles();
-    expect(files).toHaveLength(24);
-    expect(files[0]).toBe('phosphor-green-360.png');
-    expect(files[1]).toBe('phosphor-green-1440.png');
-    expect(files[23]).toBe('high-contrast-1440.png');
+    expect(files).toHaveLength(6);
+    expect(files[0]).toBe('xai-dark-360.png');
+    expect(files[1]).toBe('xai-dark-1440.png');
+    expect(files[5]).toBe('high-contrast-1440.png');
     expect(VISUAL_WIDTHS).toEqual([360, 1440]);
   });
 
@@ -124,7 +124,7 @@ describe('visualShotName', () => {
   });
 
   it('throws bad_width for a width that is not 360 or 1440', () => {
-    expect(() => visualShotName('nord', 720)).toThrow(new Error('bad_width'));
+    expect(() => visualShotName('xai-dark', 720)).toThrow(new Error('bad_width'));
     for (const width of [
       0,
       -1,
@@ -136,7 +136,7 @@ describe('visualShotName', () => {
       Number.NaN,
       Number.POSITIVE_INFINITY,
     ]) {
-      expect(() => visualShotName('nord', width)).toThrow(new Error('bad_width'));
+      expect(() => visualShotName('xai-dark', width)).toThrow(new Error('bad_width'));
     }
   });
 
@@ -178,9 +178,9 @@ describe('requireSafeShotFile', () => {
 
 describe('visualGalleryPath', () => {
   it('builds a catalog path and encodes nothing extra', () => {
-    expect(visualGalleryPath('nord')).toBe('/gallery?theme=nord');
-    expect(visualGalleryPath('phosphor-green')).toBe('/gallery?theme=phosphor-green');
-    expect(visualGalleryPath('vt100-white-on-black')).toBe('/gallery?theme=vt100-white-on-black');
+    expect(visualGalleryPath('xai-dark')).toBe('/gallery?theme=xai-dark');
+    expect(visualGalleryPath('xai-light')).toBe('/gallery?theme=xai-light');
+    expect(visualGalleryPath('high-contrast')).toBe('/gallery?theme=high-contrast');
   });
 
   it('returns a catalog path or throws bad_theme', () => {
@@ -200,11 +200,11 @@ describe('visualGalleryPath', () => {
 });
 
 describe('visual shot files', () => {
-  it('stores 24 snapshots with no text secret', () => {
+  it('stores 6 snapshots with no text secret', () => {
     const names = readdirSync(SNAPSHOT_DIR)
       .filter((name) => name.endsWith('.png'))
       .sort();
-    expect(names).toHaveLength(24);
+    expect(names).toHaveLength(6);
     for (const name of names) {
       expect(name).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*-(?:360|1440)-chromium-linux\.png$/);
       expect(pngHasTextChunk(readFileSync(path.join(SNAPSHOT_DIR, name)))).toBe(false);

@@ -282,9 +282,15 @@
           Reveal
         </button>
       {:else}
+        <p class="study-meta">Rate</p>
         <div class="study-rate">
           {#each STUDY_RATINGS as rating (rating)}
-            <button type="button" disabled={locked} onclick={() => void rate(rating)}>
+            <button
+              type="button"
+              data-rating={rating}
+              disabled={locked}
+              onclick={() => void rate(rating)}
+            >
               {rateButtonText(rating, screen.phase.card.labels[rating])}
             </button>
           {/each}

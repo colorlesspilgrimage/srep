@@ -1,5 +1,4 @@
-/* App shell layout. BREAKPOINT_PX is 720, same as the gallery tab bar.
-   .tui-tabbar is display:none above 720px. Do not edit tui.css. */
+/* App shell layout. BREAKPOINT_PX is 720. */
 
 .tui-root.app-root {
   position: relative;
@@ -9,7 +8,6 @@
   font-size: var(--tui-font-size, 16px);
 }
 
-/* Font sizes 12–24. Classes avoid inline style attrs (CSP style-src-attr). */
 .tui-root.app-root.tui-font-12 {
   --tui-font-size: 12px;
 }
@@ -50,35 +48,6 @@
   --tui-font-size: 24px;
 }
 
-/* Display prefs: scanline and cursor blink are CSS-only. No media assets.
-   Reduced-motion disables both effects even when those flags are saved. */
-.tui-root.app-root.tui-display-scanline:not(.tui-display-reduced-motion)::before {
-  content: '';
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent 2px,
-    rgba(0, 0, 0, 0.14) 2px,
-    rgba(0, 0, 0, 0.14) 3px
-  );
-}
-
-@keyframes tui-cursor-blink {
-  50% {
-    opacity: 0;
-  }
-}
-
-.tui-root.app-root.tui-display-cursor-blink:not(.tui-display-reduced-motion) .tui-status::after {
-  content: '█';
-  margin-inline-start: 0.5ch;
-  animation: tui-cursor-blink 1s step-end infinite;
-}
-
 .tui-root.app-root.tui-display-reduced-motion,
 .tui-root.app-root.tui-display-reduced-motion * {
   animation: none !important;
@@ -86,13 +55,26 @@
 }
 
 .app-screen {
-  max-width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.app-screen > h1 {
+  font-family: 'Inter Display', Inter, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  margin: 0 0 1.25rem;
 }
 
 .app-tree {
   max-width: 100%;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .app-tree-row {
@@ -104,6 +86,22 @@
   box-sizing: border-box;
   overflow-wrap: anywhere;
   text-align: left;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 0.6rem 1rem;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.app-tree-row:hover {
+  background: var(--tui-selection);
+}
+
+.app-tree-row[aria-selected='true'] {
+  background: var(--tui-selection);
+  border-color: var(--tui-border-strong, rgba(255, 255, 255, 0.2));
 }
 
 .app-detail {
@@ -112,6 +110,11 @@
   gap: 0.5rem;
   max-width: 100%;
   align-items: center;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--tui-surface, #191919);
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: 0.75rem;
 }
 
 .app-detail input[type='text'],
@@ -128,15 +131,61 @@
 }
 
 .study-card {
-  max-width: 100%;
+  max-width: 40rem;
+  margin: 1.5rem auto;
+  padding: 2rem 1.5rem;
+  background: var(--tui-surface, #191919);
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: 1rem;
   overflow-wrap: anywhere;
+  font-size: 1.25rem;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+  transition: opacity 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.study-meta {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tui-dim);
+  text-align: center;
+  margin: 0 0 0.5rem;
 }
 
 .study-rate {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  max-width: 100%;
+  max-width: 40rem;
+  margin: 1rem auto 0;
+  justify-content: center;
+}
+
+.study-rate button {
+  flex: 1 1 5rem;
+  min-width: 5rem;
+}
+
+.study-rate button[data-rating='1'] {
+  border-color: var(--tui-bad);
+  color: var(--tui-bad);
+}
+
+.study-rate button[data-rating='2'] {
+  border-color: var(--tui-warn);
+  color: var(--tui-warn);
+}
+
+.study-rate button[data-rating='3'] {
+  border-color: var(--tui-good);
+  color: var(--tui-good);
+}
+
+.study-rate button[data-rating='4'] {
+  border-color: var(--tui-accent);
+  color: var(--tui-accent);
 }
 
 .app-dialog textarea {
@@ -149,13 +198,17 @@
 .note-editor {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
   max-width: 100%;
 }
 
 .note-preview {
   max-width: 100%;
   overflow-wrap: anywhere;
+  padding: 1rem;
+  background: var(--tui-surface, #191919);
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: 0.75rem;
 }
 
 .note-editor textarea,
@@ -187,7 +240,7 @@
 .browse-screen {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
   max-width: 100%;
 }
 
@@ -208,9 +261,18 @@
   max-width: 100%;
 }
 
+.browse-grid {
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--tui-surface, #191919);
+}
+
 .browse-grid [role='gridcell'] {
   unicode-bidi: isolate;
   overflow-wrap: anywhere;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
 }
 
 .browse-screen[data-modal='open'] .browse-search,
@@ -220,23 +282,27 @@
 }
 
 .app-tree-row[data-level='2'] {
-  padding-left: 1rem;
+  padding-left: 1.5rem;
 }
 
 .app-tree-row[data-level='3'] {
-  padding-left: 2rem;
+  padding-left: 2.5rem;
 }
 
 .app-tree-row[data-level='4'] {
-  padding-left: 3rem;
+  padding-left: 3.5rem;
 }
 
 .app-tree-row[data-level='5'] {
-  padding-left: 4rem;
+  padding-left: 4.5rem;
 }
 
 .app-tree-row[data-level='6'] {
-  padding-left: 5rem;
+  padding-left: 5.5rem;
+}
+
+.app-tab {
+  border-radius: 9999px !important;
 }
 
 @media (max-width: 720px) {

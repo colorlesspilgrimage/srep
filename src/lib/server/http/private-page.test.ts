@@ -21,7 +21,7 @@ beforeEach(() => {
   readGallerySettings.mockReset();
   readGallerySettings.mockResolvedValue({
     ok: true,
-    themeId: 'phosphor-green',
+    themeId: 'xai-dark',
     keybinds: { ...DEFAULT_KEYBINDS },
     display: { ...DEFAULT_DISPLAY },
   });
@@ -60,7 +60,7 @@ describe('private page headers', () => {
     expect(headers.get('vary')).toBe('Cookie');
     expect([...headers.keys()].sort()).toEqual(['cache-control', 'vary']);
     expect(page).toEqual({
-      themeId: 'phosphor-green',
+      themeId: 'xai-dark',
       keybinds: DEFAULT_KEYBINDS,
       display: DEFAULT_DISPLAY,
     });

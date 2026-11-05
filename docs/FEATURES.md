@@ -84,7 +84,7 @@ FSRS scheduling with learning steps, a day-rollover clock, daily limits, a queue
 
 ## TUI gallery shell (M4 slice 1)
 
-A signed-in gallery shows pane, border, list, form, modal, and status-line samples on a character grid. Desktop shows two panes. A 360px width shows one pane and a tab bar. The default theme is Phosphor Green. The Themes list can show every pre-made theme.
+A signed-in gallery shows pane, border, list, form, modal, and status-line samples in the product UI kit. Desktop shows two panes. A 360px width shows one pane and a tab bar. The default theme is xAI Dark. The Themes list can show every pre-made theme.
 
 - Entry point: browser path `/gallery` after sign-in. Home page link `Gallery`.
 - Use:
@@ -111,7 +111,7 @@ The gallery can show 12 pre-made themes. The choice is not saved. Each theme pas
   2. Open `/gallery`.
   3. In the `Themes` list, choose `Nord`.
   4. Open `/gallery?theme=solarized-light`.
-  5. Reload `/gallery` with no query. The theme is Phosphor Green again.
+  5. Reload `/gallery` with no query. The theme is xAI Dark again.
 - Check:
   - `curl -s -D - -o /dev/null 'http://127.0.0.1:3000/gallery?theme=nord'` on a fresh database returns `303` and `location: /setup`.
   - `npx vitest run src/lib/client/tui src/routes/gallery` passes.
@@ -351,7 +351,7 @@ A signed-in Settings page saves theme, keybinds, and study day against the exist
 
 ## Settings display (M5 slice 16)
 
-A signed-in Settings page saves display prefs (font size, reduced motion, scanline, cursor blink). The first HTML paints those prefs on the AppShell root. Presets, Security, and Data stay placeholders.
+A signed-in Settings page saves display prefs (font size, reduced motion). The first HTML paints those prefs on the AppShell root. Presets, Security, and Data stay placeholders.
 
 - Entry point: browser path `/settings` after sign-in. Section Display. API `GET` and `PUT /api/settings/display`.
 - Use:
@@ -360,7 +360,7 @@ A signed-in Settings page saves display prefs (font size, reduced motion, scanli
   3. Set font size to 18. Turn on Reduced motion, Scanline, and Cursor blink.
   4. Press Save display. Reload. The root still uses 18px and the same flags.
 - Check:
-  - `curl -s -o /dev/null -w '%{http_code}\n' -X PUT http://127.0.0.1:3000/api/settings/display -H 'content-type: application/json' -d '{"fontSize":18,"reducedMotion":true,"scanline":true,"cursorBlink":true}'` prints `401`.
+  - `curl -s -o /dev/null -w '%{http_code}\n' -X PUT http://127.0.0.1:3000/api/settings/display -H 'content-type: application/json' -d '{"fontSize":18,"reducedMotion":true,"scanline":false,"cursorBlink":false}'` prints `401`.
   - `npx vitest run src/lib/client/app/display-prefs.test.ts src/lib/client/app/settings-client.test.ts src/lib/server/settings/display-settings.test.ts src/routes/api/settings/display` exits 0.
   - `npx playwright test e2e/settings-screen.test.ts` exits 0.
 - Code and tests:

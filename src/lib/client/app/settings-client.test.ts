@@ -44,7 +44,7 @@ describe('createSettingsClient', () => {
     const { seen, fetchJson } = calls();
     const client = createSettingsClient(fetchJson);
     await client.getTheme();
-    await client.putTheme('nord');
+    await client.putTheme('xai-light');
     await client.getKeybinds();
     await client.putKeybinds(DEFAULT_KEYBINDS);
     await client.getStudy();
@@ -58,7 +58,7 @@ describe('createSettingsClient', () => {
     });
     expect(seen).toEqual([
       { path: '/api/settings/theme', init: undefined },
-      { path: '/api/settings/theme', init: { method: 'PUT', body: { id: 'nord' } } },
+      { path: '/api/settings/theme', init: { method: 'PUT', body: { id: 'xai-light' } } },
       { path: '/api/settings/keybinds', init: undefined },
       { path: '/api/settings/keybinds', init: { method: 'PUT', body: DEFAULT_KEYBINDS } },
       { path: '/api/settings/study', init: undefined },

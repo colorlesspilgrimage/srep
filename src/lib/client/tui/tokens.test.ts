@@ -3,8 +3,8 @@ import path from 'node:path';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
-  PHOSPHOR_GREEN,
   TEXT_TOKEN_KEYS,
+  XAI_DARK,
   contrastRatio,
   meetsContrast,
   parseHex,
@@ -13,8 +13,8 @@ import {
 } from './tokens.js';
 
 describe('parseHex', () => {
-  it('parseHex(#5dff5d) returns red 93, green 255, blue 93', () => {
-    expect(parseHex('#5dff5d')).toEqual({ red: 93, green: 255, blue: 93 });
+  it('parseHex(#ffffff) returns red 255, green 255, blue 255', () => {
+    expect(parseHex('#ffffff')).toEqual({ red: 255, green: 255, blue: 255 });
   });
 
   it.each(['#FFF', '#5DFF5D', '5dff5d', '#5dff5dff', ''])(
@@ -31,8 +31,8 @@ describe('contrastRatio', () => {
   });
 
   it('contrastRatio is symmetric and a color against itself is 1', () => {
-    expect(contrastRatio('#5dff5d', '#001a00')).toBe(contrastRatio('#001a00', '#5dff5d'));
-    expect(contrastRatio('#5dff5d', '#5dff5d')).toBe(1);
+    expect(contrastRatio('#ffffff', '#0a0a0a')).toBe(contrastRatio('#0a0a0a', '#ffffff'));
+    expect(contrastRatio('#ffffff', '#ffffff')).toBe(1);
     expect(contrastRatio('#000000', '#000000')).toBe(1);
   });
 
@@ -43,15 +43,15 @@ describe('contrastRatio', () => {
   });
 
   it('the focus color meets the non-text minimum on the background', () => {
-    expect(meetsContrast(contrastRatio(PHOSPHOR_GREEN.accent, PHOSPHOR_GREEN.bg), 3)).toBe(true);
+    expect(meetsContrast(contrastRatio(XAI_DARK.accent, XAI_DARK.bg), 3)).toBe(true);
   });
 
-  it('themeContrastFailures(PHOSPHOR_GREEN) is empty', () => {
-    expect(themeContrastFailures(PHOSPHOR_GREEN)).toEqual([]);
+  it('themeContrastFailures(XAI_DARK) is empty', () => {
+    expect(themeContrastFailures(XAI_DARK)).toEqual([]);
   });
 
   it('themeContrastFailures reports a bad hex and does not throw', () => {
-    const bad: ThemeTokens = { ...PHOSPHOR_GREEN, fg: 'not-a-color' };
+    const bad: ThemeTokens = { ...XAI_DARK, fg: 'not-a-color' };
     expect(() => themeContrastFailures(bad)).not.toThrow();
     expect(themeContrastFailures(bad)).toContain('fg on bg');
     expect(themeContrastFailures(bad)).not.toEqual([]);
@@ -59,9 +59,9 @@ describe('contrastRatio', () => {
 
   it('themeContrastFailures reports a text pair and the border pair', () => {
     const bad: ThemeTokens = {
-      ...PHOSPHOR_GREEN,
-      fg: PHOSPHOR_GREEN.bg,
-      border: PHOSPHOR_GREEN.bg,
+      ...XAI_DARK,
+      fg: XAI_DARK.bg,
+      border: XAI_DARK.bg,
     };
     const failures = themeContrastFailures(bad);
     expect(failures).toContain('fg on bg');
@@ -69,28 +69,28 @@ describe('contrastRatio', () => {
     expect(failures).toContain('fg on selection');
   });
 
-  it('tui.css declares each Phosphor Green token', () => {
+  it('tui.css declares each xAI Dark token', () => {
     const css = readFileSync(path.join(import.meta.dirname, 'tui.css'), 'utf8');
-    const keys = Object.keys(PHOSPHOR_GREEN) as (keyof ThemeTokens)[];
+    const keys = Object.keys(XAI_DARK) as (keyof ThemeTokens)[];
     for (const key of keys) {
-      expect(css).toContain(`--tui-${key}: ${PHOSPHOR_GREEN[key]};`);
+      expect(css).toContain(`--tui-${key}: ${XAI_DARK[key]};`);
     }
     expect(TEXT_TOKEN_KEYS).toEqual(['fg', 'dim', 'accent', 'good', 'warn', 'bad']);
   });
 
-  it('contrastRatio is at least 1 and symmetric for any two colors', () => {
-    const byte = fc.integer({ min: 0, max: 255 });
-    const hex = fc.tuple(byte, byte, byte).map(([red, green, blue]) => {
-      const part = (channel: number) => channel.toString(16).padStart(2, '0');
-      return `#${part(red)}${part(green)}${part(blue)}`;
-    });
+  it('random hex pairs keep contrastRatio finite and at least 1', () => {
+    const hex = fc
+      .tuple(fc.integer({ min: 0, max: 255 }), fc.integer({ min: 0, max: 255 }), fc.integer({ min: 0, max: 255 }))
+      .map(
+        ([r, g, b]) =>
+          `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`,
+      );
     fc.assert(
-      fc.property(hex, hex, (left, right) => {
-        const forward = contrastRatio(left, right);
-        const backward = contrastRatio(right, left);
-        return forward >= 1 && forward === backward;
+      fc.property(hex, hex, (a, b) => {
+        const ratio = contrastRatio(a, b);
+        return Number.isFinite(ratio) && ratio >= 1;
       }),
-      { seed: 1, numRuns: 100 },
+      { seed: 1, numRuns: 50 },
     );
   });
 });

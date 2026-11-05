@@ -65,8 +65,6 @@
 
   let fontSizeText = $state('16');
   let reducedMotion = $state(false);
-  let scanline = $state(false);
-  let cursorBlink = $state(false);
   let displayStatus = $state('');
   let displayPending = $state(false);
   let displayReady = $state(false);
@@ -120,8 +118,8 @@
     const accepted = acceptDisplay({
       fontSizeText,
       reducedMotion,
-      scanline,
-      cursorBlink,
+      scanline: false,
+      cursorBlink: false,
     });
     if (accepted.ok) {
       onDisplay(accepted.display);
@@ -176,9 +174,7 @@
   function applyLoadedDisplay(prefs: DisplayPrefs): void {
     fontSizeText = String(prefs.fontSize);
     reducedMotion = prefs.reducedMotion;
-    scanline = prefs.scanline;
-    cursorBlink = prefs.cursorBlink;
-    onDisplay(copyDisplayPrefs(prefs));
+    onDisplay(copyDisplayPrefs({ ...prefs, scanline: false, cursorBlink: false }));
   }
 
   async function loadDisplay(): Promise<void> {
@@ -235,8 +231,8 @@
     const accepted = acceptDisplay({
       fontSizeText,
       reducedMotion,
-      scanline,
-      cursorBlink,
+      scanline: false,
+      cursorBlink: false,
     });
     if (!accepted.ok) {
       displayStatus = accepted.error;
@@ -247,8 +243,8 @@
       const result = await client.putDisplay({
         fontSizeText: String(accepted.display.fontSize),
         reducedMotion: accepted.display.reducedMotion,
-        scanline: accepted.display.scanline,
-        cursorBlink: accepted.display.cursorBlink,
+        scanline: false,
+        cursorBlink: false,
       });
       if (!result.ok) {
         displayStatus = 'Could not save display settings.';
@@ -323,26 +319,6 @@
                 onchange={previewDisplay}
               />
               Reduced motion
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                name="scanline"
-                bind:checked={scanline}
-                disabled={displayPending}
-                onchange={previewDisplay}
-              />
-              Scanline
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                name="cursorBlink"
-                bind:checked={cursorBlink}
-                disabled={displayPending}
-                onchange={previewDisplay}
-              />
-              Cursor blink
             </label>
             <button type="submit" aria-busy={displayPending}>Save display</button>
           </form>

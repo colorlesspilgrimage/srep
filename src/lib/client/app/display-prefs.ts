@@ -109,15 +109,10 @@ export function parseDisplayPrefs(value: unknown): DisplayPrefs | null {
 
 export function displayRootClass(prefs: DisplayPrefs): string {
   // Font size is a class, not a style attr, so CSP style-src-attr stays tight.
+  // Scanline and cursorBlink remain in stored prefs for API compat; they no longer paint.
   const parts = ['tui-display', `tui-font-${prefs.fontSize}`];
   if (prefs.reducedMotion) {
     parts.push('tui-display-reduced-motion');
-  }
-  if (prefs.scanline) {
-    parts.push('tui-display-scanline');
-  }
-  if (prefs.cursorBlink) {
-    parts.push('tui-display-cursor-blink');
   }
   return parts.join(' ');
 }

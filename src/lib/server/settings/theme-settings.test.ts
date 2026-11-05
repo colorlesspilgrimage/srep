@@ -17,10 +17,10 @@ import {
 } from '#lib/server/settings/theme-settings.js';
 import { getThemeStore } from '#lib/server/settings/theme-store.js';
 
-// Contract: the saved theme id. A bad id is refused. A bad stored value is not repaired.
+// Contract: the saved theme id. A bad id is refused. Legacy CRT ids migrate on read.
 
 const STUDY_VALUE = { rolloverHour: 4, timezone: 'UTC' };
-const BAD_IDS = ['nope', 'Nord', 'nord ', '<script>', 'phosphor-green\n'];
+const BAD_IDS = ['nope', 'Nord', 'nord ', '<script>', 'phosphor-green\n', 'nord'];
 const CATALOG = new Set(PREMADE_THEMES.map((theme) => theme.id));
 const OTHER_ROWS = [
   ['study', STUDY_VALUE],
@@ -31,12 +31,12 @@ const OTHER_ROWS = [
 ] as const;
 const CORRUPT_VALUES: readonly JsonValue[] = [
   { id: '<script>alert(1)</script>' },
-  { id: 'nord', extra: true },
-  { id: 'nord', key: 'study' },
+  { id: 'xai-dark', extra: true },
+  { id: 'xai-dark', key: 'study' },
   { id: 'nord;background:url(//evil)' },
   { id: 'tui-theme-nord' },
-  'nord',
-  ['nord'],
+  'xai-dark',
+  ['xai-dark'],
   { id: null },
   { id: 1 },
   {},
@@ -67,23 +67,29 @@ async function openStore() {
 async function absentRow(): Promise<void> {
   const { store } = await openStore();
   const result = await getThemeSettings(store, { error: vi.fn() });
-  expect(result).toEqual({ ok: true, id: 'phosphor-green' });
+  expect(result).toEqual({ ok: true, id: 'xai-dark' });
 }
 
 async function replaceTheme(): Promise<void> {
   const { db, store } = await openStore();
-  expect(await putThemeSettings(store, 'nord')).toEqual({ ok: true, id: 'nord' });
-  expect(await getThemeSettings(store, { error: vi.fn() })).toEqual({ ok: true, id: 'nord' });
-  expect(await putThemeSettings(store, 'amber-crt')).toEqual({ ok: true, id: 'amber-crt' });
-  expect(await getThemeSettings(store, { error: vi.fn() })).toEqual({ ok: true, id: 'amber-crt' });
+  expect(await putThemeSettings(store, 'xai-light')).toEqual({ ok: true, id: 'xai-light' });
+  expect(await getThemeSettings(store, { error: vi.fn() })).toEqual({ ok: true, id: 'xai-light' });
+  expect(await putThemeSettings(store, 'high-contrast')).toEqual({
+    ok: true,
+    id: 'high-contrast',
+  });
+  expect(await getThemeSettings(store, { error: vi.fn() })).toEqual({
+    ok: true,
+    id: 'high-contrast',
+  });
   const rows = db.select().from(appSettings).where(eq(appSettings.key, THEME_SETTINGS_KEY)).all();
   expect(rows).toHaveLength(1);
-  expect(rows[0]?.value).toEqual({ id: 'amber-crt' });
+  expect(rows[0]?.value).toEqual({ id: 'high-contrast' });
 }
 
 async function refuseBadId(): Promise<void> {
   const { db, store } = await openStore();
-  await putThemeSettings(store, 'nord');
+  await putThemeSettings(store, 'xai-light');
   for (const id of BAD_IDS) {
     expect(await putThemeSettings(store, id)).toEqual({
       ok: false,
@@ -91,13 +97,13 @@ async function refuseBadId(): Promise<void> {
       error: 'bad_request',
     });
   }
-  expect(themeRow(db)?.value).toEqual({ id: 'nord' });
+  expect(themeRow(db)?.value).toEqual({ id: 'xai-light' });
 }
 
 async function keepStudyRow(): Promise<void> {
   const { db, store } = await openStore();
   db.insert(appSettings).values({ key: 'study', value: STUDY_VALUE }).run();
-  expect(await putThemeSettings(store, 'nord')).toEqual({ ok: true, id: 'nord' });
+  expect(await putThemeSettings(store, 'xai-light')).toEqual({ ok: true, id: 'xai-light' });
   const study = db.select().from(appSettings).where(eq(appSettings.key, 'study')).get();
   expect(study?.value).toEqual(STUDY_VALUE);
 }
@@ -118,17 +124,29 @@ async function corruptId(): Promise<void> {
   expect(themeRow(db)?.value).toEqual({ id: 'nope' });
 }
 
+async function migrateLegacyId(): Promise<void> {
+  const { db, store } = await openStore();
+  db.insert(appSettings)
+    .values({ key: THEME_SETTINGS_KEY, value: { id: 'phosphor-green' } })
+    .run();
+  expect(await getThemeSettings(store, { error: vi.fn() })).toEqual({
+    ok: true,
+    id: 'xai-dark',
+  });
+  expect(themeRow(db)?.value).toEqual({ id: 'phosphor-green' });
+}
+
 async function keepOtherKeys(): Promise<void> {
   const { db, store } = await openStore();
   for (const [key, value] of OTHER_ROWS) {
     db.insert(appSettings).values({ key, value }).run();
   }
-  expect(await putThemeSettings(store, 'nord')).toEqual({ ok: true, id: 'nord' });
+  expect(await putThemeSettings(store, 'xai-light')).toEqual({ ok: true, id: 'xai-light' });
   for (const [key, value] of OTHER_ROWS) {
     const row = db.select().from(appSettings).where(eq(appSettings.key, key)).get();
     expect(row?.value).toEqual(value);
   }
-  expect(themeRow(db)?.value).toEqual({ id: 'nord' });
+  expect(themeRow(db)?.value).toEqual({ id: 'xai-light' });
 }
 
 async function rejectCorrupt(): Promise<void> {
@@ -149,7 +167,7 @@ async function rejectCorrupt(): Promise<void> {
 
 async function propertyPut(): Promise<void> {
   const { db, store } = await openStore();
-  expect(await putThemeSettings(store, 'nord')).toEqual({ ok: true, id: 'nord' });
+  expect(await putThemeSettings(store, 'xai-light')).toEqual({ ok: true, id: 'xai-light' });
   await fc.assert(
     fc.asyncProperty(fc.string({ maxLength: 64 }), async (id) => {
       const before = themeRow(db)?.value;
@@ -163,7 +181,7 @@ async function propertyPut(): Promise<void> {
         expect(result).toEqual({ ok: false, status: 400, error: 'bad_request' });
         expect(row).toEqual(before);
       }
-      expect(await putThemeSettings(store, 'nord')).toEqual({ ok: true, id: 'nord' });
+      expect(await putThemeSettings(store, 'xai-light')).toEqual({ ok: true, id: 'xai-light' });
     }),
     { seed: 1, numRuns: 40 },
   );
@@ -172,22 +190,23 @@ async function propertyPut(): Promise<void> {
 async function interpretStoredTheme(): Promise<void> {
   await openStore();
   const logger = { error: vi.fn() };
-  expect(interpretTheme(undefined, logger)).toEqual({ ok: true, id: 'phosphor-green' });
+  expect(interpretTheme(undefined, logger)).toEqual({ ok: true, id: 'xai-dark' });
   expect(logger.error).not.toHaveBeenCalled();
-  expect(interpretTheme({ id: 'nord' }, logger)).toEqual({ ok: true, id: 'nord' });
+  expect(interpretTheme({ id: 'xai-light' }, logger)).toEqual({ ok: true, id: 'xai-light' });
+  expect(interpretTheme({ id: 'nord' }, logger)).toEqual({ ok: true, id: 'xai-dark' });
   expect(interpretTheme({ id: 'nope' }, logger)).toEqual({
     ok: false,
     status: 500,
     error: 'settings_corrupt',
   });
-  expect(interpretTheme({ id: 'nord', extra: true }, logger).ok).toBe(false);
+  expect(interpretTheme({ id: 'xai-dark', extra: true }, logger).ok).toBe(false);
   expect(logger.error).toHaveBeenCalledWith({ key: 'theme' });
   expect(JSON.stringify(logger.error.mock.calls)).not.toContain('nope');
 }
 
 async function corruptString(): Promise<void> {
   const { db, store } = await openStore();
-  db.insert(appSettings).values({ key: THEME_SETTINGS_KEY, value: 'nord' }).run();
+  db.insert(appSettings).values({ key: THEME_SETTINGS_KEY, value: 'xai-dark' }).run();
   const logger = { error: vi.fn() };
   expect(await getThemeSettings(store, logger)).toEqual({
     ok: false,
@@ -198,8 +217,8 @@ async function corruptString(): Promise<void> {
 }
 
 describe('theme settings', () => {
-  it('returns phosphor-green when the row is absent', absentRow);
-  it('stores nord and then replaces it with amber-crt', replaceTheme);
+  it('returns xai-dark when the row is absent', absentRow);
+  it('stores xai-light and then replaces it with high-contrast', replaceTheme);
   it('refuses a bad id and keeps the stored id', refuseBadId);
   it('does not change the study row', keepStudyRow);
   it('does not change study, ui, or auth rows', keepOtherKeys);
@@ -209,6 +228,7 @@ describe('theme settings', () => {
     'returns 500 when the stored id is not in the catalog and does not rewrite the row',
     corruptId,
   );
+  it('migrates a legacy CRT id on read without rewriting the row', migrateLegacyId);
   it('returns 500 when the stored value is a JSON string', corruptString);
   it('parses a stored theme without a second copy of the checks', interpretStoredTheme);
 });

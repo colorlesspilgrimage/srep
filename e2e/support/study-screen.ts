@@ -81,7 +81,7 @@ export async function openStudy(page: Page, deckId: string): Promise<void> {
   await page.waitForFunction(() => document.body.classList.contains('tui-page'));
   expect(response?.headers()['cache-control']).toBe('no-store');
   await expect(page.getByRole('heading', { name: 'Study', level: 1 })).toBeVisible();
-  await expect(page.locator('.tui-theme-phosphor-green')).toBeVisible();
+  await expect(page.locator('.tui-theme-xai-dark')).toBeVisible();
 }
 
 export function untilText(ms: number): string {

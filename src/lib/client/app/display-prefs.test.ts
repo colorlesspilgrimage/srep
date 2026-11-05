@@ -54,8 +54,6 @@ describe('display prefs', () => {
         scanline: true,
         cursorBlink: true,
       }),
-    ).toBe(
-      'tui-display tui-font-18 tui-display-reduced-motion tui-display-scanline tui-display-cursor-blink',
-    );
+    ).toBe('tui-display tui-font-18 tui-display-reduced-motion');
   });
 });
