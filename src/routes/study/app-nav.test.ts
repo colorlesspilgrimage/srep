@@ -4,10 +4,10 @@ import { APP_COMMANDS, commandTarget, NAV_ITEMS, tabKeyIndex } from '#lib/client
 describe('app nav', () => {
   it('lists Decks, Study, Browse, Settings, and the six commands', () => {
     expect(NAV_ITEMS).toEqual([
-      { id: 'decks', label: 'Decks', href: '/' },
-      { id: 'study', label: 'Study', href: '/study' },
-      { id: 'browse', label: 'Browse', href: '/browse' },
-      { id: 'settings', label: 'Settings', href: '/settings' },
+      { id: 'decks', label: 'Decks', href: '/', icon: 'decks' },
+      { id: 'study', label: 'Study', href: '/study', icon: 'study' },
+      { id: 'browse', label: 'Browse', href: '/browse', icon: 'browse' },
+      { id: 'settings', label: 'Settings', href: '/settings', icon: 'settings' },
     ]);
     expect(APP_COMMANDS).toEqual([
       'Open Decks',
