@@ -64,8 +64,14 @@
   {:else}
     <p role="status">Save these codes now. They are shown once.</p>
     <pre class="auth-codes" aria-label="Recovery codes">{recoveryCodes.join('\n')}</pre>
-    <p class="auth-lead">Add a second credential on the security page, so you cannot lose access.</p>
-    <button type="button" class="auth-primary" onclick={() => goto(resolve('/security'), { invalidateAll: true })}>
+    <p class="auth-lead">
+      Add a second credential on the security page, so you cannot lose access.
+    </p>
+    <button
+      type="button"
+      class="auth-primary"
+      onclick={() => goto(resolve('/security'), { invalidateAll: true })}
+    >
       Continue
     </button>
   {/if}

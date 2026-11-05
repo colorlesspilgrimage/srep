@@ -80,7 +80,11 @@ describe('contrastRatio', () => {
 
   it('random hex pairs keep contrastRatio finite and at least 1', () => {
     const hex = fc
-      .tuple(fc.integer({ min: 0, max: 255 }), fc.integer({ min: 0, max: 255 }), fc.integer({ min: 0, max: 255 }))
+      .tuple(
+        fc.integer({ min: 0, max: 255 }),
+        fc.integer({ min: 0, max: 255 }),
+        fc.integer({ min: 0, max: 255 }),
+      )
       .map(
         ([r, g, b]) =>
           `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`,

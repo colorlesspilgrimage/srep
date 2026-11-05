@@ -41,7 +41,8 @@
   --tui-muted: rgba(244, 247, 251, 0.58);
   --tui-radius: 0.75rem;
   --tui-radius-sm: 0.55rem;
-  --tui-wash: radial-gradient(90% 70% at 12% -10%, rgba(45, 212, 191, 0.16), transparent 45%),
+  --tui-wash:
+    radial-gradient(90% 70% at 12% -10%, rgba(45, 212, 191, 0.16), transparent 45%),
     radial-gradient(80% 60% at 90% 0%, rgba(96, 165, 250, 0.1), transparent 40%);
 }
 
@@ -72,7 +73,6 @@ body.tui-page {
   max-width: 100%;
   min-height: 100dvh;
 }
-
 
 .tui-eyebrow {
   font-family: 'Geist Mono', ui-monospace, monospace;

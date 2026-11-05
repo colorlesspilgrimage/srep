@@ -88,7 +88,7 @@ async function defaultHints(): Promise<void> {
   await expect(line).toContainText('GALLERY');
   await expect(line).toContainText('Ctrl+K palette');
   await expect(line).toContainText('Esc close');
-  await expect(line).toContainText('Phosphor Green');
+  await expect(line).toContainText('xAI Dark');
 }
 
 async function openAndClose(): Promise<void> {
@@ -285,7 +285,7 @@ test.describe.serial('gallery keys', () => {
   test.beforeAll(signIn);
   test.afterAll(restoreDefault);
   test('guest PUT /api/settings/keybinds returns 401', guestPut);
-  test('status line shows Ctrl+K palette, Esc close, and Phosphor Green', defaultHints);
+  test('status line shows Ctrl+K palette, Esc close, and xAI Dark', defaultHints);
   test('Ctrl+K opens the command palette and Escape closes it', openAndClose);
   test('Show Settings opens the settings pane', showSettings);
   test('Enter runs the focused command when the filter has many rows', enterFocusedRow);

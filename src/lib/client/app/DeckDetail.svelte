@@ -83,9 +83,7 @@
     <p class="tui-eyebrow">Selected deck</p>
   </div>
   {#if !canEdit}
-    <p class="app-lead">
-      Pick a deck in the tree, or create a root deck to start a library.
-    </p>
+    <p class="app-lead">Pick a deck in the tree, or create a root deck to start a library.</p>
   {/if}
   <div class="app-detail-field">
     <label for="deck-name">Deck name</label>
