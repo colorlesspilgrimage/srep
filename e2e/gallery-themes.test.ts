@@ -67,8 +67,8 @@ test.describe.serial('gallery themes', () => {
 
   test('xai-light query shows light colors', async () => {
     await openGallery('?theme=xai-light');
-    expect(await rootBackground()).toBe('rgb(255, 255, 255)');
-    expect(await rootToken('--tui-fg')).toBe('#0a0a0a');
+    expect(await rootBackground()).toBe('rgb(243, 246, 250)');
+    expect(await rootToken('--tui-fg')).toBe('#0c0f14');
     const status = page.getByRole('contentinfo', { name: 'Status line' });
     await expect(status).toContainText('GALLERY');
     await expect(status).toContainText('xAI Light');
@@ -76,7 +76,7 @@ test.describe.serial('gallery themes', () => {
 
   test('unknown theme query shows xAI Dark', async () => {
     await openGallery('?theme=nope');
-    expect(await rootBackground()).toBe('rgb(10, 10, 10)');
+    expect(await rootBackground()).toBe('rgb(12, 15, 20)');
     await expect(page.getByRole('heading', { name: 'nope' })).toHaveCount(0);
   });
 
@@ -84,14 +84,14 @@ test.describe.serial('gallery themes', () => {
     await openGallery('');
     const scripts = await page.locator('script').count();
     await openGallery('?theme=%3Cscript%3E');
-    expect(await rootBackground()).toBe('rgb(10, 10, 10)');
+    expect(await rootBackground()).toBe('rgb(12, 15, 20)');
     expect(await page.locator('script').count()).toBe(scripts);
     await expect(page.locator('body')).not.toContainText('<script>');
   });
 
   test('legacy solarized-light query migrates to xAI Light', async () => {
     await openGallery('?theme=solarized-light');
-    expect(await rootBackground()).toBe('rgb(255, 255, 255)');
+    expect(await rootBackground()).toBe('rgb(243, 246, 250)');
     await expect(page.getByRole('contentinfo', { name: 'Status line' })).toContainText('xAI Light');
   });
 
@@ -104,6 +104,6 @@ test.describe.serial('gallery themes', () => {
     await expect(page).toHaveURL(/\/gallery$/);
     await page.reload();
     await page.waitForFunction(() => document.body.classList.contains('tui-page'));
-    expect(await rootBackground()).toBe('rgb(10, 10, 10)');
+    expect(await rootBackground()).toBe('rgb(12, 15, 20)');
   });
 });

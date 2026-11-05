@@ -95,7 +95,7 @@ async function missingCsrf(): Promise<void> {
 
 async function opensGreen(): Promise<void> {
   await openGallery('');
-  expect(await rootBackground()).toBe('rgb(10, 10, 10)');
+  expect(await rootBackground()).toBe('rgb(12, 15, 20)');
 }
 
 async function previewNord(): Promise<void> {
@@ -103,11 +103,11 @@ async function previewNord(): Promise<void> {
   await openGallery('');
   await page.getByRole('option', { name: 'Settings', exact: true }).click();
   await chooseOption('Theme setting', 'xAI Light');
-  expect(await rootBackground()).toBe('rgb(255, 255, 255)');
+  expect(await rootBackground()).toBe('rgb(243, 246, 250)');
   const reloaded = await page.reload();
   expectDocumentHeaders(reloaded);
   await page.waitForFunction(() => document.body.classList.contains('tui-page'));
-  expect(await rootBackground()).toBe('rgb(10, 10, 10)');
+  expect(await rootBackground()).toBe('rgb(12, 15, 20)');
 }
 
 async function saveNord(): Promise<void> {
@@ -121,7 +121,7 @@ async function saveNord(): Promise<void> {
   expect(html).toContain('tui-root tui-theme-xai-light');
   expect(html).not.toMatch(/tui-theme-xai-light[^>]*style=/);
   expect(html).not.toContain('tui-theme-<');
-  expect(await rootBackground()).toBe('rgb(255, 255, 255)');
+  expect(await rootBackground()).toBe('rgb(243, 246, 250)');
 }
 
 async function javaScriptOff({ browser }: { browser: Browser }): Promise<void> {
@@ -137,7 +137,7 @@ async function javaScriptOff({ browser }: { browser: Browser }): Promise<void> {
     const background = await plainPage
       .locator('.tui-root')
       .evaluate((node) => getComputedStyle(node).backgroundColor);
-    expect(background).toBe('rgb(255, 255, 255)');
+    expect(background).toBe('rgb(243, 246, 250)');
   } finally {
     await plain.close();
   }
@@ -145,9 +145,9 @@ async function javaScriptOff({ browser }: { browser: Browser }): Promise<void> {
 
 async function queryDoesNotSave(): Promise<void> {
   await openGallery('?theme=xai-light');
-  expect(await rootBackground()).toBe('rgb(255, 255, 255)');
+  expect(await rootBackground()).toBe('rgb(243, 246, 250)');
   await openGallery('');
-  expect(await rootBackground()).toBe('rgb(255, 255, 255)');
+  expect(await rootBackground()).toBe('rgb(243, 246, 250)');
 }
 
 async function themesListDoesNotSave(): Promise<void> {
@@ -159,7 +159,7 @@ async function themesListDoesNotSave(): Promise<void> {
   const reloaded = await page.reload();
   expectDocumentHeaders(reloaded);
   await page.waitForFunction(() => document.body.classList.contains('tui-page'));
-  expect(await rootBackground()).toBe('rgb(255, 255, 255)');
+  expect(await rootBackground()).toBe('rgb(243, 246, 250)');
   await expect(page).toHaveURL(/\/gallery$/);
 }
 
@@ -186,7 +186,7 @@ async function keyboardPreview(): Promise<void> {
   const list = page.getByRole('listbox', { name: 'Theme setting' });
   await list.focus();
   await list.press('ArrowDown');
-  expect(await rootBackground()).toBe('rgb(255, 255, 255)');
+  expect(await rootBackground()).toBe('rgb(243, 246, 250)');
   const button = page.getByRole('button', { name: 'Save theme' });
   const box = await button.boundingBox();
   expect(box).not.toBeNull();
@@ -198,7 +198,7 @@ async function keyboardPreview(): Promise<void> {
   const reloaded = await page.reload();
   expectDocumentHeaders(reloaded);
   await page.waitForFunction(() => document.body.classList.contains('tui-page'));
-  expect(await rootBackground()).toBe('rgb(10, 10, 10)');
+  expect(await rootBackground()).toBe('rgb(12, 15, 20)');
 }
 
 async function choiceClearsSavedStatus(): Promise<void> {
@@ -214,7 +214,7 @@ async function choiceClearsSavedStatus(): Promise<void> {
   const reloaded = await page.reload();
   expectDocumentHeaders(reloaded);
   await page.waitForFunction(() => document.body.classList.contains('tui-page'));
-  expect(await rootBackground()).toBe('rgb(255, 255, 255)');
+  expect(await rootBackground()).toBe('rgb(243, 246, 250)');
 }
 
 test.describe.serial('gallery settings', () => {

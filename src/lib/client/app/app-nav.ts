@@ -4,10 +4,10 @@
 // No I/O.
 
 export const NAV_ITEMS = [
-  { id: 'decks', label: 'Decks', href: '/' },
-  { id: 'study', label: 'Study', href: '/study' },
-  { id: 'browse', label: 'Browse', href: '/browse' },
-  { id: 'settings', label: 'Settings', href: '/settings' },
+  { id: 'decks', label: 'Decks', href: '/', icon: 'decks' },
+  { id: 'study', label: 'Study', href: '/study', icon: 'study' },
+  { id: 'browse', label: 'Browse', href: '/browse', icon: 'browse' },
+  { id: 'settings', label: 'Settings', href: '/settings', icon: 'settings' },
 ] as const;
 
 export const APP_COMMANDS = [

@@ -136,7 +136,7 @@ test.describe.serial('settings screen', () => {
     expect(html).toContain('tui-root app-root tui-theme-xai-light');
     expect(
       await page.locator('.tui-root').evaluate((node) => getComputedStyle(node).backgroundColor),
-    ).toBe('rgb(255, 255, 255)');
+    ).toBe('rgb(243, 246, 250)');
   });
 
   test('Save keys remaps Open palette to Alt+K', async () => {

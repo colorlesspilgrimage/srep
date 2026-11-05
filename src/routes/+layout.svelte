@@ -22,8 +22,8 @@
     margin: 0;
     padding: 0;
     min-height: 100%;
-    background: #0a0a0a;
-    color: #ffffff;
+    background: #0c0f14;
+    color: #f4f7fb;
   }
 
   :global(.app-root) {
@@ -40,18 +40,24 @@
     padding: 3rem 1.25rem;
     min-height: 100dvh;
     box-sizing: border-box;
-    background-image: radial-gradient(
-      120% 80% at 50% -10%,
-      rgba(255, 255, 255, 0.06),
-      transparent 55%
-    );
+    background-color: #0c0f14;
+    background-image:
+      radial-gradient(90% 70% at 12% -10%, rgba(45, 212, 191, 0.16), transparent 45%),
+      radial-gradient(80% 60% at 90% 0%, rgba(96, 165, 250, 0.1), transparent 40%);
   }
 
   .auth-shell:not(:has(.tui-root)) :global(.auth-brand) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
     font-family: 'Inter Display', Inter, system-ui, sans-serif;
     font-size: 1.15rem;
     letter-spacing: -0.04em;
     margin: 0 0 1.75rem;
+  }
+
+  .auth-shell:not(:has(.tui-root)) :global(.auth-brand .app-icon) {
+    color: #2dd4bf;
   }
 
   .auth-shell:not(:has(.tui-root)) :global(.auth-eyebrow) {
@@ -59,12 +65,12 @@
     font-size: 0.75rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #a3a3a3;
+    color: #9aa8b8;
     margin: 0 0 0.65rem;
   }
 
   .auth-shell:not(:has(.tui-root)) :global(.auth-lead) {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(244, 247, 251, 0.58);
     margin: 0 0 1.5rem;
     line-height: 1.55;
   }
@@ -78,26 +84,26 @@
   }
 
   .auth-shell:not(:has(.tui-root)) :global(.auth-primary) {
-    background: #ffffff !important;
-    color: #0a0a0a !important;
-    border-color: #ffffff !important;
+    background: #2dd4bf !important;
+    color: #042f2e !important;
+    border-color: #2dd4bf !important;
   }
 
   .auth-shell:not(:has(.tui-root)) :global(.auth-details) {
     margin-top: 1.5rem;
-    color: #a3a3a3;
+    color: #9aa8b8;
   }
 
   .auth-shell:not(:has(.tui-root)) :global(.auth-fieldset) {
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(244, 247, 251, 0.1);
     border-radius: 0.75rem;
     padding: 0.75rem 1rem;
     margin: 1rem 0;
   }
 
   .auth-shell:not(:has(.tui-root)) :global(.auth-codes) {
-    background: #191919;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #151b24;
+    border: 1px solid rgba(244, 247, 251, 0.1);
     border-radius: 0.75rem;
     padding: 1rem;
     overflow: auto;
@@ -130,31 +136,36 @@
     box-sizing: border-box;
     padding: 0.65rem 1rem;
     font: inherit;
-    color: #ffffff;
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 9999px;
+    color: #f4f7fb;
+    background: #1c2430;
+    border: 1px solid rgba(244, 247, 251, 0.1);
+    border-radius: 0.55rem;
   }
 
   .auth-shell:not(:has(.tui-root)) :global(button) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
     font: inherit;
     font-weight: 400;
-    color: #ffffff;
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 9999px;
+    color: #f4f7fb;
+    background: #1c2430;
+    border: 1px solid rgba(244, 247, 251, 0.1);
+    border-radius: 0.55rem;
     padding: 0.65rem 1.1rem;
     margin: 0 0.4rem 0.4rem 0;
     cursor: pointer;
   }
 
   .auth-shell:not(:has(.tui-root)) :global(button:hover) {
-    background: #1a1a1a;
+    background: #1a2330;
+    border-color: rgba(244, 247, 251, 0.18);
   }
 
   .auth-shell:not(:has(.tui-root)) :global(button:focus-visible),
   .auth-shell:not(:has(.tui-root)) :global(input:focus-visible) {
-    outline: 2px solid #ffffff;
+    outline: 2px solid #2dd4bf;
     outline-offset: 2px;
   }
 </style>

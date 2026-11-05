@@ -25,19 +25,24 @@
 }
 
 .tui-theme-xai-dark {
-  --tui-bg: #0a0a0a;
-  --tui-fg: #ffffff;
-  --tui-dim: #a3a3a3;
-  --tui-accent: #ffffff;
+  --tui-bg: #0c0f14;
+  --tui-fg: #f4f7fb;
+  --tui-dim: #9aa8b8;
+  --tui-accent: #2dd4bf;
   --tui-good: #4ade80;
   --tui-warn: #fbbf24;
   --tui-bad: #f87171;
-  --tui-border: #737373;
-  --tui-selection: #1a1a1a;
-  --tui-surface: #191919;
-  --tui-border-subtle: rgba(255, 255, 255, 0.1);
-  --tui-border-strong: rgba(255, 255, 255, 0.2);
-  --tui-muted: rgba(255, 255, 255, 0.5);
+  --tui-border: #6b7c90;
+  --tui-selection: #1a2330;
+  --tui-surface: #151b24;
+  --tui-surface-2: #1c2430;
+  --tui-border-subtle: rgba(244, 247, 251, 0.1);
+  --tui-border-strong: rgba(244, 247, 251, 0.18);
+  --tui-muted: rgba(244, 247, 251, 0.58);
+  --tui-radius: 0.75rem;
+  --tui-radius-sm: 0.55rem;
+  --tui-wash: radial-gradient(90% 70% at 12% -10%, rgba(45, 212, 191, 0.16), transparent 45%),
+    radial-gradient(80% 60% at 90% 0%, rgba(96, 165, 250, 0.1), transparent 40%);
 }
 
 body.tui-page {
@@ -142,29 +147,51 @@ body.tui-page {
   font: inherit;
   font-weight: 400;
   color: var(--tui-fg);
-  background: transparent;
-  border: 1px solid var(--tui-border-strong, rgba(255, 255, 255, 0.2));
-  border-radius: 9999px;
-  padding: 0.5rem 1rem;
+  background: var(--tui-surface-2, var(--tui-surface));
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius-sm, 0.55rem);
+  padding: 0.55rem 0.9rem;
   box-sizing: border-box;
   transition:
     background 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
     border-color 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
     opacity 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .tui-root textarea,
 .tui-root select {
-  border-radius: 0.75rem;
+  border-radius: var(--tui-radius, 0.75rem);
 }
 
 .tui-root button {
   margin-right: 0;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
 }
 
 .tui-root button:hover {
   background: var(--tui-selection);
+  border-color: var(--tui-border-strong, rgba(255, 255, 255, 0.18));
+}
+
+.tui-root button:active {
+  transform: translateY(1px);
+}
+
+.app-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.app-icon svg {
+  display: block;
 }
 
 .tui-root a {
@@ -202,7 +229,7 @@ body.tui-page {
   text-align: left;
   white-space: normal;
   overflow-wrap: anywhere;
-  border-radius: 9999px;
+  border-radius: var(--tui-radius-sm, 0.55rem);
   border: 1px solid transparent;
   background: transparent;
   padding: 0.6rem 1rem;

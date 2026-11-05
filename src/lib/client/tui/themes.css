@@ -1,37 +1,45 @@
-/* xAI-inspired premade themes. Token names stay --tui-* for the existing kit. */
+/* Product themes. Token names stay --tui-* for the existing kit. */
 
 .tui-theme-xai-dark {
-  --tui-bg: #0a0a0a;
-  --tui-fg: #ffffff;
-  --tui-dim: #a3a3a3;
-  --tui-accent: #ffffff;
+  --tui-bg: #0c0f14;
+  --tui-fg: #f4f7fb;
+  --tui-dim: #9aa8b8;
+  --tui-accent: #2dd4bf;
   --tui-good: #4ade80;
   --tui-warn: #fbbf24;
   --tui-bad: #f87171;
-  --tui-border: #737373;
-  --tui-selection: #1a1a1a;
-  --tui-surface: #191919;
-  --tui-border-subtle: rgba(255, 255, 255, 0.1);
-  --tui-border-strong: rgba(255, 255, 255, 0.2);
-  --tui-muted: rgba(255, 255, 255, 0.5);
-  --tui-wash: radial-gradient(120% 80% at 50% -10%, rgba(255, 255, 255, 0.06), transparent 55%);
+  --tui-border: #6b7c90;
+  --tui-selection: #1a2330;
+  --tui-surface: #151b24;
+  --tui-surface-2: #1c2430;
+  --tui-border-subtle: rgba(244, 247, 251, 0.1);
+  --tui-border-strong: rgba(244, 247, 251, 0.18);
+  --tui-muted: rgba(244, 247, 251, 0.58);
+  --tui-radius: 0.75rem;
+  --tui-radius-sm: 0.55rem;
+  --tui-wash: radial-gradient(90% 70% at 12% -10%, rgba(45, 212, 191, 0.16), transparent 45%),
+    radial-gradient(80% 60% at 90% 0%, rgba(96, 165, 250, 0.1), transparent 40%);
 }
 
 .tui-theme-xai-light {
-  --tui-bg: #ffffff;
-  --tui-fg: #0a0a0a;
-  --tui-dim: #525252;
-  --tui-accent: #0a0a0a;
+  --tui-bg: #f3f6fa;
+  --tui-fg: #0c0f14;
+  --tui-dim: #5b6b7c;
+  --tui-accent: #0f766e;
   --tui-good: #15803d;
   --tui-warn: #a16207;
   --tui-bad: #b91c1c;
-  --tui-border: #737373;
-  --tui-selection: #f5f5f5;
-  --tui-surface: #f5f5f5;
-  --tui-border-subtle: rgba(0, 0, 0, 0.1);
-  --tui-border-strong: rgba(0, 0, 0, 0.2);
-  --tui-muted: rgba(0, 0, 0, 0.5);
-  --tui-wash: radial-gradient(120% 80% at 50% -10%, rgba(0, 0, 0, 0.04), transparent 55%);
+  --tui-border: #7a8b9c;
+  --tui-selection: #e4ebf3;
+  --tui-surface: #ffffff;
+  --tui-surface-2: #eef3f8;
+  --tui-border-subtle: rgba(12, 15, 20, 0.1);
+  --tui-border-strong: rgba(12, 15, 20, 0.18);
+  --tui-muted: rgba(12, 15, 20, 0.58);
+  --tui-radius: 0.75rem;
+  --tui-radius-sm: 0.55rem;
+  --tui-wash: radial-gradient(90% 70% at 10% -10%, rgba(15, 118, 110, 0.1), transparent 45%),
+    radial-gradient(70% 50% at 100% 0%, rgba(37, 99, 235, 0.08), transparent 40%);
 }
 
 .tui-theme-high-contrast {
@@ -45,8 +53,11 @@
   --tui-border: #ffffff;
   --tui-selection: #000080;
   --tui-surface: #000000;
+  --tui-surface-2: #111111;
   --tui-border-subtle: #ffffff;
   --tui-border-strong: #ffff00;
   --tui-muted: #e6e6e6;
+  --tui-radius: 0.5rem;
+  --tui-radius-sm: 0.35rem;
   --tui-wash: none;
 }

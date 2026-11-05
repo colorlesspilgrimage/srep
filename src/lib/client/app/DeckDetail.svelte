@@ -1,5 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
+  import AppIcon from './AppIcon.svelte';
   import { isDeckUuid } from './deck-id.js';
   import { studyDeckQuery } from './study-paths.js';
 
@@ -77,7 +78,10 @@
 </script>
 
 <section class="app-detail" aria-label="Deck actions">
-  <p class="tui-eyebrow">Selected deck</p>
+  <div class="app-detail-head">
+    <AppIcon name="folder" size={18} />
+    <p class="tui-eyebrow">Selected deck</p>
+  </div>
   {#if !canEdit}
     <p class="app-lead">
       Pick a deck in the tree, or create a root deck to start a library.
@@ -101,17 +105,35 @@
   <!-- eslint-disable svelte/no-navigation-without-resolve -->
   <div class="app-detail-primary">
     {#if studyHref !== null}
-      <a class="app-pill-link app-pill-link-strong" href={studyHref}>Study</a>
+      <a class="app-action app-action-strong" href={studyHref}>
+        <AppIcon name="study" size={16} />
+        <span>Study</span>
+      </a>
     {/if}
     {#if addHref !== null}
-      <a class="app-pill-link" href={addHref}>Add note</a>
+      <a class="app-action" href={addHref}>
+        <AppIcon name="note" size={16} />
+        <span>Add note</span>
+      </a>
     {/if}
   </div>
   <!-- eslint-enable svelte/no-navigation-without-resolve -->
   <div class="app-detail-secondary" role="group" aria-label="Deck edits">
-    <button type="button" disabled={locked} onclick={onCreateRoot}>Create root</button>
-    <button type="button" disabled={locked || !canEdit} onclick={onCreateChild}>Create child</button>
-    <button type="button" disabled={locked || !canEdit} onclick={onRename}>Rename</button>
-    <button type="button" disabled={locked || !canEdit} onclick={onDelete}>Delete</button>
+    <button type="button" disabled={locked} onclick={onCreateRoot}>
+      <AppIcon name="plus" size={15} />
+      <span>Create root</span>
+    </button>
+    <button type="button" disabled={locked || !canEdit} onclick={onCreateChild}>
+      <AppIcon name="plus" size={15} />
+      <span>Create child</span>
+    </button>
+    <button type="button" disabled={locked || !canEdit} onclick={onRename}>
+      <AppIcon name="pencil" size={15} />
+      <span>Rename</span>
+    </button>
+    <button type="button" class="app-danger" disabled={locked || !canEdit} onclick={onDelete}>
+      <AppIcon name="trash" size={15} />
+      <span>Delete</span>
+    </button>
   </div>
 </section>

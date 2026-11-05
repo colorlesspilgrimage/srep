@@ -4,6 +4,7 @@
   import KeymapForm from '../tui/KeymapForm.svelte';
   import List from '../tui/List.svelte';
   import SettingsPane from '../tui/SettingsPane.svelte';
+  import AppIcon from './AppIcon.svelte';
   import {
     beginThemeSave,
     finishThemeSave,
@@ -265,7 +266,7 @@
 
 <main class="app-screen">
   <header class="app-page-header">
-    <p class="tui-eyebrow">Preferences</p>
+    <p class="tui-eyebrow app-eyebrow-icon"><AppIcon name="settings" size={14} /> Preferences</p>
     <h1>Settings</h1>
     <p class="app-lead">Theme, keys, study day, presets, security, and data for this instance.</p>
   </header>

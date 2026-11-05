@@ -19,15 +19,15 @@ export const THEME_NAME = 'xAI Dark';
 
 // Near-black canvas, white ink, muted accents. Hex only so contrast checks stay strict.
 export const XAI_DARK = {
-  bg: '#0a0a0a',
-  fg: '#ffffff',
-  dim: '#a3a3a3',
-  accent: '#ffffff',
+  bg: '#0c0f14',
+  fg: '#f4f7fb',
+  dim: '#9aa8b8',
+  accent: '#2dd4bf',
   good: '#4ade80',
   warn: '#fbbf24',
   bad: '#f87171',
-  border: '#737373',
-  selection: '#1a1a1a',
+  border: '#6b7c90',
+  selection: '#1a2330',
 } as const satisfies ThemeTokens;
 
 /** @deprecated Use XAI_DARK. Kept as an alias for older test imports during the overhaul. */

@@ -4,6 +4,7 @@
   import { resolve } from '$app/paths';
   import { signOut } from '#lib/client/sign-out.js';
   import type { PageData } from './$types';
+  import AppIcon from '#lib/client/app/AppIcon.svelte';
   import AppShell from '#lib/client/app/AppShell.svelte';
   import TuiPage from '#lib/client/app/TuiPage.svelte';
   import DeckDetail from '#lib/client/app/DeckDetail.svelte';
@@ -234,11 +235,14 @@
 >
   <main class="app-screen">
     <header class="app-page-header">
-      <p class="tui-eyebrow">Library</p>
+      <p class="tui-eyebrow app-eyebrow-icon"><AppIcon name="decks" size={14} /> Library</p>
       <h1>Decks</h1>
       <p class="app-lead">Organize what you study. Counts include every deck below a parent.</p>
       <div class="app-page-tools">
-        <button type="button" class="app-ghost" onclick={logOut}>Log out</button>
+        <button type="button" class="app-ghost" onclick={logOut}>
+          <AppIcon name="logout" size={15} />
+          <span>Log out</span>
+        </button>
       </div>
     </header>
     {#if message !== ''}

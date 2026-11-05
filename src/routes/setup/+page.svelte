@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
+  import AppIcon from '#lib/client/app/AppIcon.svelte';
   import { enroll, type Kind } from '#lib/client/ceremonies.js';
 
   let setupToken = $state('');
@@ -31,7 +32,7 @@
 
 <svelte:head><title>srep setup</title></svelte:head>
 <main class="auth-panel">
-  <p class="auth-brand">srep</p>
+  <p class="auth-brand"><AppIcon name="brand" size={18} /><span>srep</span></p>
   <p class="auth-eyebrow">First run</p>
   <h1>Set up srep</h1>
   <p class="auth-lead">Enroll the first credential with the setup token from the server log.</p>
@@ -53,7 +54,10 @@
         >
       </fieldset>
       <p class="auth-actions">
-        <button type="submit" class="auth-primary" disabled={busy}>Create</button>
+        <button type="submit" class="auth-primary" disabled={busy}>
+          <AppIcon name="plus" size={16} />
+          <span>Create</span>
+        </button>
       </p>
     </form>
     {#if error !== ''}<p class="error" role="alert">{error}</p>{/if}
