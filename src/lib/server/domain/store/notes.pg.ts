@@ -1,8 +1,8 @@
-import { and, asc, eq, inArray, isNotNull, isNull, lte, ne, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, lte, ne, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { FLAG_ORPHANED } from '#lib/server/domain/core/card-plan.js';
 import type { NoteStore } from '#lib/server/domain/store/notes.sqlite.js';
-import { chunk, newCard } from '#lib/server/domain/store/shared.js';
+import { chunk, newCard, trashPreview } from '#lib/server/domain/store/shared.js';
 import type { CardDraft, NoteState } from '#lib/server/domain/store/store-types.js';
 import { card, deck, note, noteTag } from '#lib/server/db/schema/pg.js';
 
@@ -122,6 +122,20 @@ export function createPgNoteStore(db: PostgresJsDatabase): NoteStore {
         .where(and(eq(note.id, id), isNull(note.deletedAt)))
         .returning({ id: note.id });
       return rows.length > 0;
+    },
+
+    async listTrashedNotes() {
+      const rows = await db
+        .select({ id: note.id, fields: note.fields, deletedAt: note.deletedAt })
+        .from(note)
+        .where(isNotNull(note.deletedAt))
+        .orderBy(desc(note.deletedAt), asc(note.id));
+      return rows.flatMap((row) => {
+        if (row.deletedAt === null) {
+          return [];
+        }
+        return [{ id: row.id, preview: trashPreview(row.fields), deletedAt: row.deletedAt }];
+      });
     },
 
     async restoreNote(id, deckId, now) {

@@ -3,8 +3,8 @@ import path from 'node:path';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
-  PHOSPHOR_GREEN,
   TEXT_TOKEN_KEYS,
+  XAI_DARK,
   contrastRatio,
   meetsContrast,
   themeContrastFailures,
@@ -13,51 +13,26 @@ import {
 import {
   DEFAULT_THEME_ID,
   PREMADE_THEMES,
+  migrateThemeId,
   themeById,
   themeClass,
   themeIdFromQuery,
 } from './themes.js';
 
-const NAMES = [
-  'Phosphor Green',
-  'Amber CRT',
-  'Solarized Dark',
-  'Solarized Light',
-  'Gruvbox Dark',
-  'Gruvbox Light',
-  'Nord',
-  'Dracula',
-  'Monokai',
-  'Tokyo Night',
-  'VT100 White-on-Black',
-  'High Contrast',
-];
+const NAMES = ['xAI Dark', 'xAI Light', 'High Contrast'];
 
-const IDS = [
-  'phosphor-green',
-  'amber-crt',
-  'solarized-dark',
-  'solarized-light',
-  'gruvbox-dark',
-  'gruvbox-light',
-  'nord',
-  'dracula',
-  'monokai',
-  'tokyo-night',
-  'vt100-white-on-black',
-  'high-contrast',
-];
+const IDS = ['xai-dark', 'xai-light', 'high-contrast'];
 
 describe('PREMADE_THEMES', () => {
-  it('PREMADE_THEMES has length 12', () => {
-    expect(PREMADE_THEMES).toHaveLength(12);
+  it('PREMADE_THEMES has length 3', () => {
+    expect(PREMADE_THEMES).toHaveLength(3);
   });
 
-  it('the name list equals the twelve display names in order', () => {
+  it('the name list equals the three display names in order', () => {
     expect(PREMADE_THEMES.map((theme) => theme.name)).toEqual(NAMES);
   });
 
-  it('the id list equals the twelve catalog ids in order', () => {
+  it('the id list equals the three catalog ids in order', () => {
     expect(PREMADE_THEMES.map((theme) => theme.id)).toEqual(IDS);
   });
 
@@ -66,8 +41,8 @@ describe('PREMADE_THEMES', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('Phosphor Green uses the PHOSPHOR_GREEN object', () => {
-    expect(themeById('phosphor-green')?.tokens).toBe(PHOSPHOR_GREEN);
+  it('xAI Dark uses the XAI_DARK object', () => {
+    expect(themeById('xai-dark')?.tokens).toBe(XAI_DARK);
   });
 
   it('themeContrastFailures of each theme is empty', () => {
@@ -90,27 +65,59 @@ describe('PREMADE_THEMES', () => {
   });
 });
 
-describe('themeIdFromQuery', () => {
-  it('themeIdFromQuery(null) is phosphor-green', () => {
-    expect(themeIdFromQuery(null)).toBe(DEFAULT_THEME_ID);
-    expect(themeIdFromQuery(null)).toBe('phosphor-green');
+describe('migrateThemeId', () => {
+  it('keeps catalog ids', () => {
+    expect(migrateThemeId('xai-dark')).toBe('xai-dark');
+    expect(migrateThemeId('xai-light')).toBe('xai-light');
+    expect(migrateThemeId('high-contrast')).toBe('high-contrast');
   });
 
-  it('themeIdFromQuery(nord) is nord', () => {
-    expect(themeIdFromQuery('nord')).toBe('nord');
+  it('maps legacy light themes to xai-light', () => {
+    expect(migrateThemeId('solarized-light')).toBe('xai-light');
+    expect(migrateThemeId('gruvbox-light')).toBe('xai-light');
+  });
+
+  it('maps legacy dark themes to xai-dark', () => {
+    expect(migrateThemeId('phosphor-green')).toBe('xai-dark');
+    expect(migrateThemeId('nord')).toBe('xai-dark');
+    expect(migrateThemeId('dracula')).toBe('xai-dark');
+  });
+
+  it('returns null for unknown ids', () => {
+    expect(migrateThemeId('nope')).toBeNull();
+    expect(migrateThemeId('not-a-theme')).toBeNull();
+  });
+});
+
+describe('themeIdFromQuery', () => {
+  it('themeIdFromQuery(null) is xai-dark', () => {
+    expect(themeIdFromQuery(null)).toBe(DEFAULT_THEME_ID);
+    expect(themeIdFromQuery(null)).toBe('xai-dark');
+  });
+
+  it('themeIdFromQuery(xai-light) is xai-light', () => {
+    expect(themeIdFromQuery('xai-light')).toBe('xai-light');
+  });
+
+  it('themeIdFromQuery(nord) migrates to xai-dark', () => {
+    expect(themeIdFromQuery('nord')).toBe('xai-dark');
   });
 
   it.each(['', 'Nord', 'nope', 'nord ', 'phosphor-green\n', '<script>'])(
-    'themeIdFromQuery(%j) is phosphor-green',
+    'themeIdFromQuery(%j) is xai-dark',
     (value) => {
-      expect(themeIdFromQuery(value)).toBe('phosphor-green');
+      expect(themeIdFromQuery(value)).toBe('xai-dark');
     },
   );
 });
 
 describe('themeClass', () => {
-  it('themeClass(nord) is tui-theme-nord', () => {
-    expect(themeClass('nord')).toBe('tui-theme-nord');
+  it('themeClass(xai-light) is tui-theme-xai-light', () => {
+    expect(themeClass('xai-light')).toBe('tui-theme-xai-light');
+  });
+
+  it('themeClass(nord) throws bad_theme', () => {
+    expect(() => themeClass('nord')).toThrow(new Error('bad_theme'));
   });
 
   it('themeClass(../x) throws bad_theme', () => {
@@ -119,20 +126,17 @@ describe('themeClass', () => {
 });
 
 describe('theme css', () => {
-  it('tui.css declares each Phosphor Green token', () => {
+  it('tui.css declares each xAI Dark token', () => {
     const css = readFileSync(path.join(import.meta.dirname, 'tui.css'), 'utf8');
-    const keys = Object.keys(PHOSPHOR_GREEN) as (keyof ThemeTokens)[];
+    const keys = Object.keys(XAI_DARK) as (keyof ThemeTokens)[];
     for (const key of keys) {
-      expect(css).toContain(`--tui-${key}: ${PHOSPHOR_GREEN[key]};`);
+      expect(css).toContain(`--tui-${key}: ${XAI_DARK[key]};`);
     }
   });
 
-  it('themes.css declares each other theme', () => {
+  it('themes.css declares each theme', () => {
     const css = readFileSync(path.join(import.meta.dirname, 'themes.css'), 'utf8');
     for (const theme of PREMADE_THEMES) {
-      if (theme.id === 'phosphor-green') {
-        continue;
-      }
       expect(css).toContain(`.tui-theme-${theme.id}`);
       const keys = Object.keys(theme.tokens) as (keyof ThemeTokens)[];
       for (const key of keys) {
@@ -141,9 +145,7 @@ describe('theme css', () => {
     }
   });
 
-  it('the selected state has an fg bar because the fill is near the background', () => {
-    const css = readFileSync(path.join(import.meta.dirname, 'tui.css'), 'utf8');
-    expect(css).toContain('box-shadow: inset 0 0 0 2px var(--tui-fg)');
+  it('fg on selection meets contrast for every theme', () => {
     for (const theme of PREMADE_THEMES) {
       const bar = contrastRatio(theme.tokens.fg, theme.tokens.selection);
       expect(meetsContrast(bar, 3)).toBe(true);
@@ -153,7 +155,7 @@ describe('theme css', () => {
   it('theme css files do not load a remote style', () => {
     for (const name of ['tui.css', 'themes.css']) {
       const css = readFileSync(path.join(import.meta.dirname, name), 'utf8');
-      expect(css).not.toContain('url(');
+      expect(css).not.toMatch(/url\(\s*['"]?https?:/i);
       expect(css).not.toContain('@import');
       expect(css).not.toContain('expression(');
       expect(css.toLowerCase()).not.toContain('javascript:');
@@ -222,15 +224,11 @@ describe('theme query attacks', () => {
     expect(themeIdFromQuery(['<script>'] as unknown as string)).toBe(DEFAULT_THEME_ID);
   });
 
-  it('a random string returns a catalog id or the default', () => {
+  it('a random string returns a catalog id', () => {
     const catalog = new Set(IDS);
     fc.assert(
       fc.property(fc.string({ maxLength: 80 }), (value) => {
-        const id = themeIdFromQuery(value);
-        if (!catalog.has(id)) {
-          return false;
-        }
-        return value === id || id === DEFAULT_THEME_ID;
+        return catalog.has(themeIdFromQuery(value));
       }),
       { seed: 1, numRuns: 100 },
     );

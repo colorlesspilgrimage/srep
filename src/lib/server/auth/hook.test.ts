@@ -123,6 +123,9 @@ describe('unauthenticated access to the domain routes', () => {
     ['PATCH', `/api/notes/${ID}`],
     ['DELETE', `/api/notes/${ID}`],
     ['POST', `/api/notes/${ID}/restore`],
+    ['GET', '/api/notes/trash'],
+    ['POST', '/api/notes/trash'],
+    ['GET', '/api/auth/recovery'],
     ['POST', '/api/cards/move'],
     ['POST', '/api/media'],
     ['GET', `/api/media/${SHA}`],
@@ -137,6 +140,8 @@ describe('unauthenticated access to the domain routes', () => {
     ['POST', '/api/cards/bury'],
     ['GET', '/api/settings/study'],
     ['PUT', '/api/settings/study'],
+    ['GET', '/api/settings/display'],
+    ['PUT', '/api/settings/display'],
   ];
 
   it.each(routes)('%s %s returns 401 without a session', async (method, path) => {

@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import type { ApiResult } from '#lib/client/api.js';
   import { withBusy } from './action-lock.js';
+  import AppIcon from './AppIcon.svelte';
   import BrowseBulkBar from './BrowseBulkBar.svelte';
   import BrowseDeleteDialog from './BrowseDeleteDialog.svelte';
   import BrowseGrid from './BrowseGrid.svelte';
@@ -273,7 +274,11 @@
 </script>
 
 <main class="app-screen browse-screen" data-modal={modalOpen ? 'open' : 'closed'}>
-  <h1>Browse</h1>
+  <header class="app-page-header">
+    <p class="tui-eyebrow app-eyebrow-icon"><AppIcon name="browse" size={14} /> Library</p>
+    <h1>Browse</h1>
+    <p class="app-lead">Search notes and cards, then tag, move, or trash in bulk.</p>
+  </header>
   {#if message !== ''}
     <p role="alert">{message}</p>
   {/if}
@@ -287,7 +292,10 @@
       disabled={controlsLocked}
       onkeydown={handlers.onQueryKey}
     />
-    <button type="button" disabled={!ready || controlsLocked} onclick={onSearch}>Search</button>
+    <button type="button" disabled={!ready || controlsLocked} onclick={onSearch}>
+      <AppIcon name="search" size={15} />
+      <span>Search</span>
+    </button>
   </div>
   {#if badQuery}
     <p role="alert">{BAD_QUERY_TEXT}</p>

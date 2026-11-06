@@ -2,15 +2,17 @@
 
 [![ci](https://github.com/colorlesspilgrimage/srep/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/colorlesspilgrimage/srep/actions/workflows/ci.yml)
 
-srep is an open-source, self-hosted spaced-repetition web app (an Anki alternative) with a TUI-style interface, passwordless single-user auth, and a database backend.
+srep is an open-source, self-hosted spaced-repetition web app (an Anki alternative) with an xAI-inspired sparse UI, passwordless single-user auth, and a database backend.
 
 ## Status
 
 The app is pre-1.0.
-Milestones M0 to M3 are done.
+Milestones M0 to M5 are done.
 M1 adds passkey and security-key login.
 M2 adds decks, presets, note types, notes, card generation and media, through a JSON API.
 M3 adds the FSRS study engine (next card, answer, undo, suspend, bury, daily limits and a log replay check), through a JSON API.
+M4 adds the UI shell, themes, keyboard layer, and responsive tab bar.
+M5 adds the core screens (decks, study, notes, browse, settings) and a desktop + mobile full-loop UI E2E.
 The Chromium end-to-end tests cover the flows.
 The Firefox and Safari checks are manual (see "Browser matrix").
 See [ROADMAP.md](ROADMAP.md).

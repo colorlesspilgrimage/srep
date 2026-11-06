@@ -116,6 +116,8 @@ export type UpdateNoteResult = Failure | { ok: true } | 'not_found';
 
 export type RestoreResult = 'ok' | 'not_found' | 'deck_required' | 'deck_not_found' | 'not_trashed';
 export type MoveCardsResult = 'ok' | 'card_not_found' | 'deck_not_found';
+/** Lean trash row for Settings. preview is the first field, truncated. */
+export type TrashedNoteSummary = { id: string; preview: string; deletedAt: number };
 export type SeedInput = {
   preset: PresetRow;
   noteTypes: { noteType: NoteTypeRow; templates: TemplateRow[] }[];
@@ -168,6 +170,8 @@ export interface DomainStore {
   ): Promise<string[]>;
   trashNote(id: string, now: number): Promise<boolean>;
   restoreNote(id: string, deckId: string | undefined, now: number): Promise<RestoreResult>;
+  /** Trashed notes, newest first. */
+  listTrashedNotes(): Promise<TrashedNoteSummary[]>;
   /** All or nothing. */
   moveCards(cardIds: string[], deckId: string): Promise<MoveCardsResult>;
   /** Deletes trashed notes with deleted_at <= olderThan. Returns the count. */

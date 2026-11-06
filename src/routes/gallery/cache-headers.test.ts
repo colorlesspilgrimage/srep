@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_DISPLAY } from '#lib/client/app/display-prefs.js';
 import { DEFAULT_KEYBINDS } from '#lib/client/tui/keymap.js';
 import { themeIdFromQuery } from '#lib/client/tui/themes.js';
 
@@ -17,15 +18,16 @@ vi.mock('#lib/server/db/index.js', () => ({
 import { load } from './+page.server.js';
 import { galleryCacheHeaders } from './cache-headers.js';
 
-const saved = { id: 'phosphor-green' };
+const saved = { id: 'xai-dark' };
 
 beforeEach(() => {
-  saved.id = 'phosphor-green';
+  saved.id = 'xai-dark';
   readGallerySettings.mockReset();
   readGallerySettings.mockImplementation(async (_handle: unknown, query: string | null) => ({
     ok: true,
     themeId: query === null ? saved.id : themeIdFromQuery(query),
     keybinds: { ...DEFAULT_KEYBINDS },
+    display: { ...DEFAULT_DISPLAY },
   }));
 });
 
@@ -52,26 +54,26 @@ describe('gallery cache headers', () => {
 
   it('the gallery load sets that header', async () => {
     const result = await loadGallery('');
-    expectSafePage(result, 'phosphor-green');
+    expectSafePage(result, 'xai-dark');
     expect(readGallerySettings).toHaveBeenCalledOnce();
   });
 
   it('the gallery load maps a catalog theme query', async () => {
-    const result = await loadGallery('?theme=nord');
-    expectSafePage(result, 'nord');
+    const result = await loadGallery('?theme=xai-light');
+    expectSafePage(result, 'xai-light');
     expect(readGallerySettings).toHaveBeenCalledOnce();
   });
 
   it('the gallery load rejects a theme query that is not a catalog id', async () => {
     const result = await loadGallery('?theme=%3Cscript%3E');
-    expectSafePage(result, 'phosphor-green');
+    expectSafePage(result, 'xai-dark');
     expect(readGallerySettings).toHaveBeenCalledOnce();
   });
 
   it('an empty query uses the saved theme', async () => {
-    saved.id = 'nord';
+    saved.id = 'xai-light';
     const result = await loadGallery('');
-    expectSafePage(result, 'nord');
+    expectSafePage(result, 'xai-light');
   });
 
   it('a corrupt saved theme does not become the page theme', async () => {
@@ -121,7 +123,7 @@ const REJECTED_SEARCH = [
   '?theme=%E3%83%8E%E3%83%BC%E3%83%89',
   '?theme=n%E2%80%8Bord',
   '?theme=%EF%BB%BFnord',
-  '?theme=phosphor-green%0a',
+  '?theme=xai-dark%0a',
   '?theme=%',
   '?theme=%256eord',
   '?theme=nord%5c..%5c',
@@ -139,7 +141,7 @@ function expectSafePage(
   expect(result.headers.get('location')).toBeNull();
   expect(result.headers.get('set-cookie')).toBeNull();
   expect([...result.headers.keys()].sort()).toEqual(['cache-control', 'vary']);
-  expect(result.page).toEqual({ themeId, keybinds: DEFAULT_KEYBINDS });
+  expect(result.page).toEqual({ themeId, keybinds: DEFAULT_KEYBINDS, display: DEFAULT_DISPLAY });
   const body = JSON.stringify(result.page);
   expect(body).not.toContain('<');
   expect(body).not.toContain('://');
@@ -153,16 +155,20 @@ function themeQuery(search: string): string | null {
 
 describe('gallery theme query attacks', () => {
   it.each(REJECTED_SEARCH)('rejects %s', async (search) => {
-    expectSafePage(await loadGallery(search), 'phosphor-green');
+    expectSafePage(await loadGallery(search), 'xai-dark');
     expect(readGallerySettings).toHaveBeenCalledWith(expect.anything(), themeQuery(search));
   });
 
   it('uses the first theme value when the query repeats', async () => {
-    expectSafePage(await loadGallery('?theme=nord&theme=%3Cscript%3E'), 'nord');
-    expectSafePage(await loadGallery('?theme=%3Cscript%3E&theme=nord'), 'phosphor-green');
+    expectSafePage(await loadGallery('?theme=xai-light&theme=%3Cscript%3E'), 'xai-light');
+    expectSafePage(await loadGallery('?theme=%3Cscript%3E&theme=xai-light'), 'xai-dark');
   });
 
   it('accepts a percent-encoded catalog id', async () => {
-    expectSafePage(await loadGallery('?theme=%6eord'), 'nord');
+    expectSafePage(await loadGallery('?theme=%78ai-light'), 'xai-light');
+  });
+
+  it('migrates a legacy theme query to xai-dark', async () => {
+    expectSafePage(await loadGallery('?theme=nord'), 'xai-dark');
   });
 });

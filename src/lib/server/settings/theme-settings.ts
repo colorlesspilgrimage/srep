@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { fail, type Result } from '#lib/server/auth/deps.js';
-import { DEFAULT_THEME_ID, themeById } from '#lib/client/tui/themes.js';
+import { DEFAULT_THEME_ID, migrateThemeId, themeById } from '#lib/client/tui/themes.js';
 import type { ThemeSettingsStore } from '#lib/server/settings/theme-store.js';
 
 export const themeSettingsSchema = z.object({ id: z.string() }).strict();
@@ -31,11 +31,16 @@ export function interpretTheme(
     return { ok: true, id: DEFAULT_THEME_ID };
   }
   const parsed = themeSettingsSchema.safeParse(stored);
-  if (!parsed.success || themeById(parsed.data.id) === undefined) {
+  if (!parsed.success) {
     logger.error({ key: 'theme' });
     return fail(500, 'settings_corrupt');
   }
-  return { ok: true, id: parsed.data.id };
+  const id = migrateThemeId(parsed.data.id);
+  if (id === null || themeById(id) === undefined) {
+    logger.error({ key: 'theme' });
+    return fail(500, 'settings_corrupt');
+  }
+  return { ok: true, id };
 }
 
 export async function getThemeSettings(

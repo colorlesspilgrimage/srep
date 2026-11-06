@@ -1,4 +1,4 @@
-// Contract: load theme and keybinds for a signed-in page.
+// Contract: load theme, keybinds, and display prefs for a signed-in page.
 // The theme query is null. The gallery page keeps its own query.
 // Caches must not store the document. A read failure uses error(status, error).
 
@@ -13,5 +13,5 @@ export async function loadSignedInPage(setHeaders: (headers: Record<string, stri
   if (!result.ok) {
     error(result.status, result.error);
   }
-  return { themeId: result.themeId, keybinds: result.keybinds };
+  return { themeId: result.themeId, keybinds: result.keybinds, display: result.display };
 }

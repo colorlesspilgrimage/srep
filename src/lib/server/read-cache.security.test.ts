@@ -31,7 +31,7 @@ afterEach(async () => {
   }
 });
 
-const SLOTS: readonly CacheSlot[] = ['decks', 'presets', 'study', 'theme', 'keybinds'];
+const SLOTS: readonly CacheSlot[] = ['decks', 'presets', 'study', 'theme', 'keybinds', 'display'];
 
 describe('read cache security', () => {
   it('does not cache a failed load', async () => {

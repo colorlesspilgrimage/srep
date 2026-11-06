@@ -33,6 +33,14 @@ export function newCard(draft: CardDraft, noteId: string, now: number, position:
   };
 }
 
+const TRASH_PREVIEW_MAX = 80;
+
+/** First note field for the trash list. Truncated. No HTML escape. */
+export function trashPreview(fields: string[]): string {
+  const first = fields[0] ?? '';
+  return first.length > TRASH_PREVIEW_MAX ? first.slice(0, TRASH_PREVIEW_MAX) : first;
+}
+
 export function withTemplates<T extends { id: string }>(
   noteTypes: T[],
   templates: TemplateRow[],

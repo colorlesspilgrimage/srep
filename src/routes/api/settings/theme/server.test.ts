@@ -47,38 +47,38 @@ function expectPrivateCache(response: Response): void {
 }
 
 describe('/api/settings/theme', () => {
-  it('returns phosphor-green when the row is absent', async () => {
+  it('returns xai-dark when the row is absent', async () => {
     await openRoute();
     const response = await read();
     expectPrivateCache(response);
-    expect(await readBody(response)).toEqual({ id: 'phosphor-green' });
+    expect(await readBody(response)).toEqual({ id: 'xai-dark' });
   });
 
   it('stores nord and the next GET returns the same object', async () => {
     await openRoute();
-    const response = await write({ id: 'nord' });
+    const response = await write({ id: 'xai-light' });
     expect(response.status).toBe(200);
     expectPrivateCache(response);
-    expect(await readBody(response)).toEqual({ id: 'nord' });
+    expect(await readBody(response)).toEqual({ id: 'xai-light' });
     const next = await read();
     expectPrivateCache(next);
-    expect(await readBody(next)).toEqual({ id: 'nord' });
+    expect(await readBody(next)).toEqual({ id: 'xai-light' });
   });
 
   it('refuses a bad body with 400', async () => {
     await openRoute();
     for (const body of [
       { id: 'nope' },
-      { id: 'nord', extra: true },
+      { id: 'xai-light', extra: true },
       {},
       { id: 1 },
-      { id: 'nord', key: 'study' },
-      { id: 'nord', key: 'auth.setup_complete' },
+      { id: 'xai-light', key: 'study' },
+      { id: 'xai-light', key: 'auth.setup_complete' },
       { id: '<script>alert(1)</script>' },
       { id: "nord'; DROP TABLE app_settings;--" },
       { id: 'nord\u0000' },
-      { id: ['nord'] },
-      ['nord'],
+      { id: ['xai-light'] },
+      ['xai-light'],
       null,
     ]) {
       const response = await write(body);
@@ -104,17 +104,17 @@ describe('/api/settings/theme', () => {
 
   it('keeps the last good id after a bad PUT', async () => {
     await openRoute();
-    expect((await write({ id: 'nord' })).status).toBe(200);
+    expect((await write({ id: 'xai-light' })).status).toBe(200);
     const response = await write({ id: 'nope' });
     expect(response.status).toBe(400);
     expectPrivateCache(response);
     expect(await readBody(response)).toEqual({ error: 'bad_request' });
-    expect(await readBody(await read())).toEqual({ id: 'nord' });
+    expect(await readBody(await read())).toEqual({ id: 'xai-light' });
   });
 
   it('does not store a text body', async () => {
     await openRoute();
-    expect((await write({ id: 'nord' })).status).toBe(200);
+    expect((await write({ id: 'xai-light' })).status).toBe(200);
     const { event } = makeEvent('/api/settings/theme', {
       method: 'PUT',
       rawBody: '{"id":"amber-crt"}',
@@ -125,7 +125,7 @@ describe('/api/settings/theme', () => {
     expect(response.status).toBe(415);
     expectPrivateCache(response);
     expect(await readBody(response)).toEqual({ error: 'unsupported_media_type' });
-    expect(await readBody(await read())).toEqual({ id: 'nord' });
+    expect(await readBody(await read())).toEqual({ id: 'xai-light' });
   });
 
   it('does not return a stored script id', async () => {

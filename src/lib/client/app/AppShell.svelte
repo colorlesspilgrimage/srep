@@ -12,15 +12,19 @@
   import { targetIsTextField } from '../tui/text-target.js';
   import { themeClass } from '../tui/themes.js';
   import { page } from '$app/state';
-  import { APP_COMMANDS, commandTarget, NAV_ITEMS, tabKeyIndex } from './app-nav.js';
+  import AppIcon from './AppIcon.svelte';
+  import { APP_COMMANDS, commandTarget, NAV_ITEMS, tabKeyIndex, type NavPath } from './app-nav.js';
+  import { DEFAULT_DISPLAY, displayRootClass, type DisplayPrefs } from './display-prefs.js';
 
   // Contract: the signed-in app shell. The main pane is the children snippet.
   // Palette keys use the capture phase. keyCapture true ignores those keys.
   // A command goes only to a fixed path. Close returns focus to the prior element.
+  // Display prefs paint on the root in the first HTML (no FOUC).
 
   type Props = {
     themeId: string;
     keybinds: KeybindMap;
+    display?: DisplayPrefs;
     children: Snippet;
     modalOpen?: boolean;
     keyCapture?: boolean;
@@ -31,6 +35,7 @@
   let {
     themeId,
     keybinds,
+    display = DEFAULT_DISPLAY,
     children,
     modalOpen = false,
     keyCapture = false,
@@ -108,6 +113,10 @@
       void goto(resolve('/browse'));
       return;
     }
+    if (target === '/settings') {
+      void goto(resolve('/settings'));
+      return;
+    }
     if (target === '/gallery') {
       void goto(resolve('/gallery'));
       return;
@@ -117,17 +126,20 @@
     }
   }
 
-  function navTarget(href: '/' | '/study' | '/browse'): string {
+  function navTarget(href: NavPath): string {
     if (href === '/study') {
       return resolve('/study');
     }
     if (href === '/browse') {
       return resolve('/browse');
     }
+    if (href === '/settings') {
+      return resolve('/settings');
+    }
     return resolve('/');
   }
 
-  function openNav(href: '/' | '/study' | '/browse'): void {
+  function openNav(href: NavPath): void {
     if (window.location.pathname === navTarget(href)) {
       return;
     }
@@ -137,6 +149,10 @@
     }
     if (href === '/browse') {
       void goto(resolve('/browse'));
+      return;
+    }
+    if (href === '/settings') {
+      void goto(resolve('/settings'));
       return;
     }
     void goto(resolve('/'));
@@ -174,7 +190,34 @@
   });
 </script>
 
-<div class="tui-root app-root {themeClass(themeId)}">
+<div class="tui-root app-root {themeClass(themeId)} {displayRootClass(display)}">
+  <header class="app-topbar">
+    <a class="app-brand" href={resolve('/')}>
+      <AppIcon name="brand" size={18} />
+      <span>srep</span>
+    </a>
+    <nav class="app-nav tui-only-desktop" aria-label="Primary">
+      {#each NAV_ITEMS as item (item.id)}
+        <button
+          type="button"
+          class="app-nav-item"
+          aria-current={pathNow === navTarget(item.href) ? 'page' : undefined}
+          onclick={() => openNav(item.href)}
+        >
+          <AppIcon name={item.icon} size={15} />
+          <span>{item.label}</span>
+        </button>
+      {/each}
+    </nav>
+    <div class="app-topbar-tools tui-only-desktop">
+      <a class="app-tool-link" href={resolve('/gallery')}
+        ><AppIcon name="gallery" size={14} /><span>Gallery</span></a
+      >
+      <a class="app-tool-link" href={resolve('/security')}
+        ><AppIcon name="security" size={14} /><span>Security</span></a
+      >
+    </div>
+  </header>
   <div class="tui-tabbar" role="tablist" aria-label="App sections">
     {#each NAV_ITEMS as item (item.id)}
       <button
@@ -185,7 +228,8 @@
         onclick={() => openNav(item.href)}
         onkeydown={onTabKey}
       >
-        {item.label}
+        <AppIcon name={item.icon} size={15} />
+        <span>{item.label}</span>
       </button>
     {/each}
   </div>

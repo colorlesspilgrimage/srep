@@ -46,19 +46,14 @@ test.describe.serial('gallery shell', () => {
     await expect(page).toHaveTitle('srep gallery');
     await expect(page.getByRole('heading', { name: 'Gallery', level: 1 })).toBeVisible();
     await expect(page.getByRole('contentinfo', { name: 'Status line' })).toContainText('GALLERY');
-    const line = page.locator('.tui-frame-line.tui-only-desktop').first();
-    await expect(line).toBeVisible();
+    await expect(page.locator('.tui-frame').first()).toBeVisible();
   });
 
   test('1440px shows the specimen list and hides the tab bar', async () => {
     await openGallery(1440, 900);
     await expect(page.getByRole('listbox', { name: 'Specimens' })).toBeVisible();
     await expect(page.getByRole('tablist', { name: 'Gallery sections' })).toBeHidden();
-    const length = await page
-      .locator('.tui-frame-line.tui-only-desktop')
-      .first()
-      .evaluate((node) => node.textContent?.length ?? 0);
-    expect(length).toBe(80);
+    await expect(page.getByText('Pane body')).toBeVisible();
   });
 
   test('360px shows the tab bar and does not scroll sideways', async () => {
@@ -127,12 +122,13 @@ test.describe.serial('gallery shell', () => {
     await expect(page.locator('.tui-root')).toHaveCount(0);
     const narrow = await page.evaluate(() => {
       const body = document.body;
+      const shell = document.querySelector('.auth-shell');
       return {
-        maxWidth: getComputedStyle(body).maxWidth,
+        shellMaxWidth: shell === null ? '' : getComputedStyle(shell).maxWidth,
         hasPageClass: body.classList.contains('tui-page'),
       };
     });
     expect(narrow.hasPageClass).toBe(false);
-    expect(narrow.maxWidth).toBe('640px');
+    expect(narrow.shellMaxWidth).toBe('448px');
   });
 });

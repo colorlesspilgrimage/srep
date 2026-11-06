@@ -6,11 +6,11 @@ Each entry lists the entry point, how to use the feature, how to check it, and t
 
 Single-user passwordless login with WebAuthn passkeys and security keys, recovery codes, and cookie sessions.
 
-- Entry point: browser path `/setup` (first run), `/login`, `/security`. API under `/api/auth/*`. CLI `srep reset-auth`.
+- Entry point: browser path `/setup` (first run), `/login`, `/settings?section=security` (`/security` redirects). API under `/api/auth/*`. CLI `srep reset-auth`.
 - Use:
   1. Start the server: `npm run build && node build`. Read the line `srep setup is not complete ... setup token: <token>` in the log.
   2. Open `<SREP_ORIGIN>/setup`. Enter the token and a nickname. Press "Create". Save the 10 recovery codes.
-  3. Open `/security` to add a second credential, rename or revoke credentials, or log out.
+  3. Open Settings → Security (or `/security`) to add a second credential, rename or revoke credentials, see the unused recovery-code count, or log out.
   4. Open `/login` and use "Log in with a passkey" or "Log in with a security key".
   5. If all credentials are lost, log in with a recovery code on `/login`, or run `npm run srep -- reset-auth` (Docker: `docker compose exec srep srep reset-auth`) and open `/setup` with the new token.
   6. Set `SREP_ORIGIN`, `SREP_RP_ID` and `SREP_RP_NAME` for a real domain. HTTPS is required except on `localhost`.
@@ -84,7 +84,7 @@ FSRS scheduling with learning steps, a day-rollover clock, daily limits, a queue
 
 ## TUI gallery shell (M4 slice 1)
 
-A signed-in gallery shows pane, border, list, form, modal, and status-line samples on a character grid. Desktop shows two panes. A 360px width shows one pane and a tab bar. The default theme is Phosphor Green. The Themes list can show every pre-made theme.
+A signed-in gallery shows pane, border, list, form, modal, and status-line samples in the product UI kit. Desktop shows two panes. A 360px width shows one pane and a tab bar. The default theme is xAI Dark. The Themes list can show every pre-made theme.
 
 - Entry point: browser path `/gallery` after sign-in. Home page link `Gallery`.
 - Use:
@@ -111,7 +111,7 @@ The gallery can show 12 pre-made themes. The choice is not saved. Each theme pas
   2. Open `/gallery`.
   3. In the `Themes` list, choose `Nord`.
   4. Open `/gallery?theme=solarized-light`.
-  5. Reload `/gallery` with no query. The theme is Phosphor Green again.
+  5. Reload `/gallery` with no query. The theme is xAI Dark again.
 - Check:
   - `curl -s -D - -o /dev/null 'http://127.0.0.1:3000/gallery?theme=nord'` on a fresh database returns `303` and `location: /setup`.
   - `npx vitest run src/lib/client/tui src/routes/gallery` passes.
@@ -313,6 +313,116 @@ A signed-in page searches cards and runs bulk move, tag, suspend, and delete.
 - Code and tests:
   - Code: `src/lib/client/app/BrowseScreen.svelte`, `src/routes/browse/+page.svelte`.
   - Tests: `src/lib/client/app/browse-keys.test.ts`, `e2e/browse-screen.test.ts`.
+
+## Settings shell (M5 slice 14)
+
+A signed-in Settings page lists Appearance, Display, Study day, Presets, Security, and Data. Panes are empty placeholders. The mobile tab bar includes Settings as the fourth tab. Open Settings is in the command palette.
+
+- Entry point: browser path `/settings` after sign-in. Mobile tab Settings. Command `Open Settings`.
+- Use:
+  1. Sign in (see "Authentication (M1)").
+  2. At 360px, press the Settings tab.
+  3. Read the Appearance placeholder text.
+- Check:
+  - `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/settings` prints `303`.
+  - `npx vitest run src/routes/study/app-nav.test.ts src/routes/settings/page-load.test.ts` exits 0.
+  - `npx playwright test e2e/settings-screen.test.ts` exits 0.
+- Code and tests:
+  - Code: `src/lib/client/app/SettingsScreen.svelte`, `src/lib/client/app/app-nav.ts`, `src/lib/client/app/AppShell.svelte`, `src/routes/settings/+page.svelte`, `src/routes/settings/+page.server.ts`.
+  - Tests: `src/routes/study/app-nav.test.ts`, `src/routes/settings/page-load.test.ts`, `e2e/settings-screen.test.ts`.
+
+## Settings appearance (M5 slice 15)
+
+A signed-in Settings page saves theme, keybinds, and study day against the existing APIs. Gallery settings keep working. Display, Presets, Security, and Data stay placeholders.
+
+- Entry point: browser path `/settings` after sign-in. Sections Appearance and Study day.
+- Use:
+  1. Sign in (see "Authentication (M1)").
+  2. Open Settings. In Appearance, pick Nord and press Save theme.
+  3. Remap Open palette and press Save keys.
+  4. Open Study day, set timezone and rollover hour, press Save study day.
+- Check:
+  - `curl -s -o /dev/null -w '%{http_code}\n' -X PUT http://127.0.0.1:3000/api/settings/theme -H 'content-type: application/json' -d '{"id":"nord"}'` prints `401`.
+  - `npx vitest run src/lib/client/app/settings-client.test.ts src/lib/client/app/study-day-form.test.ts src/lib/client/tui/theme-save-state.test.ts` exits 0.
+  - `npx playwright test e2e/settings-screen.test.ts e2e/gallery-settings.test.ts e2e/gallery-keys.test.ts` exits 0.
+- Code and tests:
+  - Code: `src/lib/client/app/SettingsScreen.svelte`, `src/lib/client/app/settings-client.ts`, `src/lib/client/app/study-day-form.ts`, `src/routes/settings/+page.svelte`.
+  - Tests: `src/lib/client/app/settings-client.test.ts`, `src/lib/client/app/study-day-form.test.ts`, `e2e/settings-screen.test.ts`.
+
+## Settings display (M5 slice 16)
+
+A signed-in Settings page saves display prefs (font size, reduced motion). The first HTML paints those prefs on the AppShell root. Presets, Security, and Data stay placeholders.
+
+- Entry point: browser path `/settings` after sign-in. Section Display. API `GET` and `PUT /api/settings/display`.
+- Use:
+  1. Sign in (see "Authentication (M1)").
+  2. Open Settings. Open Display.
+  3. Set font size to 18. Turn on Reduced motion, Scanline, and Cursor blink.
+  4. Press Save display. Reload. The root still uses 18px and the same flags.
+- Check:
+  - `curl -s -o /dev/null -w '%{http_code}\n' -X PUT http://127.0.0.1:3000/api/settings/display -H 'content-type: application/json' -d '{"fontSize":18,"reducedMotion":true,"scanline":false,"cursorBlink":false}'` prints `401`.
+  - `npx vitest run src/lib/client/app/display-prefs.test.ts src/lib/client/app/settings-client.test.ts src/lib/server/settings/display-settings.test.ts src/routes/api/settings/display` exits 0.
+  - `npx playwright test e2e/settings-screen.test.ts` exits 0.
+- Code and tests:
+  - Code: `src/lib/client/app/display-prefs.ts`, `src/lib/server/settings/display-*.ts`, `src/routes/api/settings/display/+server.ts`, `src/lib/client/app/SettingsScreen.svelte`, `src/lib/client/app/AppShell.svelte`, `src/lib/client/app/app.css`.
+  - Tests: `src/lib/client/app/display-prefs.test.ts`, `src/lib/server/settings/display-*.test.ts`, `src/routes/api/settings/display/*.test.ts`, `e2e/settings-screen.test.ts`.
+
+## Settings presets (M5 slice 17)
+
+A signed-in Settings page lists scheduling presets and can create, edit, or delete them against `/api/presets`. Form fields match `presetSchema` (FSRS params stay opaque: null on create, preserved on edit). Delete of the default preset or a preset in use by a deck shows the API error.
+
+- Entry point: browser path `/settings` after sign-in. Section Presets. API `GET`/`POST /api/presets` and `PUT`/`DELETE /api/presets/<id>`.
+- Use:
+  1. Sign in (see "Authentication (M1)").
+  2. Open Settings. Open Presets.
+  3. Press New preset. Set name and limits. Press Save preset.
+  4. Edit the name or limits. Press Save preset again.
+  5. Select Default and press Delete preset. The status shows that the default cannot be deleted.
+- Check:
+  - `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/api/presets` prints `401`.
+  - `npx vitest run src/lib/client/app/preset-form.test.ts src/lib/client/app/presets-client.test.ts` exits 0.
+  - `npx playwright test e2e/settings-screen.test.ts` exits 0.
+- Code and tests:
+  - Code: `src/lib/client/app/preset-form.ts`, `src/lib/client/app/presets-client.ts`, `src/lib/client/app/PresetsPanel.svelte`, `src/lib/client/app/SettingsScreen.svelte`.
+  - Tests: `src/lib/client/app/preset-form.test.ts`, `src/lib/client/app/presets-client.test.ts`, `e2e/settings-screen.test.ts`.
+
+## Settings security and data (M5 slice 18)
+
+A signed-in Settings page manages credentials (list/add/rename/revoke), logout, logout-all, and shows the unused recovery-code count. `/security` redirects to `/settings?section=security`. Data lists trashed notes and restores them; import/export is stub copy for M6. Security and Data panels load via dynamic `import()` so they stay out of the initial settings chunk.
+
+- Entry point: `/settings?section=security` or `/settings` → Security / Data. APIs `GET /api/auth/recovery`, `GET /api/notes/trash`, `POST /api/notes/<id>/restore`, existing credentials and logout routes.
+- Use:
+  1. Sign in (see "Authentication (M1)").
+  2. Open `/security` or Settings → Security. Rename or revoke a credential, or add another. Confirm the unused recovery-code count.
+  3. Open Data. Restore a trashed note. Import/export text points at M6.
+- Check:
+  - `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/api/notes/trash` prints `401`.
+  - `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/api/auth/recovery` prints `401`.
+  - `npx vitest run src/routes/api/notes/trash src/routes/api/auth/recovery src/lib/client/app/trash-client.test.ts src/lib/client/app/settings-section.test.ts src/lib/server/auth/hook.test.ts` exits 0.
+  - `npx playwright test e2e/settings-screen.test.ts` exits 0.
+  - `npm run build && node scripts/bundle-budget.mjs` exits 0. Slice 18 raised `scripts/bundle-budget.json` `clientJsGzipMax` from 90000 to **92971** (measured client gzip after lean Security/Data panels + dynamic `import()`; font size moved to CSS classes to keep CSP tight).
+- Code and tests:
+  - Code: `src/lib/client/app/SecurityPanel.svelte`, `src/lib/client/app/DataPanel.svelte`, `src/lib/client/app/trash-client.ts`, `src/lib/client/app/settings-section.ts`, `src/lib/client/app/SettingsScreen.svelte`, `src/routes/security/+page.ts`, `src/routes/api/notes/trash/+server.ts`, `src/routes/api/auth/recovery/+server.ts`, `src/lib/server/domain/notes.ts`, note store `listTrashedNotes`.
+  - Tests: `src/routes/api/notes/trash/{server,authz}.test.ts`, `src/routes/api/auth/recovery/{server,authz}.test.ts`, `src/lib/client/app/trash-client.test.ts`, `src/lib/client/app/settings-section.test.ts`, `e2e/settings-screen.test.ts`.
+
+## Full-loop E2E (M5 slice 19)
+
+A signed-in user completes the daily workflow with only the UI: create a deck on home, add a Basic note, study (reveal + rate), and see the finished next-due state plus updated deck counts. A second case runs at 360px and uses the bottom tab bar, including Settings.
+
+- Entry point: browser paths `/`, `/notes/new`, `/study?deck=…`, `/settings` after sign-in.
+- Use:
+  1. Sign in (see "Authentication (M1)").
+  2. On `/`, create a root deck.
+  3. Open Add note, save a Basic note with front and back.
+  4. Open Study for that deck, reveal, rate Easy.
+  5. Read `No cards left.` and `Next due in 8d`. On `/`, the deck shows New 0, Learning 0, Due 0.
+  6. At 360px, the same loop uses Decks / Study links and the Settings tab.
+- Check:
+  - `npx playwright test e2e/full-loop.test.ts` exits 0.
+  - `npx playwright test e2e/full-loop.test.ts e2e/settings-screen.test.ts` exits 0.
+- Code and tests:
+  - Tests: `e2e/full-loop.test.ts` (helpers from `e2e/support/`).
+  - Docs: README Status marks M0–M5 done.
 
 ## Browse query (M5 slice 12)
 

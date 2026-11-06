@@ -8,9 +8,9 @@
 import fs from 'node:fs';
 import { sql } from 'drizzle-orm';
 
-export type CacheSlot = 'decks' | 'presets' | 'study' | 'theme' | 'keybinds';
+export type CacheSlot = 'decks' | 'presets' | 'study' | 'theme' | 'keybinds' | 'display';
 
-const SLOTS: readonly CacheSlot[] = ['decks', 'presets', 'study', 'theme', 'keybinds'];
+const SLOTS: readonly CacheSlot[] = ['decks', 'presets', 'study', 'theme', 'keybinds', 'display'];
 
 type FileMark = { size: number; mtimeMs: number } | null;
 
@@ -48,6 +48,7 @@ function emptyCache(): DbCache {
     study: emptySlot(),
     theme: emptySlot(),
     keybinds: emptySlot(),
+    display: emptySlot(),
   };
   return { slots, xact: null, flight: null };
 }

@@ -23,10 +23,6 @@ describe('layoutMode', () => {
     const css = readFileSync(path.join(import.meta.dirname, 'tui.css'), 'utf8');
     expect(BREAKPOINT_PX).toBe(720);
     expect(css).toContain(`max-width: ${BREAKPOINT_PX}px`);
-    expect(css).toContain('width: 80ch');
-    expect(css).toContain('width: 78ch');
-    expect(css).toContain('width: 32ch');
-    expect(css).toContain('width: 30ch');
   });
 });
 

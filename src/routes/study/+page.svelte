@@ -13,6 +13,12 @@
 <TuiPage />
 <svelte:head><title>Study</title></svelte:head>
 
-<AppShell themeId={data.themeId} keybinds={data.keybinds} bind:paletteOpen mode="STUDY">
+<AppShell
+  themeId={data.themeId}
+  keybinds={data.keybinds}
+  display={data.display}
+  bind:paletteOpen
+  mode="STUDY"
+>
   <StudyScreen {paletteOpen} />
 </AppShell>

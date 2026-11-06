@@ -142,7 +142,7 @@ describe('read cache', () => {
 
   it('refreshes gallery settings after theme and keybind writes', async () => {
     const harness = await open();
-    expect(await putThemeSettings(getThemeStore(harness.handle), 'nord')).toMatchObject({
+    expect(await putThemeSettings(getThemeStore(harness.handle), 'xai-light')).toMatchObject({
       ok: true,
     });
     const keys = { ...DEFAULT_KEYBINDS, [PALETTE_CLOSE]: 'Alt+X' };
@@ -150,10 +150,10 @@ describe('read cache', () => {
       ok: true,
     });
     const saved = await readGallerySettings(harness.handle, null);
-    expect(saved.ok && saved.themeId).toBe('nord');
+    expect(saved.ok && saved.themeId).toBe('xai-light');
     expect(saved.ok && saved.keybinds[PALETTE_CLOSE]).toBe('Alt+X');
-    const query = await readGallerySettings(harness.handle, 'amber-crt');
-    expect(query.ok && query.themeId).toBe('amber-crt');
+    const query = await readGallerySettings(harness.handle, 'xai-dark');
+    expect(query.ok && query.themeId).toBe('xai-dark');
   });
 
   it('drops the preset cache after update and delete', async () => {
@@ -274,7 +274,7 @@ describe('read cache', () => {
     expect(await readGallerySettings(harness.handle, null)).toMatchObject({
       error: 'settings_corrupt',
     });
-    expect(await readGallerySettings(harness.handle, 'nord')).toMatchObject({
+    expect(await readGallerySettings(harness.handle, 'xai-light')).toMatchObject({
       error: 'settings_corrupt',
     });
   });
