@@ -7,12 +7,13 @@ srep is an open-source, self-hosted spaced-repetition web app (an Anki alternati
 ## Status
 
 The app is pre-1.0.
-Milestones M0 to M5 are done.
+Milestones M0 to M3 are done.
+M4 (original TUI shell + full premade theme catalog) is **cancelled**; see [ROADMAP.md](ROADMAP.md).
+**M5** (core screens to match the roadmap) is the active product milestone.
 M1 adds passkey and security-key login.
 M2 adds decks, presets, note types, notes, card generation and media, through a JSON API.
 M3 adds the FSRS study engine (next card, answer, undo, suspend, bury, daily limits and a log replay check), through a JSON API.
-M4 adds the UI shell, themes, keyboard layer, and responsive tab bar.
-M5 adds the core screens (decks, study, notes, browse, settings) and a desktop + mobile full-loop UI E2E.
+The UI uses `AppShell`, themes, keyboard layer, responsive tab bar, and `/gallery` component demos.
 The Chromium end-to-end tests cover the flows.
 The Firefox and Safari checks are manual (see "Browser matrix").
 See [ROADMAP.md](ROADMAP.md).

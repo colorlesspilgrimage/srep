@@ -126,13 +126,15 @@ Each milestone ends with something runnable and with passing tests. Rough sizing
 - Deterministic tests with an injected clock, and golden tests against known FSRS outputs.
 - **Exit:** a simulated 365-day study run with a fake clock stays consistent: limits are respected, replay equals the cached state, and undo restores the exact prior state.
 
-### M4: TUI shell and theming (M)
+### M4: TUI shell and theming (M) — **cancelled**
 - Design tokens, the character-grid layout system, the pane, border, list, form, modal and status-line components.
 - Keyboard layer: focus management, a command palette, a key hint bar, and remapping.
 - All pre-made themes, the settings pane with live preview, and persistence in `app_settings`. Themes apply without a flash on load.
 - A responsive breakpoint system (desktop panes vs. mobile single pane and tab bar).
 - Contrast tests per theme, plus visual regression screenshots per theme at desktop and mobile sizes.
 - **Exit:** a component gallery page is usable on a 360px phone and a 1440px desktop, and every theme passes contrast.
+
+**Cancelled:** the milestone is superseded by the current xAI-inspired UI (`AppShell`, `/gallery`, settings appearance, and a smaller shipped theme set). The roadmap’s original “every pre-made CRT theme” scope is not pursued as a gated milestone; any extra themes can return as polish, not a blocker for M5.
 
 ### M5: Core screens (L)
 - **Deck list:** a tree with due/new/learning counts and expand/collapse.
@@ -181,7 +183,7 @@ Each milestone ends with something runnable and with passing tests. Rough sizing
 - [ ] Decks, notes (Basic, Reversed, Cloze, custom), tags, media and presets are fully usable from the UI.
 - [ ] FSRS scheduling with correct daily limits, undo, suspend and bury.
 - [ ] Anki `.apkg` import, and lossless native export.
-- [ ] TUI interface with 10 or more pre-made terminal themes, a settings pane and live preview.
+- [ ] TUI-style interface with a settings pane and live preview (the original M4 “10+ CRT themes” catalog is optional; a smaller shipped catalog is fine).
 - [ ] Usable by keyboard on desktop and by touch on mobile, installable as a PWA.
 - [ ] Stats, plus FSRS optimizer.
 - [ ] CI green on SQLite and Postgres, a security review completed, and docs complete.
