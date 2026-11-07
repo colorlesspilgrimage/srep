@@ -1,4 +1,19 @@
-import { safeStudyNow } from '../../src/lib/server/study/request-clock.js';
+/** Mirrors legacy `request-clock.ts` for E2E (v1 src archived under `legacy/v1-sveltekit`). */
+function safeStudyNow(now: number): number {
+  const MINUTE_MS = 60_000;
+  const DAY_MS = 86_400_000;
+  const ROLLOVER_MS = 4 * 60 * MINUTE_MS;
+  const SAFE_GAP_MS = 20 * MINUTE_MS;
+  const dayStart = Math.floor(now / DAY_MS) * DAY_MS;
+  let end = dayStart + ROLLOVER_MS;
+  if (end <= now) {
+    end += DAY_MS;
+  }
+  if (end - now >= SAFE_GAP_MS) {
+    return now;
+  }
+  return end + SAFE_GAP_MS;
+}
 
 export const STUDY_CLOCK_HEADER = 'x-srep-test-now';
 
