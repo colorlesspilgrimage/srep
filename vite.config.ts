@@ -8,6 +8,9 @@ export default defineConfig({
     sveltekit({
       adapter: adapter(),
       preprocess: vitePreprocess(),
+      serviceWorker: {
+        register: false,
+      },
       // No unsafe-inline and no unsafe-eval. Kit adds nonces to its own inline code.
       csp: {
         mode: 'nonce',

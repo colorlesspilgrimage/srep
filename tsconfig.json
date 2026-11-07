@@ -11,5 +11,5 @@
     "types": ["$app/types", "node"]
   },
   "include": ["src", "test", "*"],
-  "exclude": ["src/service-worker"]
+  "exclude": ["src/service-worker.ts"]
 }

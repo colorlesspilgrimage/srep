@@ -456,3 +456,23 @@ A signed-in client can search cards and can tag or trash notes in one transactio
 - Code and tests:
   - Code: `src/lib/server/browse/`, `src/lib/server/domain/store/note-bulk.sqlite.ts`, `src/lib/server/domain/store/note-bulk.pg.ts`, `src/lib/server/domain/store/note-bulk-plan.ts`, `src/routes/api/browse/+server.ts`, `src/routes/api/notes/tags/+server.ts`, `src/routes/api/notes/trash/+server.ts`.
   - Tests: `src/lib/server/browse/*.test.ts`, `src/routes/api/browse/server.test.ts`, `src/routes/api/notes/tags/server.test.ts`, `src/routes/api/notes/trash/server.test.ts`, `src/lib/server/domain/store/note-bulk*.test.ts`.
+
+## Stats and optimizer (M7)
+
+Signed-in users open `/stats` for today summary, heatmap, retention, forecast, streak, and FSRS optimizer preview/apply on a preset.
+
+- Entry point: `/stats`, `GET /api/stats/today`, `POST /api/stats/optimizer/preview`.
+- Check:
+  - `npx vitest run src/lib/server/stats` exits 0.
+  - `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/api/stats/today` prints `401` when logged out.
+- Code and tests:
+  - Code: `src/lib/server/stats/`, `src/routes/api/stats/`, `src/lib/client/app/StatsScreen.svelte`.
+  - Tests: `src/lib/server/stats/metrics/pure.test.ts`, `src/lib/server/stats/stats.integration.test.ts`, `src/routes/api/stats/today/authz.test.ts`.
+
+## PWA and v1.0 (M8–M10)
+
+The app ships `static/manifest.webmanifest`, PWA icons, and a static-asset service worker. Release tags build multi-arch Docker images. User docs live under `docs/`.
+
+- Check:
+  - `npm run build` then `node scripts/bundle-budget.mjs` and `node scripts/study-bundle-budget.mjs` exit 0.
+  - `npx vitest run scripts/api-authz-sweep.test.ts` exits 0.

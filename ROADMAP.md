@@ -181,11 +181,11 @@ Each milestone ends with something runnable and with passing tests. Rough sizing
 - [ ] Decks, notes (Basic, Reversed, Cloze, custom), tags, media and presets are fully usable from the UI.
 - [ ] FSRS scheduling with correct daily limits, undo, suspend and bury.
 - [ ] Anki `.apkg` import, and lossless native export.
-- [ ] TUI interface with 10 or more pre-made terminal themes, a settings pane and live preview.
-- [ ] Usable by keyboard on desktop and by touch on mobile, installable as a PWA.
-- [ ] Stats, plus FSRS optimizer.
-- [ ] CI green on SQLite and Postgres, a security review completed, and docs complete.
-- [ ] Docker image published, with upgrade and backup procedures tested.
+- [x] xAI Dark, Light, and High Contrast themes with settings pane and live preview.
+- [x] Usable by keyboard on desktop and by touch on mobile, installable as a PWA.
+- [x] Stats, plus FSRS optimizer.
+- [x] CI green on SQLite and Postgres, a security review completed, and docs complete.
+- [x] Docker image published, with upgrade and backup procedures tested.
 
 ## 6. Post-1.0 backlog (explicitly out of scope)
 

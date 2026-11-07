@@ -13,6 +13,7 @@
   import LogOut from 'lucide-svelte/icons/log-out';
   import Pencil from 'lucide-svelte/icons/pencil';
   import Plus from 'lucide-svelte/icons/plus';
+  import ChartColumn from 'lucide-svelte/icons/chart-column';
   import Search from 'lucide-svelte/icons/search';
   import Settings from 'lucide-svelte/icons/settings';
   import Shield from 'lucide-svelte/icons/shield';
@@ -28,6 +29,7 @@
     | 'decks'
     | 'study'
     | 'browse'
+    | 'stats'
     | 'settings'
     | 'gallery'
     | 'security'
@@ -60,6 +62,7 @@
     decks: Layers,
     study: BookOpen,
     browse: Search,
+    stats: ChartColumn,
     settings: Settings,
     gallery: GalleryHorizontal,
     security: Shield,

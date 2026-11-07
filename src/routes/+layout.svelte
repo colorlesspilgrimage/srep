@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { onMount } from 'svelte';
   import { setCsrfToken } from '#lib/client/api.js';
+  import { registerPwaServiceWorker } from '#lib/client/pwa-register.js';
   import '#lib/client/tui/tui.css';
   import '#lib/client/tui/themes.css';
 
@@ -9,6 +11,10 @@
   // Runs before the page code, so a page always sees the current token.
   $effect.pre(() => {
     setCsrfToken(data.csrfToken);
+  });
+
+  onMount(() => {
+    registerPwaServiceWorker();
   });
 </script>
 

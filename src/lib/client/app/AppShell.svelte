@@ -117,6 +117,10 @@
       void goto(resolve('/settings'));
       return;
     }
+    if (target === '/stats') {
+      void goto(resolve('/stats'));
+      return;
+    }
     if (target === '/gallery') {
       void goto(resolve('/gallery'));
       return;
@@ -132,6 +136,9 @@
     }
     if (href === '/browse') {
       return resolve('/browse');
+    }
+    if (href === '/stats') {
+      return resolve('/stats');
     }
     if (href === '/settings') {
       return resolve('/settings');
@@ -149,6 +156,10 @@
     }
     if (href === '/browse') {
       void goto(resolve('/browse'));
+      return;
+    }
+    if (href === '/stats') {
+      void goto(resolve('/stats'));
       return;
     }
     if (href === '/settings') {
