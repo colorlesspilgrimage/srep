@@ -3,7 +3,7 @@
   --fg: #f5f5f5;
   --accent: #3b82f6;
   --border: #333;
-  --font: "Inter", system-ui, sans-serif;
+  --font: 'Inter', system-ui, sans-serif;
 }
 * {
   box-sizing: border-box;

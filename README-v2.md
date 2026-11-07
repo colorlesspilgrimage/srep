@@ -2,15 +2,15 @@
 
 This is the **full-stack rewrite** track: Axum API, sqlx persistence, Leptos WASM UI.
 
-| Component | Path |
-|-----------|------|
-| HTTP server | `crates/srep-server` |
-| Auth / WebAuthn | `crates/srep-auth` |
-| Domain API | `crates/srep-domain` |
-| Study / FSRS | `crates/srep-study` |
-| WASM UI | `frontend` (`srep-ui`) |
-| Static shell | `site/` |
-| Migrations | `migrations/{sqlite,postgres}` |
+| Component       | Path                           |
+| --------------- | ------------------------------ |
+| HTTP server     | `crates/srep-server`           |
+| Auth / WebAuthn | `crates/srep-auth`             |
+| Domain API      | `crates/srep-domain`           |
+| Study / FSRS    | `crates/srep-study`            |
+| WASM UI         | `frontend` (`srep-ui`)         |
+| Static shell    | `site/`                        |
+| Migrations      | `migrations/{sqlite,postgres}` |
 
 ## Quick start
 
