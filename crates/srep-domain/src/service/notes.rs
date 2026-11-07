@@ -1,4 +1,5 @@
 use crate::core::card_plan::{desired_cards, field_checksum, reconcile, DesiredCard};
+use crate::core::template::{fields_by_name, render_card_sides};
 use crate::core::ids::{new_id, random_token};
 use crate::core::tags::normalize_tags;
 use crate::core::validation::{
@@ -77,6 +78,7 @@ async fn note_view(
     } else {
         vec![]
     };
+    let named = fields_by_name(&note_type.fields, &state.note.fields);
     let cards = state
         .cards
         .iter()
@@ -85,6 +87,9 @@ async fn note_view(
                 .templates
                 .iter()
                 .find(|t| t.id == card.template_id);
+            let (front, back) = template
+                .map(|t| render_card_sides(&t.front_tpl, &t.back_tpl, &named, card.ordinal))
+                .unwrap_or_default();
             CardView {
                 id: card.id.clone(),
                 template_id: card.template_id.clone(),
@@ -94,8 +99,8 @@ async fn note_view(
                 state: card.state.clone(),
                 position: card.position,
                 flags: card.flags,
-                front: String::new(),
-                back: String::new(),
+                front,
+                back,
             }
         })
         .collect();
@@ -328,6 +333,7 @@ pub async fn preview_note(
     {
         return Err(fail(axum::http::StatusCode::BAD_REQUEST, "bad_request"));
     }
+    let named = fields_by_name(&note_type.fields, &input.fields);
     let desired = desired_cards(&note_type, &input.fields);
     let cards = desired
         .into_iter()
@@ -336,11 +342,14 @@ pub async fn preview_note(
                 .templates
                 .iter()
                 .find(|t| t.id == d.template_id);
+            let (front, back) = template
+                .map(|t| render_card_sides(&t.front_tpl, &t.back_tpl, &named, d.ordinal))
+                .unwrap_or_default();
             PreviewCard {
                 template_name: template.map(|t| t.name.clone()).unwrap_or_default(),
                 ordinal: d.ordinal,
-                front: String::new(),
-                back: String::new(),
+                front,
+                back,
             }
         })
         .collect();

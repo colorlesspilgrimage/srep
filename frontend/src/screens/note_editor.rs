@@ -6,6 +6,7 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::api::{self, error_code_from_body, message_for, ApiError};
+use crate::card_html::CardHtml;
 use crate::client_js;
 use crate::id_util::is_uuid;
 use crate::webauthn_client;
@@ -37,15 +38,25 @@ struct PreviewCard {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct NoteCardRow {
+    deck_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct NoteBody {
     id: String,
-    #[serde(rename = "noteTypeId")]
     note_type_id: String,
-  fields: Vec<String>,
+    fields: Vec<String>,
     tags: Vec<String>,
-    #[serde(rename = "deckId")]
-    deck_id: String,
     duplicates: Vec<String>,
+    #[serde(default)]
+    cards: Vec<NoteCardRow>,
+}
+
+fn deck_id_from_note(note: &NoteBody) -> Option<String> {
+    note.cards.iter().find_map(|c| c.deck_id.clone())
 }
 
 fn split_tags(text: &str) -> Vec<String> {
@@ -128,29 +139,9 @@ pub fn NoteEditorScreen(
                         if mine != preview_serial.get_untracked() {
                             return;
                         }
-                        let field_count = fields.get_untracked().len();
-                        let mut dom_fields = Vec::with_capacity(field_count);
-                        if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
-                            for index in 0..field_count {
-                                let val = doc
-                                    .get_element_by_id(&format!("note-field-{index}"))
-                                    .and_then(|el| el.dyn_into::<web_sys::HtmlTextAreaElement>().ok())
-                                    .map(|t| t.value())
-                                    .unwrap_or_else(|| {
-                                        fields
-                                            .get_untracked()
-                                            .get(index)
-                                            .cloned()
-                                            .unwrap_or_default()
-                                    });
-                                dom_fields.push(val);
-                            }
-                        } else {
-                            dom_fields = fields.get_untracked();
-                        }
                         let body = serde_json::json!({
                             "noteTypeId": note_type_id.get_untracked(),
-                            "fields": dom_fields,
+                            "fields": fields.get_untracked(),
                         });
                         match api::post_json::<serde_json::Value, serde_json::Value>(
                             "/api/notes/preview",
@@ -233,10 +224,11 @@ pub fn NoteEditorScreen(
                             if let Ok(note) =
                                 serde_json::from_value::<NoteBody>(body.get("note").cloned().unwrap_or_default())
                             {
+                                let deck = deck_id_from_note(&note);
                                 note_type_id.set(note.note_type_id);
                                 fields.set(note.fields);
                                 tag_text.set(note.tags.join(" "));
-                                deck_index_sig.set(deck_index(&deck_rows, Some(&note.deck_id)));
+                                deck_index_sig.set(deck_index(&deck_rows, deck.as_deref()));
                                 if !note.duplicates.is_empty() {
                                     message.set(DUPLICATE_TEXT.to_string());
                                 }
@@ -313,16 +305,24 @@ pub fn NoteEditorScreen(
                 busy.set(false);
                 match result {
                     Ok(body) => {
+                        if mode == "new" {
+                            let Some(id) = body
+                                .get("note")
+                                .and_then(|n| n.get("id"))
+                                .and_then(|v| v.as_str())
+                            else {
+                                message.set(message_for("bad_request"));
+                                return;
+                            };
+                            navigate(&format!("/notes/{id}"), Default::default());
+                            return;
+                        }
                         let Ok(note) = serde_json::from_value::<NoteBody>(
                             body.get("note").cloned().unwrap_or_default(),
                         ) else {
                             message.set(message_for("bad_request"));
                             return;
                         };
-                        if mode == "new" {
-                            navigate(&format!("/notes/{}", note.id), Default::default());
-                            return;
-                        }
                         fields.set(note.fields);
                         tag_text.set(note.tags.join(" "));
                         message.set(if note.duplicates.is_empty() {
@@ -342,13 +342,21 @@ pub fn NoteEditorScreen(
     view! {
         <main
             class="app-screen note-editor"
-            on:input=move |ev| {
+            on:input=move |ev: web_sys::Event| {
                 if let Some(t) = ev
                     .target()
                     .and_then(|n| n.dyn_into::<web_sys::HtmlTextAreaElement>().ok())
                 {
-                    if t.id().starts_with("note-field-") {
-                        schedule_preview();
+                    if let Some(rest) = t.id().strip_prefix("note-field-") {
+                        if let Ok(index) = rest.parse::<usize>() {
+                            let value = t.value();
+                            fields.update(|f| {
+                                if index < f.len() {
+                                    f[index] = value;
+                                }
+                            });
+                            schedule_preview();
+                        }
                     }
                 }
             }
@@ -371,13 +379,13 @@ pub fn NoteEditorScreen(
                     each=move || preview_cards.get()
                     key=|c| format!("{}:{}", c.template_name, c.front.len())
                     children=move |card| {
-                        let front_html = client_js::sanitize_card_html(&card.front);
-                        let back_html = client_js::sanitize_card_html(&card.back);
+                        let front_sig = RwSignal::new(card.front.clone());
+                        let back_sig = RwSignal::new(card.back.clone());
                         let name = card.template_name.clone();
                         view! {
                             <p>{name}</p>
-                            <div class="study-card" prop:inner_html=front_html />
-                            <div class="study-card" prop:inner_html=back_html />
+                            <CardHtml text=Signal::derive(move || front_sig.get()) />
+                            <CardHtml text=Signal::derive(move || back_sig.get()) />
                         }
                     }
                 />
@@ -442,6 +450,20 @@ pub fn NoteEditorScreen(
                             }
                             on:change=move |ev| on_field_input(index, event_target_value(&ev))
                             on:keydown=move |ev: web_sys::KeyboardEvent| {
+                                if !ev.alt_key()
+                                    && !ev.ctrl_key()
+                                    && !ev.meta_key()
+                                    && ev.key() == "Escape"
+                                {
+                                    ev.prevent_default();
+                                    if let Some(t) = ev
+                                        .current_target()
+                                        .and_then(|n| n.dyn_into::<web_sys::HtmlTextAreaElement>().ok())
+                                    {
+                                        let _ = t.blur();
+                                    }
+                                    return;
+                                }
                                 if ev.alt_key() {
                                     let key = ev.key();
                                     if key == "c" || key == "C" {
@@ -494,6 +516,17 @@ pub fn NoteEditorScreen(
                 type="button"
                 disabled=move || !ready.get() || busy.get()
                 on:click=on_save
+                on:keydown=move |ev: web_sys::KeyboardEvent| {
+                    if matches!(ev.key().as_str(), "Enter" | " ") {
+                        ev.prevent_default();
+                        if let Some(btn) = ev
+                            .current_target()
+                            .and_then(|t| t.dyn_into::<web_sys::HtmlButtonElement>().ok())
+                        {
+                            let _ = btn.click();
+                        }
+                    }
+                }
             >
                 "Save"
             </button>
@@ -632,10 +665,20 @@ fn NoteDeckList(
                             id=row_id
                             tabindex="-1"
                             aria-selected=move || if selected() { "true" } else { "false" }
-                            on:mousedown=move |ev| {
+                            on:mousedown=move |ev: web_sys::MouseEvent| {
                                 ev.prevent_default();
                                 if locked.get_untracked() {
                                     return;
+                                }
+                                if let Some(node) = ev
+                                    .current_target()
+                                    .and_then(|n| n.dyn_into::<web_sys::HtmlElement>().ok())
+                                {
+                                    if let Some(parent) = node.parent_element() {
+                                        if let Ok(el) = parent.dyn_into::<web_sys::HtmlElement>() {
+                                            let _ = el.focus();
+                                        }
+                                    }
                                 }
                                 deck_index.set(row);
                             }

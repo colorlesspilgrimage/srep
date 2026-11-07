@@ -1,4 +1,6 @@
 pub mod card_plan;
+pub mod cloze;
+pub mod template;
 pub mod card_state;
 pub mod deck_paths;
 pub mod ids;
