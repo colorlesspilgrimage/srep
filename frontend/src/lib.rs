@@ -1,12 +1,16 @@
 use leptos::prelude::*;
-use leptos_router::components::{Route, Router, Routes};
+use leptos_router::components::{Redirect, Route, Router, Routes};
+use leptos_router::hooks::use_navigate;
 use leptos_router::path;
 use wasm_bindgen::prelude::*;
 
 mod api;
+mod command_palette;
+mod deck;
 mod screens;
 mod shell;
 mod themes;
+mod webauthn_client;
 
 pub use themes::ThemeHandle;
 
@@ -17,9 +21,7 @@ use shell::{AppShell, AuthShell};
 fn BrowseScreen() -> impl IntoView {
     view! {
         <section class="screen-placeholder">
-            <p class="tui-eyebrow">"Browse"</p>
             <h1 class="screen-title">"Browse"</h1>
-            <p class="tui-dim">"Grid view port in progress for the Rust WASM client."</p>
         </section>
     }
 }
@@ -28,10 +30,17 @@ fn BrowseScreen() -> impl IntoView {
 fn StatsScreen() -> impl IntoView {
     view! {
         <section class="screen-placeholder">
-            <p class="tui-eyebrow">"Stats"</p>
             <h1 class="screen-title">"Stats"</h1>
-            <p class="tui-dim">"Charts and retention tables arrive with R7."</p>
         </section>
+    }
+}
+
+#[component]
+fn GalleryScreen() -> impl IntoView {
+    view! {
+        <main class="app-screen">
+            <h1>"Gallery"</h1>
+        </main>
     }
 }
 
@@ -67,6 +76,15 @@ fn StatsPage() -> impl IntoView {
     view! {
         <AppShell>
             <StatsScreen />
+        </AppShell>
+    }
+}
+
+#[component]
+fn GalleryPage() -> impl IntoView {
+    view! {
+        <AppShell>
+            <GalleryScreen />
         </AppShell>
     }
 }
@@ -108,6 +126,46 @@ fn SetupPage() -> impl IntoView {
     }
 }
 
+#[component]
+fn SecurityRedirect() -> impl IntoView {
+    let navigate = use_navigate();
+    Effect::new(move |_| {
+        let _ = navigate("/settings?section=security", Default::default());
+    });
+    view! { <main class="tui-dim" aria-busy="true">"Loading…"</main> }
+}
+
+#[component]
+fn PairRedirect() -> impl IntoView {
+    let navigate = use_navigate();
+    Effect::new(move |_| {
+        let _ = navigate("/settings?section=pair-app", Default::default());
+    });
+    view! { <main class="tui-dim" aria-busy="true">"Loading…"</main> }
+}
+
+#[component]
+fn NotesNewPage() -> impl IntoView {
+    view! {
+        <AppShell>
+            <main class="app-screen">
+                <h1>"New note"</h1>
+            </main>
+        </AppShell>
+    }
+}
+
+#[component]
+fn NoteDetailPage() -> impl IntoView {
+    view! {
+        <AppShell>
+            <main class="app-screen">
+                <h1>"Note"</h1>
+            </main>
+        </AppShell>
+    }
+}
+
 #[wasm_bindgen]
 pub fn hydrate() {
     console_error_panic_hook::set_once();
@@ -128,8 +186,13 @@ fn App() -> impl IntoView {
                 <Route path=path!("/browse") view=BrowsePage />
                 <Route path=path!("/stats") view=StatsPage />
                 <Route path=path!("/settings") view=SettingsPage />
+                <Route path=path!("/gallery") view=GalleryPage />
                 <Route path=path!("/login") view=LoginPage />
                 <Route path=path!("/setup") view=SetupPage />
+                <Route path=path!("/security") view=SecurityRedirect />
+                <Route path=path!("/pair") view=PairRedirect />
+                <Route path=path!("/notes/new") view=NotesNewPage />
+                <Route path=path!("/notes/:id") view=NoteDetailPage />
             </Routes>
         </Router>
     }

@@ -127,15 +127,48 @@ pub fn finish_login(
     webauthn.finish_passkey_authentication(resp, state)
 }
 
+fn challenge_from_options_value(value: &serde_json::Value) -> String {
+    value
+        .get("challenge")
+        .and_then(|c| c.as_str())
+        .map(String::from)
+        .or_else(|| {
+            value
+                .get("publicKey")
+                .and_then(|pk| pk.get("challenge"))
+                .and_then(|c| c.as_str())
+                .map(String::from)
+        })
+        .unwrap_or_default()
+}
+
+/// webauthn-rs wraps credential options in `{ publicKey: … }`; @simplewebauthn/browser expects the inner object.
+pub fn creation_options_for_browser(
+    ccr: &webauthn_rs::prelude::CreationChallengeResponse,
+) -> serde_json::Value {
+    let value = serde_json::to_value(ccr).unwrap_or(serde_json::Value::Null);
+    value
+        .get("publicKey")
+        .cloned()
+        .unwrap_or(value)
+}
+
+pub fn request_options_for_browser(
+    rcr: &webauthn_rs::prelude::RequestChallengeResponse,
+) -> serde_json::Value {
+    let value = serde_json::to_value(rcr).unwrap_or(serde_json::Value::Null);
+    value
+        .get("publicKey")
+        .cloned()
+        .unwrap_or(value)
+}
+
 pub fn challenge_string_from_creation(
     ccr: &webauthn_rs::prelude::CreationChallengeResponse,
 ) -> String {
     serde_json::to_value(ccr)
         .ok()
-        .and_then(|v| {
-            v.get("challenge")
-                .and_then(|c| c.as_str().map(String::from))
-        })
+        .map(|v| challenge_from_options_value(&v))
         .unwrap_or_default()
 }
 
@@ -144,9 +177,6 @@ pub fn challenge_string_from_request(
 ) -> String {
     serde_json::to_value(rcr)
         .ok()
-        .and_then(|v| {
-            v.get("challenge")
-                .and_then(|c| c.as_str().map(String::from))
-        })
+        .map(|v| challenge_from_options_value(&v))
         .unwrap_or_default()
 }

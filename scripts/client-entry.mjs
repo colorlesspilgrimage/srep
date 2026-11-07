@@ -100,9 +100,13 @@ async function enroll(base, fields) {
   if (!reg.ok) {
     return { ok: false, message: reg.message };
   }
+  const verifyBody = { ...fields, challengeId: first.body.challengeId, response: reg.value };
+  if (verifyBody.setupToken !== undefined) {
+    /* keep camelCase setupToken */
+  }
   const second = await apiFetch(`${base}/verify`, {
     method: 'POST',
-    body: { ...fields, challengeId: first.body.challengeId, response: reg.value },
+    body: verifyBody,
   });
   return second.ok
     ? { ok: true, body: second.body }

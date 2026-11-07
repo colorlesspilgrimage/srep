@@ -1,3 +1,1119 @@
+/* xAI-inspired UI kit. BREAKPOINT_PX is 720. */
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Inter-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/InterDisplay-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/GeistMono-Regular.woff2') format('woff2');
+}
+
+.tui-theme-xai-dark {
+  --tui-bg: #0c0f14;
+  --tui-fg: #f4f7fb;
+  --tui-dim: #9aa8b8;
+  --tui-accent: #2dd4bf;
+  --tui-good: #4ade80;
+  --tui-warn: #fbbf24;
+  --tui-bad: #f87171;
+  --tui-border: #6b7c90;
+  --tui-selection: #1a2330;
+  --tui-surface: #151b24;
+  --tui-surface-2: #1c2430;
+  --tui-border-subtle: rgba(244, 247, 251, 0.1);
+  --tui-border-strong: rgba(244, 247, 251, 0.18);
+  --tui-muted: rgba(244, 247, 251, 0.58);
+  --tui-radius: 0.75rem;
+  --tui-radius-sm: 0.55rem;
+  --tui-wash:
+    radial-gradient(90% 70% at 12% -10%, rgba(45, 212, 191, 0.16), transparent 45%),
+    radial-gradient(80% 60% at 90% 0%, rgba(96, 165, 250, 0.1), transparent 40%);
+}
+
+body.tui-page {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 400;
+  background: var(--tui-bg, #0a0a0a);
+  color: var(--tui-fg, #ffffff);
+}
+
+.tui-root {
+  --tui-wash: radial-gradient(120% 80% at 50% -10%, rgba(255, 255, 255, 0.06), transparent 55%);
+  background-color: var(--tui-bg);
+  background-image: var(--tui-wash);
+  background-attachment: fixed;
+  color: var(--tui-fg);
+  font-size: 16px;
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  box-sizing: border-box;
+  padding: 1rem 1.25rem 2.5rem;
+  max-width: 100%;
+  min-height: 100dvh;
+}
+
+.tui-eyebrow {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tui-dim);
+  margin: 0 0 0.75rem;
+}
+
+.tui-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.tui-side {
+  flex: 0 0 14rem;
+  min-width: 0;
+}
+
+.tui-main {
+  min-width: 0;
+  flex: 1 1 auto;
+  max-width: 100%;
+}
+
+.tui-frame {
+  width: 100%;
+  max-width: 100%;
+  background: var(--tui-surface, #191919);
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  box-sizing: border-box;
+}
+
+.tui-frame-title {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tui-dim);
+  margin: 0 0 0.75rem;
+}
+
+.tui-frame-slot {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--tui-fg);
+  overflow-wrap: anywhere;
+}
+
+.tui-only-mobile {
+  display: none;
+}
+
+.tui-tabbar {
+  display: none;
+}
+
+.tui-root button,
+.tui-form input[type='text'],
+.tui-form input[type='search'],
+.tui-root input[type='text'],
+.tui-root select,
+.tui-root textarea {
+  font: inherit;
+  font-weight: 400;
+  color: var(--tui-fg);
+  background: var(--tui-surface-2, var(--tui-surface));
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius-sm, 0.55rem);
+  padding: 0.55rem 0.9rem;
+  box-sizing: border-box;
+  transition:
+    background 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.tui-root textarea,
+.tui-root select {
+  border-radius: var(--tui-radius, 0.75rem);
+}
+
+.tui-root button {
+  margin-right: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.tui-root button:hover {
+  background: var(--tui-selection);
+  border-color: var(--tui-border-strong, rgba(255, 255, 255, 0.18));
+}
+
+.tui-root button:active {
+  transform: translateY(1px);
+}
+
+.app-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.app-icon svg {
+  display: block;
+}
+
+.tui-root a {
+  color: var(--tui-fg);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.tui-root a:hover {
+  color: var(--tui-dim);
+}
+
+.tui-root [aria-selected='true'] {
+  background: var(--tui-selection);
+  color: var(--tui-fg);
+  border-color: var(--tui-border-strong, rgba(255, 255, 255, 0.2));
+}
+
+.tui-root :focus-visible {
+  outline: 2px solid var(--tui-accent);
+  outline-offset: 2px;
+}
+
+.tui-list {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tui-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  border-radius: var(--tui-radius-sm, 0.55rem);
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 0.6rem 1rem;
+}
+
+.tui-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.tui-form input[type='text'],
+.tui-form input[type='search'] {
+  width: 100%;
+  max-width: 100%;
+}
+
+.tui-modal {
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  background: var(--tui-surface, #191919);
+  color: var(--tui-fg);
+  padding: 1.25rem;
+  max-width: min(28rem, 100%);
+  border-radius: 1rem;
+  box-shadow: none;
+}
+
+.tui-root [role='alert'] {
+  color: var(--tui-bad);
+  margin: 0;
+}
+
+.tui-status {
+  margin-top: 1.5rem;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tui-dim);
+  max-width: 72rem;
+  margin-inline: auto;
+}
+
+@media (max-width: 720px) {
+  .tui-root {
+    font-size: 14px;
+    padding: 0.75rem 0.75rem 5rem;
+  }
+
+  .tui-layout {
+    display: block;
+  }
+
+  .tui-side {
+    margin-bottom: 1rem;
+  }
+
+  .tui-only-mobile {
+    display: revert;
+  }
+
+  .tui-only-desktop {
+    display: none;
+  }
+
+  .tui-tabbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--tui-bg);
+    padding: 0.5rem 0 max(0.5rem, env(safe-area-inset-bottom));
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .tui-tabbar [role='tab'] {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+
+  .tui-root button,
+  .tui-root [role='tab'],
+  .tui-root input[type='text'],
+  .tui-root input[type='search'] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tui-root,
+  .tui-root * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+/* Command palette overlay. */
+
+.tui-palette {
+  position: fixed;
+  left: 50%;
+  top: 20%;
+  transform: translateX(-50%);
+  z-index: 50;
+  width: min(28rem, calc(100vw - 2rem));
+  animation: tui-palette-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.tui-palette h2 {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 400;
+  margin: 0 0 0.75rem;
+  color: var(--tui-dim);
+}
+
+.tui-palette input[type='text'] {
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+.tui-keymap {
+  max-width: 100%;
+}
+
+@keyframes tui-palette-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.tui-display-reduced-motion .tui-palette,
+.tui-root.tui-display-reduced-motion .tui-palette {
+  animation: none;
+}
+/* App shell layout. BREAKPOINT_PX is 720. */
+
+.tui-root.app-root {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: var(--tui-font-size, 16px);
+}
+
+.tui-root.app-root.tui-font-12 {
+  --tui-font-size: 12px;
+}
+.tui-root.app-root.tui-font-13 {
+  --tui-font-size: 13px;
+}
+.tui-root.app-root.tui-font-14 {
+  --tui-font-size: 14px;
+}
+.tui-root.app-root.tui-font-15 {
+  --tui-font-size: 15px;
+}
+.tui-root.app-root.tui-font-16 {
+  --tui-font-size: 16px;
+}
+.tui-root.app-root.tui-font-17 {
+  --tui-font-size: 17px;
+}
+.tui-root.app-root.tui-font-18 {
+  --tui-font-size: 18px;
+}
+.tui-root.app-root.tui-font-19 {
+  --tui-font-size: 19px;
+}
+.tui-root.app-root.tui-font-20 {
+  --tui-font-size: 20px;
+}
+.tui-root.app-root.tui-font-21 {
+  --tui-font-size: 21px;
+}
+.tui-root.app-root.tui-font-22 {
+  --tui-font-size: 22px;
+}
+.tui-root.app-root.tui-font-23 {
+  --tui-font-size: 23px;
+}
+.tui-root.app-root.tui-font-24 {
+  --tui-font-size: 24px;
+}
+
+.tui-root.app-root.tui-display-reduced-motion,
+.tui-root.app-root.tui-display-reduced-motion * {
+  animation: none !important;
+  transition: none !important;
+}
+
+.app-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  max-width: 72rem;
+  margin: 0 auto 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+}
+
+.app-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: 'Inter Display', Inter, system-ui, sans-serif;
+  font-size: 1.25rem;
+  letter-spacing: -0.04em;
+  color: var(--tui-fg) !important;
+  text-decoration: none !important;
+}
+
+.app-brand .app-icon {
+  color: var(--tui-accent);
+}
+
+.app-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex: 1 1 auto;
+}
+
+.app-nav-item {
+  border-radius: var(--tui-radius-sm, 0.55rem) !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  padding: 0.45rem 0.85rem !important;
+  color: var(--tui-dim) !important;
+}
+
+.app-nav-item:hover {
+  color: var(--tui-fg) !important;
+  background: var(--tui-selection) !important;
+}
+
+.app-nav-item[aria-current='page'] {
+  border-color: color-mix(in srgb, var(--tui-accent) 45%, transparent) !important;
+  background: color-mix(in srgb, var(--tui-accent) 14%, var(--tui-selection)) !important;
+  color: var(--tui-fg) !important;
+}
+
+.app-nav-item[aria-current='page'] .app-icon {
+  color: var(--tui-accent);
+}
+
+.app-topbar-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-inline-start: auto;
+  font-size: 0.875rem;
+}
+
+.app-tool-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--tui-dim) !important;
+  text-decoration: none !important;
+  padding: 0.35rem 0.55rem;
+  border-radius: var(--tui-radius-sm, 0.55rem);
+}
+
+.app-tool-link:hover {
+  color: var(--tui-fg) !important;
+  background: var(--tui-selection);
+}
+
+.app-screen {
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.app-page-header {
+  margin: 0 0 1.5rem;
+  max-width: 40rem;
+}
+
+.app-page-header h1,
+.app-screen > h1,
+.app-empty-title {
+  font-family: 'Inter Display', Inter, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  margin: 0 0 0.75rem;
+}
+
+.app-empty-title {
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+}
+
+.app-lead {
+  margin: 0;
+  color: var(--tui-muted, rgba(255, 255, 255, 0.5));
+  max-width: 36rem;
+  line-height: 1.55;
+}
+
+.app-eyebrow-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.app-eyebrow-icon .app-icon {
+  color: var(--tui-accent);
+}
+
+.app-page-tools {
+  margin-top: 1rem;
+}
+
+.app-ghost {
+  border-color: transparent !important;
+  background: transparent !important;
+  color: var(--tui-dim) !important;
+  padding-inline: 0.75rem !important;
+}
+
+.app-ghost:hover {
+  color: var(--tui-fg) !important;
+  background: var(--tui-selection) !important;
+}
+
+.app-decks {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.app-panel,
+.app-detail,
+.app-empty {
+  background: var(--tui-surface, #191919);
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius, 0.75rem);
+  padding: 1.1rem 1.25rem;
+  box-sizing: border-box;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+
+.app-empty {
+  max-width: 40rem;
+  margin: 1.5rem auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.app-empty .app-icon {
+  color: var(--tui-accent);
+  margin-bottom: 0.25rem;
+}
+
+.app-empty .tui-eyebrow {
+  margin-bottom: 0;
+}
+
+.app-tree {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 8rem;
+}
+
+.app-empty-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.5rem 0;
+  color: var(--tui-dim);
+}
+
+.app-empty-inline .app-icon {
+  color: var(--tui-accent);
+}
+
+.app-tree-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  text-align: left;
+  border-radius: var(--tui-radius-sm, 0.55rem);
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 0.65rem 0.85rem;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.app-tree-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.app-tree-chevron {
+  display: inline-flex;
+  color: var(--tui-dim);
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.app-tree-chevron-open {
+  transform: rotate(90deg);
+  color: var(--tui-accent);
+}
+
+.app-tree-chevron-spacer {
+  width: 14px;
+  height: 14px;
+}
+
+.app-tree-name {
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+.app-tree-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.app-chip,
+.app-metric {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tui-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  background: color-mix(in srgb, var(--tui-surface-2, var(--tui-surface)) 80%, transparent);
+}
+
+.app-chip-new {
+  color: var(--tui-accent);
+  border-color: color-mix(in srgb, var(--tui-accent) 35%, transparent);
+  background: color-mix(in srgb, var(--tui-accent) 12%, transparent);
+}
+
+.app-chip-learn {
+  color: var(--tui-warn);
+  border-color: color-mix(in srgb, var(--tui-warn) 35%, transparent);
+  background: color-mix(in srgb, var(--tui-warn) 12%, transparent);
+}
+
+.app-chip-due {
+  color: var(--tui-good);
+  border-color: color-mix(in srgb, var(--tui-good) 35%, transparent);
+  background: color-mix(in srgb, var(--tui-good) 12%, transparent);
+}
+
+.app-tree-row:hover {
+  background: var(--tui-selection);
+}
+
+.app-tree-row[aria-selected='true'] {
+  background: color-mix(in srgb, var(--tui-accent) 12%, var(--tui-selection));
+  border-color: color-mix(in srgb, var(--tui-accent) 40%, transparent);
+}
+
+.app-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.85rem;
+  max-width: 100%;
+  margin: 0;
+}
+
+.app-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-detail-head .app-icon {
+  color: var(--tui-accent);
+}
+
+.app-detail-head .tui-eyebrow {
+  margin: 0;
+}
+
+.app-detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.app-detail-field label {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tui-dim);
+}
+
+.app-detail-primary,
+.app-detail-secondary,
+.study-actions,
+.study-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.app-action,
+.app-pill-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--tui-border-strong, rgba(255, 255, 255, 0.2));
+  border-radius: var(--tui-radius-sm, 0.55rem);
+  text-decoration: none !important;
+  color: var(--tui-fg) !important;
+  background: var(--tui-surface-2, var(--tui-surface));
+}
+
+.app-action:hover,
+.app-pill-link:hover {
+  border-color: color-mix(in srgb, var(--tui-accent) 50%, transparent);
+  background: var(--tui-selection);
+}
+
+.app-action-strong,
+.app-pill-link-strong,
+.app-pill-strong {
+  background: var(--tui-accent) !important;
+  color: var(--tui-bg) !important;
+  border-color: var(--tui-accent) !important;
+}
+
+.app-action-strong:hover,
+.app-pill-link-strong:hover,
+.app-pill-strong:hover {
+  filter: brightness(1.08);
+}
+
+.app-pill-strong {
+  padding: 0.65rem 1.25rem !important;
+}
+
+.app-danger {
+  color: var(--tui-bad) !important;
+  border-color: color-mix(in srgb, var(--tui-bad) 45%, transparent) !important;
+}
+
+.app-danger:hover {
+  background: color-mix(in srgb, var(--tui-bad) 12%, transparent) !important;
+}
+
+.app-detail input[type='text'],
+.app-detail select,
+.app-dialog,
+.app-dialog select {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.app-dialog {
+  max-width: 100%;
+}
+
+.study-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius, 0.75rem);
+  max-width: 40rem;
+  background: color-mix(in srgb, var(--tui-surface) 70%, transparent);
+}
+
+.study-card {
+  max-width: 40rem;
+  margin: 1.5rem auto;
+  padding: 2.25rem 1.75rem;
+  background: var(--tui-surface, #191919);
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: 1rem;
+  overflow-wrap: anywhere;
+  font-size: 1.35rem;
+  line-height: 1.55;
+  letter-spacing: -0.02em;
+  transition: opacity 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  min-height: 8rem;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+}
+
+.study-meta {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tui-dim);
+  text-align: center;
+  margin: 0 0 0.5rem;
+}
+
+.study-actions {
+  justify-content: center;
+  margin: 1rem auto 0;
+  max-width: 40rem;
+}
+
+.study-toolbar {
+  justify-content: center;
+  margin: 1.25rem auto 0;
+  max-width: 40rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+}
+
+.study-rate {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-width: 40rem;
+  margin: 1rem auto 0;
+  justify-content: center;
+}
+
+.study-rate button {
+  flex: 1 1 5rem;
+  min-width: 5rem;
+}
+
+.study-rate button[data-rating='1'] {
+  border-color: var(--tui-bad);
+  color: var(--tui-bad);
+}
+
+.study-rate button[data-rating='2'] {
+  border-color: var(--tui-warn);
+  color: var(--tui-warn);
+}
+
+.study-rate button[data-rating='3'] {
+  border-color: var(--tui-good);
+  color: var(--tui-good);
+}
+
+.study-rate button[data-rating='4'] {
+  border-color: var(--tui-accent);
+  color: var(--tui-accent);
+}
+
+.app-dialog textarea {
+  box-sizing: border-box;
+  display: block;
+  max-width: 100%;
+  width: 100%;
+}
+
+.note-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 100%;
+}
+
+.note-preview {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 1rem;
+  background: var(--tui-surface, #191919);
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius, 0.75rem);
+}
+
+.note-editor textarea,
+.note-editor input[type='text'],
+.note-editor select,
+.note-deck {
+  box-sizing: border-box;
+  display: block;
+  max-width: 100%;
+  width: 100%;
+}
+
+.note-deck {
+  margin: 0;
+  padding: 0;
+}
+
+.note-deck [role='option'] {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.note-deck [aria-selected='true'] {
+  outline: 1px solid var(--tui-accent);
+  background: var(--tui-selection);
+}
+
+.browse-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 100%;
+}
+
+.browse-search,
+.browse-bulk,
+.browse-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-width: 100%;
+  align-items: center;
+}
+
+.browse-search {
+  padding: 0.75rem;
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius, 0.75rem);
+  background: var(--tui-surface, #191919);
+}
+
+.browse-bulk {
+  padding: 0.85rem;
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius, 0.75rem);
+  background: color-mix(in srgb, var(--tui-surface) 85%, transparent);
+}
+
+.browse-grid,
+.browse-search input,
+.browse-bulk input {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.browse-grid {
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius, 0.75rem);
+  overflow: hidden;
+  background: var(--tui-surface, #191919);
+}
+
+.browse-grid [role='gridcell'] {
+  unicode-bidi: isolate;
+  overflow-wrap: anywhere;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+}
+
+.browse-screen[data-modal='open'] .browse-search,
+.browse-screen[data-modal='open'] .browse-grid,
+.browse-screen[data-modal='open'] .browse-bulk {
+  pointer-events: none;
+}
+
+.app-tree-row[data-level='2'] {
+  padding-left: 1.5rem;
+}
+
+.app-tree-row[data-level='3'] {
+  padding-left: 2.5rem;
+}
+
+.app-tree-row[data-level='4'] {
+  padding-left: 3.5rem;
+}
+
+.app-tree-row[data-level='5'] {
+  padding-left: 4.5rem;
+}
+
+.app-tree-row[data-level='6'] {
+  padding-left: 5.5rem;
+}
+
+.app-tab {
+  border-radius: var(--tui-radius-sm, 0.55rem) !important;
+}
+
+.app-tab[aria-selected='true'] {
+  border-color: color-mix(in srgb, var(--tui-accent) 45%, transparent) !important;
+  background: color-mix(in srgb, var(--tui-accent) 14%, var(--tui-selection)) !important;
+}
+
+.app-tab[aria-selected='true'] .app-icon {
+  color: var(--tui-accent);
+}
+
+@media (max-width: 720px) {
+  .app-topbar {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .app-decks {
+    grid-template-columns: 1fr;
+  }
+
+  .app-tree-row,
+  .app-tab,
+  .app-nav-item {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .study-rate {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .study-rate button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .note-preview {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--tui-bg);
+  }
+
+  .note-editor .note-save,
+  .note-editor input.note-camera {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .browse-search button,
+  .browse-bulk button,
+  .browse-delete button,
+  .browse-row {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
 * {
   box-sizing: border-box;
 }

@@ -1,7 +1,11 @@
 use leptos::prelude::*;
 use leptos_router::components::A;
-use leptos_router::hooks::use_location;
+use leptos_router::hooks::{use_location, use_navigate};
+use wasm_bindgen::closure::Closure;
+use wasm_bindgen::JsCast;
 
+use crate::command_palette::{palette_key_action, tab_key_index, CommandPalette};
+use crate::deck::tree_keys::target_is_text_field;
 use crate::themes::{self, ThemeHandle};
 
 const NAV: [(&str, &str); 5] = [
@@ -16,6 +20,13 @@ const NAV: [(&str, &str); 5] = [
 pub fn AppShell(children: Children) -> impl IntoView {
     let theme = expect_context::<ThemeHandle>();
     let location = use_location();
+    let navigate = use_navigate();
+    let go = navigate.clone();
+    let palette_open = RwSignal::new(false);
+    let modal_open = RwSignal::new(false);
+    provide_context(modal_open);
+    provide_context(palette_open);
+
     let path = move || location.pathname.get();
 
     let mode = move || {
@@ -28,56 +39,173 @@ pub fn AppShell(children: Children) -> impl IntoView {
             "BROWSE"
         } else if p.starts_with("/stats") {
             "STATS"
+        } else if p.starts_with("/gallery") {
+            "GALLERY"
         } else {
             "DECKS"
         }
     };
 
-    let root_class = move || format!("tui-root app-root {}", themes::theme_class(&theme.id.get()));
+    let root_class = move || "tui-root app-root".to_string();
+
+    Effect::new(move |_| {
+        themes::apply_body_theme(&theme.id.get());
+    });
+
+    let nav_active = move |href: &str| {
+        let current = path();
+        if href == "/" {
+            current == "/" || current.is_empty()
+        } else {
+            current.starts_with(href)
+        }
+    };
+
+    Effect::new(move |_| {
+        let doc = web_sys::window().and_then(|w| w.document());
+        if let Some(doc) = doc {
+            if let Some(body) = doc.body() {
+                let _ = body.class_list().add_1("tui-page");
+            }
+        }
+    });
+
+    {
+        let palette_open = palette_open;
+        let modal_open = modal_open;
+        Effect::new(move |_| {
+            let window = web_sys::window().expect("window");
+            let palette_open = palette_open;
+            let modal_open = modal_open;
+            let closure = Closure::wrap(Box::new(move |ev: web_sys::KeyboardEvent| {
+                let in_field = ev
+                    .target()
+                    .map(|t| target_is_text_field(&t))
+                    .unwrap_or(false);
+                if in_field && !palette_open.get() {
+                    return;
+                }
+                if let Some(action) = palette_key_action(&ev, palette_open.get(), modal_open.get()) {
+                    ev.prevent_default();
+                    ev.stop_propagation();
+                    match action {
+                        "open" => palette_open.set(true),
+                        "close" => palette_open.set(false),
+                        _ => {}
+                    }
+                }
+            }) as Box<dyn FnMut(_)>);
+            let cb = closure.as_ref().unchecked_ref();
+            let _ = window.add_event_listener_with_callback("keydown", cb);
+            closure.forget();
+        });
+    }
 
     view! {
         <div class=root_class>
             <header class="app-topbar">
-                <A href="/">
-                    <span class="app-brand">
-                        <span class="app-icon" aria-hidden="true">"◆"</span>
-                        <span>"srep"</span>
-                    </span>
+                <A href="/" attr:class="app-brand">
+                    <span class="app-icon" aria-hidden="true">"◆"</span>
+                    <span>"srep"</span>
                 </A>
-                <nav class="app-nav" aria-label="Main">
+                <nav class="app-nav tui-only-desktop" aria-label="Primary">
                     {NAV
                         .into_iter()
                         .map(|(href, label)| {
                             let href = href.to_string();
+                            let go = go.clone();
                             let active = {
                                 let href = href.clone();
-                                move || {
-                                    let current = path();
-                                    if href == "/" {
-                                        current == "/" || current.is_empty()
-                                    } else {
-                                        current.starts_with(&href)
-                                    }
-                                }
+                                move || nav_active(&href)
                             };
                             view! {
-                                <A href=href.clone() attr:class=move || {
-                                    if active() {
-                                        "app-nav-item is-active".to_string()
-                                    } else {
-                                        "app-nav-item".to_string()
+                                <button
+                                    type="button"
+                                    class="app-nav-item"
+                                    aria-current=move || active().then_some("page")
+                                    on:click=move |_| {
+                                        let _ = go(&href, Default::default());
                                     }
-                                }>
+                                >
                                     {label}
-                                </A>
+                                </button>
                             }
                         })
                         .collect_view()}
                 </nav>
+                <div class="app-topbar-tools tui-only-desktop">
+                    <A href="/gallery" attr:class="app-tool-link">
+                        <span>"Gallery"</span>
+                    </A>
+                    <A href="/settings?section=security" attr:class="app-tool-link">
+                        <span>"Security"</span>
+                    </A>
+                </div>
             </header>
-            <div class="app-main">{children()}</div>
-            <footer class="app-status">
-                <span class="tui-eyebrow">{mode}</span>
+            <div class="tui-tabbar" role="tablist" aria-label="App sections">
+                {NAV
+                    .into_iter()
+                    .enumerate()
+                    .map(|(_i, (href, label))| {
+                        let href = href.to_string();
+                        let go = go.clone();
+                        let active = {
+                            let href = href.clone();
+                            move || nav_active(&href)
+                        };
+                        view! {
+                            <button
+                                type="button"
+                                class="app-tab"
+                                role="tab"
+                                aria-selected=move || active()
+                                on:click=move |_| {
+                                    let _ = go(&href, Default::default());
+                                }
+                                on:keydown=move |ev| {
+                                    let tab = ev.current_target().unwrap();
+                                    let tab: web_sys::Element = tab.dyn_into().unwrap();
+                                    let list = tab
+                                        .closest("[role=\"tablist\"]")
+                                        .ok()
+                                        .flatten()
+                                        .unwrap();
+                                    let nodes = list.query_selector_all("[role=\"tab\"]").unwrap();
+                                    let mut tabs: Vec<web_sys::Element> = Vec::new();
+                                    for i in 0..nodes.length() {
+                                        if let Some(node) = nodes.item(i) {
+                                            if let Ok(el) = node.dyn_into::<web_sys::Element>() {
+                                                tabs.push(el);
+                                            }
+                                        }
+                                    }
+                                    let current = tabs
+                                        .iter()
+                                        .position(|t| t.is_same_node(Some(&tab)))
+                                        .unwrap_or(0);
+                                    let next = tab_key_index(tabs.len(), current, &ev.key());
+                                    if let Some(idx) = next {
+                                        ev.prevent_default();
+                                        if let Some(el) = tabs.get(idx) {
+                                            let html: &web_sys::HtmlElement = el.unchecked_ref();
+                                            let _ = html.focus();
+                                        }
+                                    }
+                                }
+                            >
+                                <span>{label}</span>
+                            </button>
+                        }
+                    })
+                    .collect_view()}
+            </div>
+            {children()}
+            <CommandPalette open=palette_open />
+            <footer class="tui-status" role="contentinfo" aria-label="Status line">
+                {move || {
+                    let m = mode();
+                    format!("{m} | Ctrl+K palette | Esc close")
+                }}
             </footer>
         </div>
     }
@@ -85,6 +213,9 @@ pub fn AppShell(children: Children) -> impl IntoView {
 
 #[component]
 pub fn AuthShell(children: Children) -> impl IntoView {
+    Effect::new(move |_| {
+        themes::apply_body_theme(themes::DEFAULT_THEME_ID);
+    });
     view! {
         <div class="auth-shell">
             {children()}

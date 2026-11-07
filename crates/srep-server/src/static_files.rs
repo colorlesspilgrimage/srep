@@ -18,9 +18,9 @@ const GUEST_PAGES: &[&str] = &["/login", "/setup"];
 fn security_headers(config: &srep_config::AuthConfig) -> Vec<(header::HeaderName, HeaderValue)> {
     let csp = [
         "default-src 'none'",
-        "script-src 'self'",
+        "script-src 'self' 'wasm-unsafe-eval'",
         "style-src 'self'",
-        "style-src-attr 'unsafe-hashes' sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo=",
+        "style-src-attr 'unsafe-hashes' sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo= sha256-FoAp7gIJiqGyjAAazBoiDY8PuUiSyRkzTB8qpQIiFZ4=",
         "img-src 'self' data:",
         "font-src 'self'",
         "connect-src 'self'",
@@ -129,7 +129,7 @@ pub async fn serve_static_or_spa(
             return Redirect::temporary("/").into_response();
         }
     } else if !path.starts_with("/api")
-        && !is_static_asset(file_key)
+        && !is_static_asset(trimmed)
         && !session_authenticated(&state, &headers).await
     {
         let location = if state.auth_store().is_setup_complete().await.unwrap_or(false) {
@@ -150,18 +150,29 @@ pub async fn serve_static_or_spa(
             .body(Body::from(content.data.into_owned()))
             .unwrap();
         if mime.as_ref().starts_with("text/html") {
+            response.headers_mut().insert(
+                header::CACHE_CONTROL,
+                HeaderValue::from_static("no-store"),
+            );
+            response.headers_mut().insert(
+                header::HeaderName::from_static("vary"),
+                HeaderValue::from_static("Cookie"),
+            );
             response = apply_headers(response, &state);
         }
         return response;
     }
 
     if let Some(index) = SiteAssets::get("index.html") {
-        let response = Response::builder()
+        let mut response = Response::builder()
             .status(StatusCode::OK)
             .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
+            .header(header::CACHE_CONTROL, "no-store")
+            .header("vary", "Cookie")
             .body(Body::from(index.data.into_owned()))
             .unwrap();
-        return apply_headers(response, &state);
+        response = apply_headers(response, &state);
+        return response;
     }
 
     StatusCode::NOT_FOUND.into_response()

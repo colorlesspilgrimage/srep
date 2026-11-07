@@ -81,7 +81,7 @@ pub async fn auth_layer(
             .into_response();
     }
 
-    if is_mutating(&method) && authenticated && auth.bearer.is_none() {
+    if is_mutating(&method) && authenticated && auth.bearer.is_none() && !public {
         let origin_ok = is_origin_exempt(&method, &decoded)
             || check_origin(
                 req.headers().get("origin").and_then(|v| v.to_str().ok()),

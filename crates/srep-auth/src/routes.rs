@@ -192,9 +192,10 @@ async fn setup_options(
                     return error_response(StatusCode::INTERNAL_SERVER_ERROR, "challenge_store")
                 }
             };
+            let options = crate::webauthn_ops::creation_options_for_browser(&ccr);
             (
                 StatusCode::OK,
-                Json(json!({ "options": ccr, "challengeId": challenge_id })),
+                Json(json!({ "options": options, "challengeId": challenge_id })),
             )
                 .into_response()
         }
@@ -379,9 +380,10 @@ async fn login_options(
             )
             .await
             .unwrap_or_default();
+            let options = crate::webauthn_ops::request_options_for_browser(&rcr);
             (
                 StatusCode::OK,
-                Json(json!({ "options": rcr, "challengeId": challenge_id })),
+                Json(json!({ "options": options, "challengeId": challenge_id })),
             )
                 .into_response()
         }
@@ -585,9 +587,10 @@ async fn credentials_options(
             )
             .await
             .unwrap_or_default();
+            let options = crate::webauthn_ops::creation_options_for_browser(&ccr);
             (
                 StatusCode::OK,
-                Json(json!({ "options": ccr, "challengeId": challenge_id })),
+                Json(json!({ "options": options, "challengeId": challenge_id })),
             )
                 .into_response()
         }

@@ -8,10 +8,13 @@
     "node": ">=22.17"
   },
   "scripts": {
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "bundle:client": "node scripts/bundle-client.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",
+    "@simplewebauthn/browser": "^13.1.0",
+    "esbuild": "^0.25.0",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.6",
     "better-sqlite3": "^13.0.3",

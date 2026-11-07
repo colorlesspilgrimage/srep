@@ -24,6 +24,10 @@ fi
 mkdir -p site/pkg
 wasm-bindgen "$WASM" --out-dir site/pkg --target web --no-typescript
 
+if [ -f package.json ] && command -v npm >/dev/null; then
+  npm run bundle:client --silent 2>/dev/null || node scripts/bundle-client.mjs
+fi
+
 if [[ -f site/manifest.webmanifest ]]; then
   :
 elif [[ -f legacy/v1-sveltekit/static/manifest.webmanifest ]]; then
