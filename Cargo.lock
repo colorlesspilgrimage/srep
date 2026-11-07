@@ -5530,7 +5530,7 @@ dependencies = [
 
 [[package]]
 name = "srep-auth"
-version = "2.0.0-alpha.0"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5562,7 +5562,7 @@ dependencies = [
 
 [[package]]
 name = "srep-browse"
-version = "2.0.0-alpha.0"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -5580,7 +5580,7 @@ dependencies = [
 
 [[package]]
 name = "srep-cli"
-version = "2.0.0-alpha.0"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -5596,7 +5596,7 @@ dependencies = [
 
 [[package]]
 name = "srep-config"
-version = "2.0.0-alpha.0"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "serde",
@@ -5606,7 +5606,7 @@ dependencies = [
 
 [[package]]
 name = "srep-db"
-version = "2.0.0-alpha.0"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "sqlx",
@@ -5618,7 +5618,7 @@ dependencies = [
 
 [[package]]
 name = "srep-domain"
-version = "2.0.0-alpha.0"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -5641,7 +5641,7 @@ dependencies = [
 
 [[package]]
 name = "srep-import"
-version = "2.0.0-alpha.0"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -5659,7 +5659,7 @@ dependencies = [
 
 [[package]]
 name = "srep-server"
-version = "2.0.0-alpha.0"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -5686,7 +5686,7 @@ dependencies = [
 
 [[package]]
 name = "srep-stats"
-version = "2.0.0-alpha.0"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -5703,7 +5703,7 @@ dependencies = [
 
 [[package]]
 name = "srep-study"
-version = "2.0.0-alpha.0"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -5724,7 +5724,7 @@ dependencies = [
 
 [[package]]
 name = "srep-ui"
-version = "2.0.0-alpha.0"
+version = "2.0.0"
 dependencies = [
  "console_error_panic_hook",
  "leptos",

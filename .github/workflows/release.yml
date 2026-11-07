@@ -14,24 +14,25 @@ jobs:
     env:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@19c01c633723746a54fcb21b0b602398c2bfb2e
+        uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@b9f9bbf6fa4661a0ec2cd0d6833c047185e1caa
+        uses: docker/setup-buildx-action@v3
       - name: Log in to Docker Hub
         if: env.DOCKERHUB_USERNAME != ''
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push
+      - name: Build and push (Rust multi-stage Dockerfile)
         if: env.DOCKERHUB_USERNAME != ''
-        uses: docker/build-push-action@aa88817b80e67c02f94563d94146ae286d868f3
+        uses: docker/build-push-action@v6
         with:
           context: .
+          file: Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |

@@ -1,10 +1,11 @@
-# Schema sync (v1 Drizzle → v2 sqlx migrations)
+# Schema sync (Drizzle archive → sqlx migrations)
 
-Until R10 cutover, **Drizzle is the source of truth** for schema changes.
+**sqlx migrations under `migrations/` are the source of truth** for srep 2.0.
 
-1. Edit schemas under `src/lib/server/db/schema/{sqlite,pg}.ts`.
-2. Run `npm run db:generate` and commit new files under `drizzle/sqlite/` and `drizzle/pg/`.
-3. Copy the new SQL into `migrations/sqlite/` and `migrations/postgres/` with the same ordinal prefix (next `000N_*` file in each tree).
-4. Rust `srep-db` applies only `migrations/{sqlite,postgres}/` — keep filenames sequential.
+When porting schema changes from the v1 era:
 
-CI should keep both trees in sync before cutover (see R9).
+1. Compare with the archived Drizzle SQL in `legacy/v1-sveltekit/drizzle/{sqlite,pg}/`.
+2. Add matching `000N_*.sql` files under `migrations/sqlite/` and `migrations/postgres/` (keep ordinals aligned).
+3. CI runs `node scripts/check-migrations-sync.mjs` to ensure legacy Drizzle snapshots still match the sqlx trees (parity guard during transition).
+
+Rust `srep-db` applies only `migrations/{sqlite,postgres}/`.

@@ -1,82 +1,24 @@
 {
   "name": "srep",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "license": "MIT",
   "engines": {
     "node": ">=22.17"
   },
-  "imports": {
-    "#lib": "./src/lib/index.js",
-    "#lib/*": "./src/lib/*"
-  },
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build && npm run build:cli",
-    "build:cli": "esbuild scripts/srep.ts --bundle --platform=node --format=esm --packages=external --outfile=build-cli/srep.js",
-    "preview": "vite preview",
-    "prepare": "node scripts/prepare.mjs",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "lint": "prettier --check . && eslint .",
-    "format": "prettier --write .",
-    "test": "vitest run",
-    "test:e2e": "playwright test",
-    "test:e2e:visual-baselines": "node scripts/update-visual-baselines.mjs",
-    "db:migrate": "tsx scripts/migrate.ts",
-    "db:generate:sqlite": "node scripts/db-generate.mjs sqlite",
-    "db:generate:pg": "node scripts/db-generate.mjs pg",
-    "db:generate": "npm run db:generate:sqlite && npm run db:generate:pg",
-    "srep": "tsx scripts/srep.ts",
-    "domain:demo": "tsx scripts/domain-demo.ts",
-    "study:simulate": "tsx scripts/study-simulate.ts"
-  },
-  "dependencies": {
-    "@mongodb-js/zstd": "^7.0.0",
-    "@simplewebauthn/browser": "^14.0.0",
-    "@simplewebauthn/server": "^14.0.3",
-    "better-sqlite3": "^13.0.3",
-    "drizzle-orm": "^0.45.4",
-    "fflate": "^0.8.3",
-    "lucide-svelte": "^1.0.1",
-    "pino": "^10.4.0",
-    "postgres": "^3.4.9",
-    "ts-fsrs": "5.4.2",
-    "uqr": "^0.1.3",
-    "zod": "^4.6.7"
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.64.0",
-    "@sveltejs/adapter-node": "^6.0.0",
-    "@sveltejs/kit": "^3.0.1",
-    "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.6",
-    "@vitest/coverage-v8": "^5.0.3",
-    "drizzle-kit": "0.31.11",
-    "esbuild": "^0.28.2",
-    "eslint": "^10.12.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-svelte": "^3.23.1",
-    "fast-check": "^4.10.2",
-    "globals": "^17.13.0",
-    "prettier": "^3.9.9",
-    "prettier-plugin-svelte": "^4.1.1",
-    "svelte": "^5.57.2",
-    "svelte-check": "^4.7.6",
+    "better-sqlite3": "^13.0.3",
     "tsx": "^4.23.15",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.71.1",
-    "vite": "^8.3.4",
-    "vitest": "^5.0.3"
+    "typescript": "^6.0.3"
   },
   "allowScripts": {
-    "better-sqlite3@13.0.3": true,
-    "esbuild@0.25.12": true,
-    "esbuild@0.28.2": true
-  },
-  "overrides": {
-    "esbuild": "$esbuild"
+    "better-sqlite3@13.0.3": true
   }
 }

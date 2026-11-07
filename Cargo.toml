@@ -16,7 +16,7 @@ members = [
 default-members = ["crates/srep-server"]
 
 [workspace.package]
-version = "2.0.0-alpha.0"
+version = "2.0.0"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/colorlesspilgrimage/srep"

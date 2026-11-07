@@ -13,5 +13,5 @@ OpenAPI contract: [docs/openapi.yaml](docs/openapi.yaml). Schema policy: [docs/s
 | R6 | Import/export/backup | Import tests + CLI |
 | R7 | Stats + optimizer | Stats tests |
 | R8 | PWA + static assets | Manifest + SW smoke |
-| R9 | Hardening, release | Dual-DB CI, authz sweep |
-| R10 | Cutover | Archive v1, v2.0.0 |
+| R9 | Hardening, release | Dual-DB CI, authz sweep — **done** |
+| R10 | Cutover | Archive v1, v2.0.0 — **done** |
