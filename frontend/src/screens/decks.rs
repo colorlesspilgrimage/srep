@@ -3,9 +3,15 @@ use std::collections::HashSet;
 use leptos::html::Div;
 use leptos::prelude::*;
 use serde::Deserialize;
+use wasm_bindgen::closure::Closure;
+use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::api::{self, error_code_from_body, message_for, ApiError};
+use crate::dialog_focus::{
+    activates_control, active_focus_index, dialog_key_action, focusable_items, next_trap_index,
+    DialogKeyAction,
+};
 use crate::deck::{
     after_mutation, deck_level, deck_row_dom_id, deck_tree_key_action, effect_for_tree_key,
     join_deck_views, move_target_ids, visible_deck_rows, CountRow, DeckListRow, DeckTreeKeyInput,
@@ -333,64 +339,27 @@ pub fn DecksHome() -> impl IntoView {
                         }
                     >
                         {move || {
-                            let visible = visible_deck_rows(&decks.get(), &expanded.get());
-                            if visible.is_empty() && ready.get() {
+                            if visible_deck_rows(&decks.get(), &expanded.get()).is_empty() && ready.get() {
                                 view! { <p>"No decks yet."</p> }.into_any()
                             } else {
-                                visible
-                                    .into_iter()
-                                    .map(|row| {
-                                        let row_id = row.id.clone();
-                                        let level = deck_level(&decks.get(), &row_id);
-                                        let has_children = decks
-                                            .get()
-                                            .iter()
-                                            .any(|d| d.parent_id.as_deref() == Some(row_id.as_str()));
-                                        let open = has_children.then(|| expanded.get().contains(&row_id));
-                                        let row_id2 = row_id.clone();
-                                        view! {
-                                            <div
-                                                id=deck_row_dom_id(&row_id)
-                                                class="app-tree-row"
-                                                class:app-tree-row-open=move || open == Some(true)
-                                                role="treeitem"
-                                                attr:aria-level=level
-                                                attr:aria-selected=move || {
-                                                    if selected_id.get().as_deref() == Some(row_id2.as_str()) {
-                                                        "true"
-                                                    } else {
-                                                        "false"
-                                                    }
-                                                }
-                                                aria-expanded=open
-                                                data-level=level
-                                                tabindex="-1"
-                                                on:click=move |_| {
-                                                        selected_id.set(Some(row_id.clone()));
-                                                        if let Some(el) = tree_ref.get() {
-                                                            let _ = el.focus();
-                                                        }
-                                                }
-                                            >
-                                                <span class="app-tree-label">
-                                                    <span class="app-tree-name">{row.name.clone()}</span>
-                                                </span>
-                                                <span class="app-tree-counts">
-                                                    <span class="app-chip app-chip-new">
-                                                        "New " {row.subtree.new}
-                                                    </span>
-                                                    <span class="app-chip app-chip-learn">
-                                                        "Learning " {row.subtree.learning}
-                                                    </span>
-                                                    <span class="app-chip app-chip-due">
-                                                        "Due " {row.subtree.due}
-                                                    </span>
-                                                </span>
-                                            </div>
+                                view! {
+                                    <For
+                                        each=move || visible_deck_rows(&decks.get(), &expanded.get())
+                                        key=|row| row.id.clone()
+                                        children=move |row| {
+                                            view! {
+                                                <DeckTreeRow
+                                                    row=row
+                                                    decks=decks
+                                                    expanded=expanded
+                                                    selected_id=selected_id
+                                                    tree_ref=tree_ref
+                                                />
+                                            }
                                         }
-                                    })
-                                    .collect_view()
-                                    .into_any()
+                                    />
+                                }
+                                .into_any()
                             }
                         }}
                     </div>
@@ -478,43 +447,131 @@ pub fn DecksHome() -> impl IntoView {
     }
 }
 
+#[component]
+fn DeckTreeRow(
+    row: DeckView,
+    decks: RwSignal<Vec<DeckView>>,
+    expanded: RwSignal<HashSet<String>>,
+    selected_id: RwSignal<Option<String>>,
+    tree_ref: NodeRef<Div>,
+) -> impl IntoView {
+    let row_id = row.id.clone();
+    let level = deck_level(&decks.get_untracked(), &row_id);
+    let has_children = decks
+        .get_untracked()
+        .iter()
+        .any(|d| d.parent_id.as_deref() == Some(row_id.as_str()));
+    let is_selected = {
+        let row_id = row_id.clone();
+        move || selected_id.get().as_deref() == Some(row_id.as_str())
+    };
+    let row_id_exp = row_id.clone();
+    let aria_expanded = move || {
+        if !has_children {
+            None
+        } else {
+            Some(expanded.get().contains(&row_id_exp))
+        }
+    };
+    let row_id_class = row_id.clone();
+    let row_open_class = move || has_children && expanded.get().contains(&row_id_class);
+    let dom_id = deck_row_dom_id(&row_id);
+    let row_ref = NodeRef::<Div>::new();
+    Effect::new(move |_| {
+        let Some(el) = row_ref.get() else {
+            return;
+        };
+        let _ = is_selected();
+        let expanded_attr = aria_expanded();
+        let _ = el.set_attribute(
+            "aria-selected",
+            if is_selected() { "true" } else { "false" },
+        );
+        let _ = el.set_attribute("aria-level", &level.to_string());
+        match expanded_attr {
+            None => {
+                let _ = el.remove_attribute("aria-expanded");
+            }
+            Some(open) => {
+                let _ = el.set_attribute("aria-expanded", if open { "true" } else { "false" });
+            }
+        }
+    });
+    view! {
+        <div
+            id=dom_id
+            node_ref=row_ref
+            class="app-tree-row"
+            class:app-tree-row-open=row_open_class
+            role="treeitem"
+            data-level=level
+            tabindex="-1"
+            on:click=move |_| {
+                selected_id.set(Some(row_id.clone()));
+                if let Some(el) = tree_ref.get() {
+                    let _ = el.focus();
+                }
+            }
+        >
+            <span class="app-tree-label">
+                <span class="app-tree-name">{row.name.clone()}</span>
+            </span>
+            <span class="app-tree-counts">
+                <span class="app-chip app-chip-new">
+                    "New " {row.subtree.new}
+                </span>
+                <span class="app-chip app-chip-learn">
+                    "Learning " {row.subtree.learning}
+                </span>
+                <span class="app-chip app-chip-due">
+                    "Due " {row.subtree.due}
+                </span>
+            </span>
+        </div>
+    }
+}
+
 async fn delete_deck_request(
     id: String,
     action: &'static str,
     target: Option<String>,
 ) -> Result<(), ApiError> {
     #[derive(serde::Serialize)]
-    #[serde(untagged)]
+    #[serde(rename_all = "camelCase", tag = "action")]
     enum DeleteBody {
-        Trash { action: &'static str },
-        Move {
-            action: &'static str,
-            #[serde(rename = "targetDeckId")]
-            target_deck_id: String,
-        },
+        #[serde(rename = "move")]
+        Move { target_deck_id: String },
+        #[serde(rename = "trash")]
+        Trash,
     }
-    if action == "trash" {
-        api::delete_json::<serde_json::Value, _>(
-            &format!("/api/decks/{id}"),
-            &DeleteBody::Trash { action: "trash" },
-        )
-        .await
-        .map(|_| ())
+    let body = if action == "trash" {
+        DeleteBody::Trash
     } else if let Some(tid) = target {
-        api::delete_json::<serde_json::Value, _>(
-            &format!("/api/decks/{id}"),
-            &DeleteBody::Move {
-                action: "move",
-                target_deck_id: tid,
-            },
-        )
-        .await
-        .map(|_| ())
+        DeleteBody::Move {
+            target_deck_id: tid,
+        }
     } else {
-        Err(ApiError {
+        return Err(ApiError {
             status: 0,
             body: "bad_target".into(),
-        })
+        });
+    };
+    let payload = serde_json::to_string(&body).map_err(|e| ApiError {
+        status: 0,
+        body: e.to_string(),
+    })?;
+    let response = api::fetch_raw(&format!("/api/decks/{id}"), "DELETE", Some(payload)).await?;
+    let status = response.status();
+    if (200..300).contains(&status) {
+        Ok(())
+    } else {
+        use wasm_bindgen_futures::JsFuture;
+        let text = JsFuture::from(response.text().unwrap())
+            .await
+            .ok()
+            .and_then(|v| v.as_string())
+            .unwrap_or_default();
+        Err(ApiError { status, body: text })
     }
 }
 
@@ -530,6 +587,87 @@ fn DeleteDeckDialog(
     let message = RwSignal::new(String::new());
     let target_id = RwSignal::new(String::new());
     let busy = RwSignal::new(false);
+    let dialog_ref = NodeRef::<Div>::new();
+    let return_focus = RwSignal::new(None::<web_sys::HtmlElement>);
+
+    let restore_focus = move || {
+        let el = return_focus.get_untracked();
+        return_focus.set(None);
+        if let Some(el) = el {
+            let _ = el.focus();
+        }
+    };
+
+    let dismiss = Callback::new(move |_| {
+        on_close.run(());
+        restore_focus();
+    });
+
+    Effect::new(move |_| {
+        let Some(dialog) = dialog_ref.get() else {
+            return;
+        };
+        if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
+            if let Some(active) = doc.active_element() {
+                if let Ok(html) = active.dyn_into::<web_sys::HtmlElement>() {
+                    if !dialog.is_same_node(Some(&html)) {
+                        return_focus.set(Some(html));
+                    }
+                }
+            }
+        }
+        let _ = dialog.focus();
+    });
+
+    Effect::new(move |_| {
+        let window = web_sys::window().expect("window");
+        let dialog_ref = dialog_ref;
+        let dismiss = dismiss.clone();
+        let closure = Closure::wrap(Box::new(move |ev: web_sys::KeyboardEvent| {
+            let action = dialog_key_action(
+                &ev.key(),
+                ev.shift_key(),
+                ev.target()
+                    .map(|t| activates_control(&t))
+                    .unwrap_or(false),
+            );
+            match action {
+                DialogKeyAction::None => {}
+                DialogKeyAction::Close => {
+                    ev.prevent_default();
+                    ev.stop_propagation();
+                    dismiss.run(());
+                }
+                DialogKeyAction::Prevent => {
+                    ev.prevent_default();
+                    ev.stop_propagation();
+                }
+                DialogKeyAction::Tab { shift } => {
+                    let Some(root) = dialog_ref.get() else {
+                        return;
+                    };
+                    let items = focusable_items(&root);
+                    let current = active_focus_index(&items);
+                    if let Some(next) = next_trap_index(items.len(), current, shift) {
+                        ev.prevent_default();
+                        ev.stop_propagation();
+                        if let Some(el) = items.get(next) {
+                            let _ = el.focus();
+                        }
+                    }
+                }
+            }
+        }) as Box<dyn FnMut(_)>);
+        let cb = closure.as_ref().unchecked_ref();
+        let options = web_sys::AddEventListenerOptions::new();
+        options.set_capture(true);
+        let _ = window.add_event_listener_with_callback_and_add_event_listener_options(
+            "keydown",
+            cb,
+            &options,
+        );
+        closure.forget();
+    });
 
     Effect::new(move |_| {
         let id = deck_id.get();
@@ -551,6 +689,7 @@ fn DeleteDeckDialog(
             aria-modal="true"
             aria-labelledby="delete-deck-title"
             tabindex="-1"
+            node_ref=dialog_ref
         >
             <h2 id="delete-deck-title">
                 "Delete " {deck_name()}
@@ -565,7 +704,7 @@ fn DeleteDeckDialog(
             {move || {
                 (!message.get().is_empty()).then(|| view! { <p role="alert">{message.get()}</p> })
             }}
-            <button type="button" disabled=move || busy.get() on:click=move |_| on_close.run(())>
+            <button type="button" disabled=move || busy.get() on:click=move |_| dismiss.run(())>
                 "Cancel"
             </button>
             <button type="button" disabled=move || busy.get() on:click=move |_| {

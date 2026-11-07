@@ -24,8 +24,18 @@ pub fn AppShell(children: Children) -> impl IntoView {
     let go = navigate.clone();
     let palette_open = RwSignal::new(false);
     let modal_open = RwSignal::new(false);
+    let return_focus = RwSignal::new(None::<web_sys::HtmlElement>);
     provide_context(modal_open);
     provide_context(palette_open);
+
+    let close_palette = Callback::new(move |_| {
+        palette_open.set(false);
+        let el = return_focus.get_untracked();
+        return_focus.set(None);
+        if let Some(el) = el {
+            let _ = el.focus();
+        }
+    });
 
     let path = move || location.pathname.get();
 
@@ -77,15 +87,30 @@ pub fn AppShell(children: Children) -> impl IntoView {
                     .target()
                     .map(|t| target_is_text_field(&t))
                     .unwrap_or(false);
-                if in_field && !palette_open.get() {
-                    return;
-                }
-                if let Some(action) = palette_key_action(&ev, palette_open.get(), modal_open.get()) {
+                if let Some(action) =
+                    palette_key_action(&ev, palette_open.get(), modal_open.get(), in_field)
+                {
                     ev.prevent_default();
                     ev.stop_propagation();
                     match action {
-                        "open" => palette_open.set(true),
-                        "close" => palette_open.set(false),
+                        "open" => {
+                            if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
+                                if let Some(el) = doc.active_element() {
+                                    if let Ok(html) = el.dyn_into::<web_sys::HtmlElement>() {
+                                        return_focus.set(Some(html));
+                                    }
+                                }
+                            }
+                            palette_open.set(true);
+                        }
+                        "close" => {
+                            palette_open.set(false);
+                            let el = return_focus.get_untracked();
+                            return_focus.set(None);
+                            if let Some(el) = el {
+                                let _ = el.focus();
+                            }
+                        }
                         _ => {}
                     }
                 }
@@ -193,7 +218,7 @@ pub fn AppShell(children: Children) -> impl IntoView {
                     .collect_view()}
             </div>
             {children()}
-            <CommandPalette open=palette_open />
+            <CommandPalette open=palette_open on_close=close_palette />
             <footer class="tui-status" role="contentinfo" aria-label="Status line">
                 {move || {
                     let m = mode();

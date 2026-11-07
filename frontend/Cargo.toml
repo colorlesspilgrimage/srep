@@ -33,4 +33,6 @@ web-sys = { version = "0.3", features = [
   "KeyboardEvent",
   "NodeList",
   "DomTokenList",
+  "AddEventListenerOptions",
+  "HtmlElement",
 ] }

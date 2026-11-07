@@ -7,6 +7,7 @@ use wasm_bindgen::prelude::*;
 mod api;
 mod command_palette;
 mod deck;
+mod dialog_focus;
 mod screens;
 mod shell;
 mod themes;

@@ -25,14 +25,24 @@ fn command_target(name: &str) -> Option<&'static str> {
 }
 
 #[component]
-pub fn CommandPalette(open: RwSignal<bool>) -> impl IntoView {
+pub fn CommandPalette(open: RwSignal<bool>, on_close: Callback<()>) -> impl IntoView {
     let filter = RwSignal::new(String::new());
     let navigate = use_navigate();
     let go = navigate.clone();
+    let filter_ref = NodeRef::<leptos::html::Input>::new();
+
+    Effect::new(move |_| {
+        if open.get() {
+            filter.set(String::new());
+            if let Some(el) = filter_ref.get() {
+                let _ = el.focus();
+            }
+        }
+    });
 
     let close = move || {
-        open.set(false);
         filter.set(String::new());
+        on_close.run(());
     };
 
     view! {
@@ -50,6 +60,7 @@ pub fn CommandPalette(open: RwSignal<bool>) -> impl IntoView {
                     type="text"
                     maxlength="40"
                     autocomplete="off"
+                    node_ref=filter_ref
                     prop:value=move || filter.get()
                     on:input=move |ev| filter.set(event_target_value(&ev))
                     on:keydown={
@@ -85,16 +96,17 @@ pub fn palette_key_action(
     ev: &web_sys::KeyboardEvent,
     palette_open: bool,
     modal_open: bool,
+    target_is_field: bool,
 ) -> Option<&'static str> {
     if modal_open && !palette_open {
         return None;
     }
     let key = ev.key();
     let ctrl = ev.ctrl_key() || ev.meta_key();
-    if !palette_open && ctrl && key == "k" {
+    if !palette_open && ctrl && (key == "k" || key == "K") {
         return Some("open");
     }
-    if !palette_open && key == ":" {
+    if !palette_open && key == ":" && !target_is_field {
         return Some("open");
     }
     if palette_open && key == "Escape" {
