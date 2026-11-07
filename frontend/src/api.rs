@@ -169,6 +169,11 @@ pub async fn fetch_raw(path: &str, method: &str, body: Option<String>) -> Result
     if let Some(token) = csrf_token() {
         let _ = headers.set("x-srep-csrf", &token);
     }
+    if let Some(window) = web_sys::window() {
+        if let Ok(origin) = window.location().origin() {
+            let _ = headers.set("origin", &origin);
+        }
+    }
     let window = web_sys::window().ok_or(ApiError {
         status: 0,
         body: "no window".into(),

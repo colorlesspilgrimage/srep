@@ -1,11 +1,58 @@
+use leptos::either::Either;
 use leptos::prelude::*;
 use leptos_router::hooks::use_query_map;
 use serde::Deserialize;
+use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
 
 use crate::api::{self, error_code_from_body, message_for, ApiError};
 use crate::themes::ThemeHandle;
 use crate::webauthn_client::{self, enroll_credential};
+
+async fn rename_credential_via_client(id: &str, nickname: &str) -> Result<(), String> {
+    use js_sys::{Function, Promise, Reflect};
+    use wasm_bindgen::{JsCast, JsValue};
+    use wasm_bindgen_futures::JsFuture;
+
+    let window = web_sys::window().ok_or_else(|| "no window".to_string())?;
+    let client = Reflect::get(&window, &JsValue::from_str("srepClient"))
+        .map_err(|_| "no client".to_string())?;
+    let f = Reflect::get(&client, &JsValue::from_str("renameCredential"))
+        .map_err(|_| "no rename".to_string())?;
+    let f: Function = f.dyn_into().map_err(|_| "bad rename fn".to_string())?;
+    let p = f
+        .call2(
+            &client,
+            &JsValue::from_str(id),
+            &JsValue::from_str(nickname),
+        )
+        .map_err(|_| "rename call failed".to_string())?;
+    let v = JsFuture::from(Promise::from(p))
+        .await
+        .map_err(|_| "rename promise failed".to_string())?;
+    let ok = Reflect::get(&v, &JsValue::from_str("ok"))
+        .ok()
+        .and_then(|x| x.as_bool())
+        .unwrap_or(false);
+    if ok {
+        Ok(())
+    } else {
+        Reflect::get(&v, &JsValue::from_str("message"))
+            .ok()
+            .and_then(|x| x.as_string())
+            .ok_or_else(|| "rename failed".to_string())
+            .and_then(Err)
+    }
+}
+
+fn read_rename_input_value() -> Option<String> {
+    let document = web_sys::window()?.document()?;
+    let input = document
+        .get_element_by_id("cred-rename-input")?
+        .dyn_into::<web_sys::HtmlInputElement>()
+        .ok()?;
+    Some(input.value())
+}
 
 const SECTIONS: &[(&str, &str)] = &[
     ("appearance", "Appearance"),
@@ -174,7 +221,9 @@ fn SecurityPanel() -> impl IntoView {
             </ul>
             {move || {
                 (!error.get().is_empty())
-                    .then(|| view! { <p class="error" role="alert">{error.get()}</p> })
+                    .then(|| view! {
+                        <p class="error" role="alert" data-srep-security-error="">{error.get()}</p>
+                    })
             }}
             <div class="tui-form">
                 <label for="settings-cred-nickname">"Nickname for the new credential"</label>
@@ -248,59 +297,56 @@ fn CredentialRow(
     let nickname = StoredValue::new(cred.nickname);
 
     view! {
-        <li>
+        <li role="listitem">
             {move || {
                 let id = cred_id.with_value(|s| s.clone());
                 if editing_id.get().as_deref() == Some(&id) {
-                    view! {
+                    Either::Left(view! {
                         <label>
                             "New nickname"
                             <input
+                                id="cred-rename-input"
                                 type="text"
                                 maxlength="64"
+                                aria-label="New nickname"
                                 prop:value=move || edit_value.get()
                                 on:input=move |ev| edit_value.set(event_target_value(&ev))
                             />
                         </label>
-                        <button
-                            type="button"
-                            on:click=move |_| {
-                                let nick = edit_value.get();
-                                let path_id = cred_id.with_value(|s| s.clone());
-                                spawn_local(async move {
-                                        #[derive(serde::Serialize)]
-                                        struct Body {
-                                            nickname: String,
-                                        }
-                                        let path = format!("/api/auth/credentials/{path_id}");
-                                        let _ = api::patch_json::<serde_json::Value, _>(
-                                            &path,
-                                            &Body { nickname: nick },
-                                        )
-                                        .await;
-                                        editing_id.set(None);
-                                        on_reload.run(());
-                                });
-                            }
-                        >
+                        <button type="button" class="srep-rename-save" id=format!("rename-btn-{id}")>
                             "Save"
                         </button>
                         <button type="button" on:click=move |_| editing_id.set(None)>
                             "Cancel"
                         </button>
-                    }
-                    .into_any()
+                    })
                 } else {
                     let nick = nickname.with_value(|s| s.clone());
                     let confirm = confirming_id.get().as_deref() == Some(&id);
-                    view! {
+                    Either::Right(view! {
                         <span>{nick.clone()}</span>
                         <button
                             type="button"
                             aria-label=format!("Rename {nick}")
                             on:click=move |_| {
+                                let nick = nickname.with_value(|s| s.clone());
                                 editing_id.set(Some(cred_id.with_value(|s| s.clone())));
-                                edit_value.set(nickname.with_value(|s| s.clone()));
+                                edit_value.set(nick.clone());
+                                spawn_local(async move {
+                                    let _ = wasm_bindgen_futures::JsFuture::from(
+                                        js_sys::Promise::resolve(&JsValue::UNDEFINED),
+                                    )
+                                    .await;
+                                    if let Some(input) = web_sys::window()
+                                        .and_then(|w| w.document())
+                                        .and_then(|d| d.get_element_by_id("cred-rename-input"))
+                                        .and_then(|el| {
+                                            el.dyn_into::<web_sys::HtmlInputElement>().ok()
+                                        })
+                                    {
+                                        let _ = input.set_value(&nick);
+                                    }
+                                });
                             }
                         >
                             "Rename"
@@ -338,8 +384,7 @@ fn CredentialRow(
                         >
                             {if confirm { "Confirm revoke" } else { "Revoke" }}
                         </button>
-                    }
-                    .into_any()
+                    })
                 }
             }}
         </li>

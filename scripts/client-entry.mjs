@@ -51,6 +51,7 @@ function csrfHeaders() {
 export async function apiFetch(path, init = {}) {
   const headers = {
     'content-type': 'application/json',
+    origin: window.location.origin,
     ...csrfHeaders(),
     ...(init.headers ?? {}),
   };
@@ -148,6 +149,16 @@ async function recoveryLogin(code) {
   return { ok: true, body: result.body };
 }
 
+async function renameCredential(id, nickname) {
+  const result = await apiFetch(`/api/auth/credentials/${id}`, {
+    method: 'PATCH',
+    body: { nickname },
+  });
+  return result.ok
+    ? { ok: true }
+    : { ok: false, message: messageFor(result.error) };
+}
+
 window.srepClient = {
   apiFetch,
   setCsrfToken,
@@ -156,4 +167,5 @@ window.srepClient = {
   enroll,
   loginWith,
   recoveryLogin,
+  renameCredential,
 };

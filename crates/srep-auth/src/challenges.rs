@@ -1,5 +1,25 @@
 use serde::{Deserialize, Serialize};
-use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
+use webauthn_rs::prelude::{
+    PasskeyAuthentication, PasskeyRegistration, SecurityKeyAuthentication, SecurityKeyRegistration,
+};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "reg_kind", content = "reg")]
+pub enum RegistrationState {
+    #[serde(rename = "passkey")]
+    Passkey(PasskeyRegistration),
+    #[serde(rename = "security_key")]
+    SecurityKey(SecurityKeyRegistration),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "auth_kind", content = "auth")]
+pub enum AuthenticationState {
+    #[serde(rename = "passkey")]
+    Passkey(PasskeyAuthentication),
+    #[serde(rename = "security_key")]
+    SecurityKey(SecurityKeyAuthentication),
+}
 
 use crate::session::now_ms;
 use crate::store::AuthStore;
@@ -17,11 +37,11 @@ pub struct StoredChallenge {
 #[serde(tag = "purpose", content = "state")]
 pub enum ChallengeState {
     #[serde(rename = "setup")]
-    Setup(PasskeyRegistration),
+    Setup(RegistrationState),
     #[serde(rename = "register")]
-    Register(PasskeyRegistration),
+    Register(RegistrationState),
     #[serde(rename = "login")]
-    Login(PasskeyAuthentication),
+    Login(AuthenticationState),
 }
 
 pub async fn create_challenge(

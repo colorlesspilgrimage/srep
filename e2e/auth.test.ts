@@ -227,7 +227,7 @@ test.describe.serial('authentication', () => {
     const csp = headers['content-security-policy'] ?? '';
     expect(csp).toContain("script-src 'self'");
     expect(csp).not.toContain('unsafe-inline');
-    expect(csp).not.toContain('unsafe-eval');
+    expect(csp).not.toMatch(/'unsafe-eval'/);
     expect(headers['x-frame-options']).toBe('DENY');
     expect(headers['x-content-type-options']).toBe('nosniff');
     expect(headers['referrer-policy']).toBe('no-referrer');

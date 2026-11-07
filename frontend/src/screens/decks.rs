@@ -323,6 +323,14 @@ pub fn DecksHome() -> impl IntoView {
                             }
                         }
                         on:keydown=on_tree_key
+                        on:focus=move |_| {
+                            if selected_id.get_untracked().is_none() {
+                                let visible = visible_deck_rows(&decks.get_untracked(), &expanded.get_untracked());
+                                if let Some(first) = visible.first() {
+                                    selected_id.set(Some(first.id.clone()));
+                                }
+                            }
+                        }
                     >
                         {move || {
                             let visible = visible_deck_rows(&decks.get(), &expanded.get());
@@ -347,7 +355,13 @@ pub fn DecksHome() -> impl IntoView {
                                                 class:app-tree-row-open=move || open == Some(true)
                                                 role="treeitem"
                                                 attr:aria-level=level
-                                                aria-selected=move || selected_id.get().as_deref() == Some(row_id2.as_str())
+                                                attr:aria-selected=move || {
+                                                    if selected_id.get().as_deref() == Some(row_id2.as_str()) {
+                                                        "true"
+                                                    } else {
+                                                        "false"
+                                                    }
+                                                }
                                                 aria-expanded=open
                                                 data-level=level
                                                 tabindex="-1"

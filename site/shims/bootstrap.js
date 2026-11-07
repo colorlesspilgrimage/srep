@@ -1,8 +1,29 @@
 // Loads the Leptos WASM bundle when present; shows a stub otherwise.
+function wireCredentialRename() {
+  document.body.addEventListener('click', async (ev) => {
+    const el = ev.target?.closest?.('.srep-rename-save');
+    if (!el || !globalThis.srepClient?.renameCredential) return;
+    const id = el.id?.startsWith('rename-btn-') ? el.id.slice('rename-btn-'.length) : '';
+    const input = document.getElementById('cred-rename-input');
+    const nick = input?.value?.trim() ?? '';
+    if (!id || !nick) return;
+    const result = await globalThis.srepClient.renameCredential(id, nick);
+    if (result.ok) {
+      globalThis.location.reload();
+      return;
+    }
+    const host = document.querySelector('[role=tabpanel][aria-label="Security"] .error[role=alert]');
+    if (host) {
+      host.textContent = result.message;
+    }
+  });
+}
+
 async function boot() {
   const root = document.getElementById('root');
   try {
     await import('/shims/srep-client.mjs');
+    wireCredentialRename();
   } catch (e) {
     console.error('client bundle failed', e);
   }

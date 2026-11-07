@@ -20,7 +20,7 @@ fn security_headers(config: &srep_config::AuthConfig) -> Vec<(header::HeaderName
         "default-src 'none'",
         "script-src 'self' 'wasm-unsafe-eval'",
         "style-src 'self'",
-        "style-src-attr 'unsafe-hashes' sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo= sha256-FoAp7gIJiqGyjAAazBoiDY8PuUiSyRkzTB8qpQIiFZ4=",
+        "style-src-attr 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo='",
         "img-src 'self' data:",
         "font-src 'self'",
         "connect-src 'self'",

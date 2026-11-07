@@ -81,15 +81,16 @@ pub async fn auth_layer(
             .into_response();
     }
 
-    if is_mutating(&method) && authenticated && auth.bearer.is_none() && !public {
-        let origin_ok = is_origin_exempt(&method, &decoded)
-            || check_origin(
-                req.headers().get("origin").and_then(|v| v.to_str().ok()),
-                &state.config.auth.origin,
-            );
-        if !origin_ok {
+    if is_mutating(&method) && !is_origin_exempt(&method, &decoded) {
+        if !check_origin(
+            req.headers().get("origin").and_then(|v| v.to_str().ok()),
+            &state.config.auth.origin,
+        ) {
             return (StatusCode::FORBIDDEN, Json(json!({"error":"bad_origin"}))).into_response();
         }
+    }
+
+    if is_mutating(&method) && authenticated && auth.bearer.is_none() && !public {
         if let Some(ref raw) = auth.session_token {
             let csrf_hdr = req
                 .headers()

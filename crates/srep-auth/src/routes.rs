@@ -25,7 +25,7 @@ use crate::types::{ApiTokenView, ChallengePurpose, DeleteCredentialResult, Publi
 use crate::webauthn_ops::{
     challenge_string_from_creation, challenge_string_from_request, check_sign_count,
     credential_id_from_string, credential_id_to_string, finish_login, finish_registration,
-    passkey_from_row, row_from_passkey, start_login, start_registration,
+    row_from_passkey, start_login, start_registration,
     transports_from_registration,
 };
 
@@ -192,7 +192,8 @@ async fn setup_options(
                     return error_response(StatusCode::INTERNAL_SERVER_ERROR, "challenge_store")
                 }
             };
-            let options = crate::webauthn_ops::creation_options_for_browser(&ccr);
+            let options =
+                crate::webauthn_ops::creation_options_for_browser_kind(&ccr, &body.kind);
             (
                 StatusCode::OK,
                 Json(json!({ "options": options, "challengeId": challenge_id })),
@@ -347,29 +348,11 @@ async fn login_options(
     if kind != "passkey" && kind != "security_key" {
         return error_response(StatusCode::BAD_REQUEST, "bad_request");
     }
-    let mut keys = vec![];
-    if kind == "security_key" {
-        let creds = store.list_credentials().await.unwrap_or_default();
-        let keys_list: Vec<_> = creds
-            .into_iter()
-            .filter(|c| c.kind == "security_key")
-            .collect();
-        if keys_list.is_empty() {
-            return error_response(StatusCode::BAD_REQUEST, "no_security_key");
-        }
-        for c in keys_list {
-            if let Ok(pk) = passkey_from_row(&c) {
-                keys.push(pk);
-            }
-        }
-    } else {
-        for c in store.list_credentials().await.unwrap_or_default() {
-            if let Ok(pk) = passkey_from_row(&c) {
-                keys.push(pk);
-            }
-        }
+    let creds = store.list_credentials().await.unwrap_or_default();
+    if kind == "security_key" && !creds.iter().any(|c| c.kind == "security_key") {
+        return error_response(StatusCode::BAD_REQUEST, "no_security_key");
     }
-    match start_login(&state.webauthn.webauthn, &keys, &kind) {
+    match start_login(&state.webauthn.webauthn, &creds, &kind) {
         Ok((rcr, st)) => {
             let challenge = challenge_string_from_request(&rcr);
             let challenge_id = create_challenge(
@@ -587,7 +570,8 @@ async fn credentials_options(
             )
             .await
             .unwrap_or_default();
-            let options = crate::webauthn_ops::creation_options_for_browser(&ccr);
+            let options =
+                crate::webauthn_ops::creation_options_for_browser_kind(&ccr, &body.kind);
             (
                 StatusCode::OK,
                 Json(json!({ "options": options, "challengeId": challenge_id })),
@@ -673,12 +657,13 @@ async fn rename_credential(
         Some(n) => n,
         None => return error_response(StatusCode::BAD_REQUEST, "invalid_nickname"),
     };
-    if state
+    let updated = state
         .auth_store()
         .rename_credential(uid, &nick)
         .await
-        .unwrap_or(false)
-    {
+        .unwrap_or(false);
+    tracing::info!(%id, ?nick, updated, "rename_credential");
+    if updated {
         Json(json!({ "ok": true })).into_response()
     } else {
         error_response(StatusCode::NOT_FOUND, "not_found")

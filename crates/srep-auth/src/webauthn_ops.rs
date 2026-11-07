@@ -1,10 +1,13 @@
 use base64::Engine;
 use uuid::Uuid;
 use webauthn_rs::prelude::{
-    AuthenticationResult, CredentialID, Passkey, PublicKeyCredential, RegisterPublicKeyCredential,
+    AuthenticatorAttachment, AuthenticationResult, Credential, CredentialID, Passkey,
+    PasskeyAuthentication, PasskeyRegistration, PublicKeyCredential, RegisterPublicKeyCredential,
+    RequestChallengeResponse, SecurityKey, SecurityKeyAuthentication, SecurityKeyRegistration,
     Webauthn,
 };
 
+use crate::challenges::{AuthenticationState, RegistrationState};
 use crate::types::CredentialRow;
 
 pub fn check_sign_count(stored: i64, reported: u32) -> bool {
@@ -27,6 +30,11 @@ pub fn credential_id_from_string(s: &str) -> Option<CredentialID> {
 
 pub fn passkey_from_row(row: &CredentialRow) -> anyhow::Result<Passkey> {
     serde_json::from_str(&row.public_key).map_err(Into::into)
+}
+
+pub fn security_key_from_row(row: &CredentialRow) -> anyhow::Result<SecurityKey> {
+    let passkey: Passkey = passkey_from_row(row)?;
+    Ok(SecurityKey::from(Credential::from(passkey)))
 }
 
 pub fn row_from_passkey(
@@ -86,45 +94,85 @@ pub fn transports_from_registration(reg: &RegisterPublicKeyCredential) -> Vec<St
 pub fn start_registration(
     webauthn: &Webauthn,
     user_id: Uuid,
-    _kind: &str,
+    kind: &str,
     exclude: Vec<CredentialID>,
 ) -> webauthn_rs::prelude::WebauthnResult<(
     webauthn_rs::prelude::CreationChallengeResponse,
-    webauthn_rs::prelude::PasskeyRegistration,
+    RegistrationState,
 )> {
     let exclude = if exclude.is_empty() {
         None
     } else {
         Some(exclude)
     };
-    webauthn.start_passkey_registration(user_id, "srep", "srep owner", exclude)
+    if kind == "security_key" {
+        webauthn
+            .start_securitykey_registration(
+                user_id,
+                "srep",
+                "srep owner",
+                exclude,
+                None,
+                Some(AuthenticatorAttachment::CrossPlatform),
+            )
+            .map(|(ccr, reg)| (ccr, RegistrationState::SecurityKey(reg)))
+    } else {
+        webauthn
+            .start_passkey_registration(user_id, "srep", "srep owner", exclude)
+            .map(|(ccr, reg)| (ccr, RegistrationState::Passkey(reg)))
+    }
 }
 
 pub fn finish_registration(
     webauthn: &Webauthn,
     reg: &RegisterPublicKeyCredential,
-    state: &webauthn_rs::prelude::PasskeyRegistration,
+    state: &RegistrationState,
 ) -> webauthn_rs::prelude::WebauthnResult<Passkey> {
-    webauthn.finish_passkey_registration(reg, state)
+    match state {
+        RegistrationState::Passkey(s) => webauthn.finish_passkey_registration(reg, s),
+        RegistrationState::SecurityKey(s) => webauthn
+            .finish_securitykey_registration(reg, s)
+            .map(|sk| Passkey::from(Credential::from(sk))),
+    }
 }
 
 pub fn start_login(
     webauthn: &Webauthn,
-    keys: &[Passkey],
-    _kind: &str,
+    rows: &[CredentialRow],
+    kind: &str,
 ) -> webauthn_rs::prelude::WebauthnResult<(
-    webauthn_rs::prelude::RequestChallengeResponse,
-    webauthn_rs::prelude::PasskeyAuthentication,
+    RequestChallengeResponse,
+    AuthenticationState,
 )> {
-    webauthn.start_passkey_authentication(keys)
+    if kind == "security_key" {
+        let keys: Vec<SecurityKey> = rows
+            .iter()
+            .filter(|r| r.kind == "security_key")
+            .filter_map(|r| security_key_from_row(r).ok())
+            .collect();
+        webauthn
+            .start_securitykey_authentication(&keys)
+            .map(|(rcr, st)| (rcr, AuthenticationState::SecurityKey(st)))
+    } else {
+        let keys: Vec<Passkey> = rows
+            .iter()
+            .filter_map(|r| passkey_from_row(r).ok())
+            .collect();
+        webauthn
+            .start_passkey_authentication(&keys)
+            .map(|(rcr, st)| (rcr, AuthenticationState::Passkey(st)))
+    }
 }
 
 pub fn finish_login(
     webauthn: &Webauthn,
     resp: &PublicKeyCredential,
-    state: &webauthn_rs::prelude::PasskeyAuthentication,
+    state: &AuthenticationState,
 ) -> webauthn_rs::prelude::WebauthnResult<AuthenticationResult> {
-    webauthn.finish_passkey_authentication(resp, state)
+    match state {
+        AuthenticationState::Passkey(s) => webauthn.finish_passkey_authentication(resp, s),
+        AuthenticationState::SecurityKey(s) => webauthn.finish_securitykey_authentication(resp, s),
+    }
 }
 
 fn challenge_from_options_value(value: &serde_json::Value) -> String {
@@ -142,15 +190,51 @@ fn challenge_from_options_value(value: &serde_json::Value) -> String {
         .unwrap_or_default()
 }
 
+fn authenticator_selection(kind: &str) -> serde_json::Value {
+    if kind == "passkey" {
+        serde_json::json!({
+            "authenticatorAttachment": "platform",
+            "residentKey": "required",
+            "userVerification": "preferred"
+        })
+    } else {
+        serde_json::json!({
+            "authenticatorAttachment": "cross-platform",
+            "residentKey": "preferred",
+            "userVerification": "preferred"
+        })
+    }
+}
+
 /// webauthn-rs wraps credential options in `{ publicKey: … }`; @simplewebauthn/browser expects the inner object.
 pub fn creation_options_for_browser(
     ccr: &webauthn_rs::prelude::CreationChallengeResponse,
 ) -> serde_json::Value {
+    creation_options_for_browser_kind(ccr, "passkey")
+}
+
+pub fn creation_options_for_browser_kind(
+    ccr: &webauthn_rs::prelude::CreationChallengeResponse,
+    kind: &str,
+) -> serde_json::Value {
     let value = serde_json::to_value(ccr).unwrap_or(serde_json::Value::Null);
-    value
+    let mut options = value
         .get("publicKey")
         .cloned()
-        .unwrap_or(value)
+        .unwrap_or(value);
+    if let Some(obj) = options.as_object_mut() {
+        obj.insert(
+            "authenticatorSelection".to_string(),
+            authenticator_selection(kind),
+        );
+        // webauthn-rs adds credential-protection extensions that Chrome rejects in e2e
+        // (and some browsers reject in production). Match v1 @simplewebauthn/server output.
+        obj.insert(
+            "extensions".to_string(),
+            serde_json::json!({ "credProps": true }),
+        );
+    }
+    options
 }
 
 pub fn request_options_for_browser(
