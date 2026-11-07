@@ -10,7 +10,6 @@ COPY crates ./crates
 COPY frontend ./frontend
 COPY migrations ./migrations
 COPY site ./site
-COPY static ./static
 COPY scripts/build-wasm.sh ./scripts/build-wasm.sh
 RUN chmod +x scripts/build-wasm.sh && PROFILE=release ./scripts/build-wasm.sh
 RUN cargo build --release -p srep-server -p srep-cli
