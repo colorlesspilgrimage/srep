@@ -15,7 +15,7 @@ pub struct BasicScheduler<'a> {
 
 impl<'a> BasicScheduler<'a> {
     pub fn new(card: FsrsCard, now_ms: i64, algorithm: &'a FsrsAlgorithm, params: &'a FsrsParameters) -> Self {
-        let mut last = card.clone();
+        let last = card.clone();
         let mut current = card;
         let elapsed_days = if current.state == State::New {
             0

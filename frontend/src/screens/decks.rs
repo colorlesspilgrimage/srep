@@ -20,6 +20,7 @@ struct DeckListResponse {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 struct DeckView {
     id: String,
     name: String,
@@ -54,7 +55,7 @@ fn visible_tree(decks: &[DeckRow]) -> Vec<DeckView> {
             walk(decks, &kid.id, depth + 1, out);
         }
     }
-    let refs: Vec<_> = active.iter().copied().collect();
+    let refs: Vec<_> = active.to_vec();
     for root in roots {
         out.push(DeckView {
             id: root.id.clone(),

@@ -1,7 +1,7 @@
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::routing::{delete, get, post, put};
+use axum::routing::{delete, get};
 use axum::{Json, Router};
 use serde_json::json;
 use srep_auth::middleware::RequestAuth;

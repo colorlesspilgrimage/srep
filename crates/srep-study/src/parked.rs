@@ -1,6 +1,6 @@
 //! Parked card states (suspended / buried).
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CardState {
     New,
     Learning,

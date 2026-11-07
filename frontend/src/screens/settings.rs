@@ -36,7 +36,7 @@ pub fn SettingsScreen() -> impl IntoView {
                                                 "theme-pick"
                                             }
                                         }
-                                        aria-selected=move || active()
+                                        aria-selected=active
                                         on:click=move |_| pick(id)
                                     >
                                         {themes::theme_label(id)}

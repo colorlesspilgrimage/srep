@@ -1,5 +1,5 @@
 pub fn is_short_text(value: &str) -> bool {
-    value.len() >= 1
+    !value.is_empty()
         && value.len() <= 64
         && !value.chars().any(|c| c.is_control())
 }

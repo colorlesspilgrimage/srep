@@ -30,6 +30,7 @@ pub fn unsupported_media_type() -> Response {
     ))
 }
 
+#[allow(clippy::result_large_err)]
 pub fn parse_json_body<T: DeserializeOwned>(
     headers: &HeaderMap,
     body: Bytes,

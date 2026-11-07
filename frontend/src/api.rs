@@ -28,6 +28,7 @@ pub async fn get_json<T: DeserializeOwned>(path: &str) -> Result<T, ApiError> {
     })
 }
 
+#[allow(dead_code)]
 pub async fn post_json<T: DeserializeOwned, B: serde::Serialize>(
     path: &str,
     body: &B,

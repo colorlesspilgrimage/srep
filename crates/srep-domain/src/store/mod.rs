@@ -1,4 +1,4 @@
-mod rows;
+pub mod rows;
 
 use crate::builtin::builtin_seed;
 use crate::core::card_state::CardStateUpdate;
@@ -308,7 +308,7 @@ impl<'a> DomainStore<'a> {
                 let rows = sqlx::query("SELECT * FROM deck ORDER BY path")
                     .fetch_all(p)
                     .await?;
-                rows.iter().map(|r| rows::row_to_deck_pg(r)).collect()
+                rows.iter().map(rows::row_to_deck_pg).collect()
             }
         }
     }

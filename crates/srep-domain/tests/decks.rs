@@ -2,6 +2,7 @@ mod common;
 
 use srep_domain::builtin::DEFAULT_PRESET_ID;
 use srep_domain::core::validation::{DeckCreateInput, PresetInput};
+use srep_auth::limiters::AuthLimiters;
 use srep_auth::state::AppState;
 use srep_auth::webauthn::WebAuthnState;
 use srep_domain::deps::DomainCtx;
@@ -19,6 +20,7 @@ fn app_state(pool: &srep_db::DbPool, media: std::path::PathBuf) -> (AppState, Ar
         db: pool.clone(),
         webauthn: Arc::new(WebAuthnState::new(&config.auth).unwrap()),
         setup_token: Default::default(),
+        limiters: Arc::new(AuthLimiters::new()),
     };
     (state, config)
 }

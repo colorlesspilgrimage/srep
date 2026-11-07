@@ -1,4 +1,4 @@
-use crate::types::{NoteTypeWithTemplates, TemplateRow};
+use crate::types::NoteTypeWithTemplates;
 
 #[derive(Debug, Clone)]
 pub struct DesiredCard {

@@ -55,7 +55,7 @@ impl FsrsAlgorithm {
         round_to(d, 8)
     }
 
-    pub fn next_interval(&self, stability: f64, elapsed_days: i32) -> i32 {
+    pub fn next_interval(&self, stability: f64, _elapsed_days: i32) -> i32 {
         let new_interval = (stability * self.interval_modifier)
             .round()
             .clamp(1.0, self.param.maximum_interval as f64) as i32;

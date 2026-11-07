@@ -2,6 +2,7 @@ mod common;
 
 use srep_domain::builtin::DEFAULT_PRESET_ID;
 use srep_domain::core::validation::{DeckCreateInput, PresetInput};
+use srep_auth::limiters::AuthLimiters;
 use srep_auth::state::AppState;
 use srep_auth::webauthn::WebAuthnState;
 use srep_domain::deps::DomainCtx;
@@ -58,6 +59,7 @@ async fn preset_crud() {
         db: pool.clone(),
         webauthn: Arc::new(WebAuthnState::new(&config.auth).unwrap()),
         setup_token: Default::default(),
+        limiters: Arc::new(AuthLimiters::new()),
     };
     let ctx = DomainCtx::new(&state);
 
@@ -86,6 +88,7 @@ async fn builtin_protected_and_in_use() {
         db: pool.clone(),
         webauthn: Arc::new(WebAuthnState::new(&config.auth).unwrap()),
         setup_token: Default::default(),
+        limiters: Arc::new(AuthLimiters::new()),
     };
     let ctx = DomainCtx::new(&state);
 

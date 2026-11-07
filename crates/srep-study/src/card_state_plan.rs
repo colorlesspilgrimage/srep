@@ -83,6 +83,7 @@ mod tests {
         patch(CardRow {
             id: id.to_string(),
             note_id: "n1".to_string(),
+            deck_id: None,
             state: CardState::New,
             sched_state: SchedState::New,
             due: 0,

@@ -18,6 +18,7 @@ pub struct AnswerPreset {
 pub struct CardRow {
     pub id: String,
     pub note_id: String,
+    pub deck_id: Option<String>,
     pub state: CardState,
     pub sched_state: SchedState,
     pub due: i64,
@@ -120,5 +121,59 @@ pub fn plan_answer(
         bury_ids,
         bury_until: window.end_ms,
     })
+}
+
+pub struct UndoPlan {
+    pub card_restore: CardRestore,
+    pub unbury_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CardRestore {
+    pub sched_state: SchedState,
+    pub due: i64,
+    pub stability: f64,
+    pub difficulty: f64,
+    pub last_review: Option<i64>,
+    pub reps: u32,
+    pub lapses: u32,
+    pub learning_step: u32,
+    pub state: CardState,
+}
+
+pub fn plan_undo(
+    log: &ReviewLogRow,
+    card: &CardRow,
+    buried: &[CardRow],
+) -> UndoPlan {
+    let keep_state = is_parked_state(card.state);
+    let listed: std::collections::HashSet<_> = log.buried_sibling_ids.iter().cloned().collect();
+    UndoPlan {
+        card_restore: CardRestore {
+            sched_state: log.state_before,
+            due: log.due_before,
+            stability: log.stability_before,
+            difficulty: log.difficulty_before,
+            last_review: log.last_review_before,
+            reps: log.reps_before,
+            lapses: log.lapses_before,
+            learning_step: log.step_before,
+            state: if keep_state { card.state } else { sched_to_parked(log.state_before) },
+        },
+        unbury_ids: buried
+            .iter()
+            .filter(|s| listed.contains(&s.id) && s.state == CardState::Buried)
+            .map(|s| s.id.clone())
+            .collect(),
+    }
+}
+
+fn sched_to_parked(s: SchedState) -> CardState {
+    match s {
+        SchedState::New => CardState::New,
+        SchedState::Learning => CardState::Learning,
+        SchedState::Review => CardState::Review,
+        SchedState::Relearning => CardState::Relearning,
+    }
 }
 
