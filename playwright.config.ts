@@ -46,7 +46,7 @@ export default defineConfig({
     ? {
         command: process.env.CI
           ? 'rm -rf ./data/e2e.db ./data/e2e-media && mkdir -p ./data && ./target/release/srep-server'
-          : 'rm -rf ./data/e2e.db ./data/e2e-media && mkdir -p ./data && PROFILE=release ./scripts/build-wasm.sh && cargo build -p srep-server && ./target/debug/srep-server',
+          : 'rm -rf ./data/e2e.db ./data/e2e-media && mkdir -p ./data && npm run bundle:client && PROFILE=release ./scripts/build-wasm.sh && cargo build -p srep-server --release && ./target/release/srep-server',
         url: `http://localhost:${rustPort}/healthz`,
         reuseExistingServer: !process.env.CI,
         timeout: process.env.CI ? 120_000 : 300_000,
