@@ -1,4 +1,19 @@
 services:
+  srep-v2:
+    profiles: ['rust']
+    build:
+      context: .
+      dockerfile: Dockerfile.rust
+    ports:
+      - '${SREP_PORT:-3000}:3000'
+    environment:
+      SREP_DATABASE_URL: ${SREP_DATABASE_URL:-sqlite:/data/srep.db}
+      SREP_ORIGIN: ${SREP_ORIGIN:-http://localhost:3000}
+      SREP_RP_ID: ${SREP_RP_ID:-localhost}
+    volumes:
+      - srep-data:/data
+    restart: unless-stopped
+
   srep:
     build: .
     ports:

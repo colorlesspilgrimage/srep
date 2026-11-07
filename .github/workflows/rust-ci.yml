@@ -1,0 +1,47 @@
+name: rust-ci
+
+on:
+  push:
+    branches: [main, 'cursor/**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        database: [sqlite, postgres]
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: srep
+          POSTGRES_PASSWORD: srep
+          POSTGRES_DB: srep
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U srep -d srep"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y pkg-config libssl-dev
+      - run: rustup show
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test --workspace
+        env:
+          SREP_DATABASE_URL: ${{ matrix.database == 'postgres' && 'postgres://srep:srep@127.0.0.1:5432/srep' || 'sqlite:/tmp/srep-rust-ci.db' }}
+      - run: cargo build --release -p srep-server
+      - run: |
+          SREP_DATABASE_URL=sqlite:/tmp/srep-smoke.db \
+          SREP_ORIGIN=http://localhost:3000 \
+          SREP_RP_ID=localhost \
+          ./target/release/srep-server &
+          sleep 2
+          curl -fsS http://127.0.0.1:3000/healthz | grep -q '"status":"ok"'

@@ -1,0 +1,14 @@
+[package]
+name = "srep-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+leptos = { version = "0.7", features = ["csr"] }
+serde.workspace = true
+wasm-bindgen = "0.2"
+web-sys = { version = "0.3", features = ["Window", "Document", "Request", "RequestInit", "RequestMode", "Response", "Headers"] }
