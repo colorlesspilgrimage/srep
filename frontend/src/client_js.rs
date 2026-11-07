@@ -121,7 +121,7 @@ pub fn palette_action_js(
         &JsValue::from_str("targetIsField"),
         &JsValue::from(target_is_field),
     );
-    call2("paletteKeyAction", ev, &state)
+    call2("paletteKeyAction", ev.as_ref(), &state)
         .as_string()
         .unwrap_or_else(|| "none".to_string())
 }

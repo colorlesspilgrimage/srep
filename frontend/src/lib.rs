@@ -2,9 +2,7 @@ use leptos::prelude::*;
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::hooks::use_navigate;
 use leptos_router::path;
-use wasm_bindgen::closure::Closure;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
 
 mod api;
 mod card_html;
@@ -30,76 +28,9 @@ use screens::{
 };
 use std::sync::OnceLock;
 
-use command_palette::palette_key_action_js;
-use deck::tree_keys::target_is_text_field;
 use shell::{AppShell, AuthShell};
 
-struct PaletteRuntime {
-    palette_open: RwSignal<bool>,
-    modal_open: RwSignal<bool>,
-    palette_return_focus: RwSignal<Option<web_sys::HtmlElement>>,
-    keybinds: KeybindHandle,
-    key_capture: KeyCaptureHandle,
-}
-
-static PALETTE_RUNTIME: OnceLock<PaletteRuntime> = OnceLock::new();
 static SHELL_PREFS: OnceLock<prefs::ShellPrefsJson> = OnceLock::new();
-
-fn install_palette_keys() {
-    let Some(rt) = PALETTE_RUNTIME.get() else {
-        return;
-    };
-    let window = web_sys::window().expect("window");
-    let palette_open = rt.palette_open;
-    let modal_open = rt.modal_open;
-    let palette_return_focus = rt.palette_return_focus;
-    let keybinds = rt.keybinds;
-    let key_capture = rt.key_capture;
-    let closure = Closure::wrap(Box::new(move |ev: web_sys::KeyboardEvent| {
-        if key_capture.active.get_untracked() {
-            return;
-        }
-        let in_field = ev
-            .target()
-            .map(|t| target_is_text_field(&t))
-            .unwrap_or(false);
-        let binds = client_js::copy_keybind_map(&keybinds.binds.get_untracked());
-        if let Some(action) = palette_key_action_js(
-            &ev,
-            palette_open.get_untracked(),
-            modal_open.get_untracked(),
-            in_field,
-            &binds,
-        ) {
-            ev.prevent_default();
-            let _ = ev.stop_immediate_propagation();
-            match action {
-                "open" => {
-                    if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
-                        if let Some(el) = doc.active_element() {
-                            if let Ok(html) = el.dyn_into::<web_sys::HtmlElement>() {
-                                palette_return_focus.set(Some(html));
-                            }
-                        }
-                    }
-                    palette_open.set(true);
-                }
-                "close" => {
-                    palette_open.set(false);
-                    let el = palette_return_focus.get_untracked();
-                    palette_return_focus.set(None);
-                    if let Some(el) = el {
-                        let _ = el.focus();
-                    }
-                }
-                _ => {}
-            }
-        }
-    }) as Box<dyn FnMut(_)>);
-    let cb = closure.as_ref().unchecked_ref();
-    let _ = window.add_event_listener_with_callback_and_bool("keydown", cb, true);
-    closure.forget();
-}
 
 #[component]
 fn StatsScreen() -> impl IntoView {
@@ -233,7 +164,6 @@ pub fn hydrate() {
         let _ = SHELL_PREFS.set(prefs);
     }
     mount_to_body(|| view! { <App /> });
-    install_palette_keys();
 }
 
 #[component]
@@ -260,14 +190,6 @@ fn App() -> impl IntoView {
             .set(client_js::copy_keybind_map(&client_js::to_js(&body.keybinds)));
     }
     prefs::load_signed_in_prefs(theme, keybinds, display);
-
-    let _ = PALETTE_RUNTIME.set(PaletteRuntime {
-        palette_open,
-        modal_open,
-        palette_return_focus,
-        keybinds,
-        key_capture,
-    });
 
     view! {
         <Router>
