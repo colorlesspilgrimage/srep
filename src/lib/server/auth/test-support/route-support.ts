@@ -22,7 +22,7 @@ export type EventOptions = {
   rawBody?: string;
   headers?: Record<string, string>;
   params?: Record<string, string>;
-  session?: { id: string; csrfToken: string } | null;
+  session?: { id: string; csrfToken: string; kind: 'cookie' | 'bearer' } | null;
   address?: string;
 };
 

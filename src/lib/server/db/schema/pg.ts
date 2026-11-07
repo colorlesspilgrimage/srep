@@ -54,6 +54,26 @@ export const authChallenge = pgTable('auth_challenge', {
   expiresAt: epochMs('expires_at').notNull(),
 });
 
+/** Long-lived bearer tokens for paired native apps. Raw token is never stored. */
+export const apiToken = pgTable('api_token', {
+  id: text('id').primaryKey(),
+  tokenHash: text('token_hash').notNull().unique(),
+  name: text('name').notNull(),
+  createdAt: epochMs('created_at').notNull(),
+  lastUsedAt: epochMs('last_used_at'),
+  revokedAt: epochMs('revoked_at'),
+});
+
+/** Short-lived codes the web UI shows; the app exchanges one for an api_token. */
+export const pairingCode = pgTable('pairing_code', {
+  id: text('id').primaryKey(),
+  codeHash: text('code_hash').notNull().unique(),
+  name: text('name').notNull(),
+  createdAt: epochMs('created_at').notNull(),
+  expiresAt: epochMs('expires_at').notNull(),
+  consumedAt: epochMs('consumed_at'),
+});
+
 // Each deck points at one preset. A card has a deck, but card.deck_id is NULL
 // only for the cards of a trashed note whose deck was deleted.
 export const deckPreset = pgTable('deck_preset', {

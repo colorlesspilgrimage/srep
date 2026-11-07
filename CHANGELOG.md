@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- iOS companion pairing: short-lived pairing codes + QR in Settings → Pair app, Bearer API tokens for native clients, OpenAPI and pairing docs.
+
 ## 1.0.0
 
 - Stats screen with review heatmap, retention, forecast, streaks, and FSRS optimizer preview/apply.

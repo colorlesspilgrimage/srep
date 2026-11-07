@@ -26,7 +26,7 @@ function uploadEvent(body: BodyInit, headers: Record<string, string>) {
     headers,
     duplex: 'half',
   } as RequestInit);
-  return { request, params: {}, locals: { session: { id: 's', csrfToken: 't' } } } as never;
+  return { request, params: {}, locals: { session: { id: 's', csrfToken: 't', kind: 'cookie' as const } } } as never;
 }
 
 const downloadEvent = (value: string) =>

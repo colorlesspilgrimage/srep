@@ -23,6 +23,23 @@ Single-user passwordless login with WebAuthn passkeys and security keys, recover
   - Code: `src/lib/server/auth/`, `src/routes/api/auth/`, `src/routes/{setup,login,security}/`, `src/lib/client/`, `src/hooks.server.ts`, `scripts/srep.ts`, `src/lib/server/db/schema/{sqlite,pg}.ts`, `drizzle/*/0001_*`.
   - Tests: `src/lib/server/auth/*.test.ts`, `src/routes/api/auth/**/server.test.ts`, `scripts/srep.test.ts`, `e2e/auth.test.ts`.
 
+## iOS companion pairing
+
+Pair a native iOS app with a hosted instance using a short-lived code/QR that mints a long-lived Bearer token.
+
+- Entry point: Settings → Pair app (`/settings?section=pair-app`, `/pair` redirects). API: `POST /api/auth/pairing/code`, `POST /api/auth/pairing/exchange`, `GET/PATCH/DELETE /api/auth/tokens`.
+- Use:
+  1. Sign in on the web UI. Open Settings → Pair app. Optionally name the device and generate a code.
+  2. In the iOS app, scan the QR (`{ "v": 1, "origin", "code" }`) or type the origin + code within five minutes.
+  3. The app calls `POST /api/auth/pairing/exchange` (no Origin/CSRF) and stores the returned `srep_…` Bearer token.
+  4. Later API calls send `Authorization: Bearer …` and skip cookie CSRF. Revoke devices from the same settings pane.
+- Check:
+  - `npx vitest run src/lib/server/auth/pairing.test.ts src/lib/server/auth/hook.test.ts src/lib/server/auth/api-guard.test.ts` passes.
+  - Authz sweep still rejects guests on non-public routes (`scripts/api-authz-sweep.test.ts`).
+- Code and tests:
+  - Code: `src/lib/server/auth/{pairing,api-tokens,pairing-policy,hook,api-guard}.ts`, `src/routes/api/auth/{pairing,tokens}/`, `src/lib/client/app/PairAppPanel.svelte`, `docs/ios-pairing.md`, `docs/openapi.yaml`, `drizzle/*/0005_*` (sqlite) and `drizzle/*/0006_*` (pg).
+  - Tests: `src/lib/server/auth/pairing.test.ts`, Bearer cases in `hook.test.ts`.
+
 ## Decks, notes and media (M2)
 
 Decks, note types, notes, generated cards and content-addressed media, through a JSON API and a demo script.

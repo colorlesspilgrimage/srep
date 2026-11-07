@@ -8,6 +8,13 @@ const PUBLIC_API_ROUTES: readonly (readonly [string, string])[] = [
   ['POST', '/api/auth/login/options'],
   ['POST', '/api/auth/login/verify'],
   ['POST', '/api/auth/recovery/login'],
+  // Native apps claim a pairing code without a browser Origin or CSRF cookie.
+  ['POST', '/api/auth/pairing/exchange'],
+];
+
+// Public mutating routes that skip Origin (native clients have no first-party Origin).
+const ORIGIN_EXEMPT_PUBLIC_ROUTES: readonly (readonly [string, string])[] = [
+  ['POST', '/api/auth/pairing/exchange'],
 ];
 
 // SvelteKit remote functions answer here. They return data, so they get the API guard.
@@ -30,6 +37,10 @@ export function isApiPath(pathname: string): boolean {
 
 export function isPublicApiRoute(method: string, pathname: string): boolean {
   return PUBLIC_API_ROUTES.some(([m, p]) => m === method && p === pathname);
+}
+
+export function isOriginExemptPublicRoute(method: string, pathname: string): boolean {
+  return ORIGIN_EXEMPT_PUBLIC_ROUTES.some(([m, p]) => m === method && p === pathname);
 }
 
 export function isMutating(method: string): boolean {

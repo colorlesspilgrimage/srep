@@ -33,7 +33,7 @@ describe('GET /api/auth/status', () => {
     ({ h } = await useRouteContext());
     const { event } = makeEvent('/api/auth/status', {
       method: 'GET',
-      session: { id: 's', csrfToken: 'tok' },
+      session: { id: 's', csrfToken: 'tok', kind: 'cookie' as const },
     });
     expect(await (await GET(event)).json()).toEqual({
       setupComplete: false,

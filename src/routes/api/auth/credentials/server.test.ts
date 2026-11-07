@@ -21,7 +21,7 @@ afterEach(async () => {
   await h.handle.close();
 });
 
-const session = { id: 's', csrfToken: 't' };
+const session = { id: 's', csrfToken: 't', kind: 'cookie' as const };
 
 describe('credentials routes', () => {
   it('lists credentials without key material', async () => {

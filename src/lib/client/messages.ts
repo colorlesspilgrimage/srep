@@ -12,6 +12,9 @@ const MESSAGES: Record<string, string> = {
   invalid_nickname: 'The nickname must have 1 to 64 characters.',
   duplicate_credential: 'This credential is already enrolled.',
   last_credential: 'You cannot remove your last credential.',
+  pairing_failed: 'The pairing code is not valid or has expired.',
+  token_limit: 'Too many paired devices. Revoke one and try again.',
+  not_found: 'That item was not found.',
   network_error: 'The server did not answer.',
 };
 

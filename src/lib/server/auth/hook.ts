@@ -5,8 +5,10 @@ import {
   decodeRoutePath,
   isApiPath,
   isMutating,
+  isOriginExemptPublicRoute,
   isPublicApiRoute,
 } from '#lib/server/auth/api-guard.js';
+import { readBearerToken, resolveApiToken } from '#lib/server/auth/api-tokens.js';
 import { clearCookieHeader, sessionCookieName } from '#lib/server/auth/cookies.js';
 import type { AuthDeps } from '#lib/server/auth/deps.js';
 import { badRequest } from '#lib/server/auth/http.js';
@@ -23,13 +25,23 @@ function redirectTo(location: string): Response {
   return new Response(null, { status: 303, headers: { location } });
 }
 
-// Checks the Origin header, and the CSRF header when the route needs a session.
+// Checks the Origin header, and the CSRF header when the route needs a session cookie.
+// Bearer-authenticated API calls and the pairing exchange skip browser CSRF/Origin.
 function checkMutation(
   deps: AuthDeps,
   event: RequestEvent,
   requiresSession: boolean,
   rawToken: string | undefined,
+  path: string,
 ): Response | null {
+  const kind = event.locals.session?.kind;
+  if (kind === 'bearer') {
+    return null;
+  }
+  const method = event.request.method;
+  if (isOriginExemptPublicRoute(method, path)) {
+    return null;
+  }
   if (!checkOrigin(event.request.headers.get('origin'), deps.auth.origin)) {
     return json({ error: 'bad_origin' }, { status: 403 });
   }
@@ -56,12 +68,12 @@ async function checkRoute(
       return json({ error: 'unauthenticated' }, { status: 401 });
     }
     if (isMutating(method)) {
-      return checkMutation(deps, event, !isPublic, rawToken);
+      return checkMutation(deps, event, !isPublic, rawToken, path);
     }
     return null;
   }
   if (isMutating(method)) {
-    const rejected = checkMutation(deps, event, false, rawToken);
+    const rejected = checkMutation(deps, event, false, rawToken, path);
     if (rejected !== null) {
       return rejected;
     }
@@ -94,7 +106,7 @@ function finish(deps: AuthDeps, path: string, response: Response, clear: boolean
   return response;
 }
 
-// Loads the session, applies the guards, and adds the security headers.
+// Loads the session or Bearer token, applies the guards, and adds the security headers.
 export async function handleAuth(
   deps: AuthDeps,
   event: RequestEvent,
@@ -109,10 +121,28 @@ export async function handleAuth(
   if (path === '/healthz' || (path.startsWith('/_app/') && !isApiPath(path))) {
     return finish(deps, path, await resolve(event), false);
   }
+
+  const bearer = readBearerToken(event.request.headers.get('authorization'));
+  if (bearer !== null && isApiPath(path)) {
+    const tokenRow = await resolveApiToken(deps, bearer);
+    if (tokenRow !== null) {
+      event.locals.session = { id: tokenRow.id, csrfToken: '', kind: 'bearer' };
+      const rejected = await checkRoute(deps, event, path, undefined);
+      return finish(deps, path, rejected ?? (await resolve(event)), false);
+    }
+    // A present but invalid Bearer token is unauthenticated for API routes.
+    if (isMutating(event.request.method) || !isPublicApiRoute(event.request.method, path)) {
+      const isPublic = isPublicApiRoute(event.request.method, path) && path === event.url.pathname;
+      if (!isPublic) {
+        return finish(deps, path, json({ error: 'unauthenticated' }, { status: 401 }), false);
+      }
+    }
+  }
+
   const rawToken = event.cookies.get(sessionCookieName(deps.auth.secureCookies));
   const row = rawToken === undefined ? null : await resolveSession(deps, rawToken);
   if (row !== null && rawToken !== undefined) {
-    event.locals.session = { id: row.id, csrfToken: csrfTokenFor(rawToken) };
+    event.locals.session = { id: row.id, csrfToken: csrfTokenFor(rawToken), kind: 'cookie' };
   }
   const clear = rawToken !== undefined && row === null;
   const rejected = await checkRoute(deps, event, path, rawToken);

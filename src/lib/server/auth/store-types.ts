@@ -32,6 +32,24 @@ export type ChallengeRow = {
 
 export type RecoveryRow = { id: string; codeHash: string };
 
+export type ApiTokenRow = {
+  id: string;
+  tokenHash: string;
+  name: string;
+  createdAt: number;
+  lastUsedAt: number | null;
+  revokedAt: number | null;
+};
+
+export type PairingCodeRow = {
+  id: string;
+  codeHash: string;
+  name: string;
+  createdAt: number;
+  expiresAt: number;
+  consumedAt: number | null;
+};
+
 export type CompleteSetupInput = {
   credential: CredentialRow;
   recoveryHashes: RecoveryRow[];
@@ -75,6 +93,21 @@ export interface AuthStore {
   deleteSession(id: string): Promise<void>;
   deleteAllSessions(): Promise<void>;
   deleteExpiredSessions(now: number, idleMs: number): Promise<void>;
+
+  insertApiToken(token: ApiTokenRow): Promise<void>;
+  getApiTokenByTokenHash(tokenHash: string): Promise<ApiTokenRow | undefined>;
+  listApiTokens(): Promise<ApiTokenRow[]>;
+  renameApiToken(id: string, name: string): Promise<boolean>;
+  revokeApiToken(id: string, now: number): Promise<boolean>;
+  touchApiToken(id: string, now: number): Promise<void>;
+  countActiveApiTokens(): Promise<number>;
+
+  insertPairingCode(code: PairingCodeRow): Promise<void>;
+  /** Soft-deletes every unconsumed code so only the newest UI code is valid. */
+  invalidateOpenPairingCodes(now: number): Promise<void>;
+  getOpenPairingCodeByHash(codeHash: string, now: number): Promise<PairingCodeRow | undefined>;
+  consumePairingCode(id: string, now: number): Promise<boolean>;
+  prunePairingCodes(now: number): Promise<void>;
 }
 
 export const SETTING_SETUP_COMPLETE = 'auth.setup_complete';

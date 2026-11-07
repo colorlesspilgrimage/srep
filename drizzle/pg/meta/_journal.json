@@ -43,6 +43,13 @@
       "when": 1791989152874,
       "tag": "0005_clumsy_kabuki",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794033887991,
+      "tag": "0006_thin_freak",
+      "breakpoints": true
     }
   ]
 }

@@ -22,7 +22,7 @@ describe('logout routes', () => {
     const b = await createSession(h.deps, 'b');
     const row = await resolveSession(h.deps, a.rawToken);
     const { event, cookiesSet } = makeEvent('/api/auth/logout', {
-      session: { id: row?.id ?? '', csrfToken: 'x' },
+      session: { id: row?.id ?? '', csrfToken: 'x', kind: 'cookie' as const },
     });
     expect(await (await POST(event)).json()).toEqual({ ok: true });
     expect(await resolveSession(h.deps, a.rawToken)).toBeNull();
@@ -39,7 +39,7 @@ describe('logout routes', () => {
     const a = await createSession(h.deps, 'a');
     const b = await createSession(h.deps, 'b');
     const { event, cookiesSet } = makeEvent('/api/auth/logout-all', {
-      session: { id: 'x', csrfToken: 'x' },
+      session: { id: 'x', csrfToken: 'x', kind: 'cookie' as const },
     });
     expect(await (await logoutAllPost(event)).json()).toEqual({ ok: true });
     expect(await resolveSession(h.deps, a.rawToken)).toBeNull();

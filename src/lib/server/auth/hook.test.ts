@@ -1,6 +1,7 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleAuth } from '#lib/server/auth/hook.js';
+import { createPairingCode, exchangePairingCode } from '#lib/server/auth/pairing.js';
 import { SESSION_IDLE_MS } from '#lib/server/auth/session-policy.js';
 import { createSession } from '#lib/server/auth/sessions.js';
 import { createHarness, doSetup, type Harness } from '#lib/server/auth/test-support/harness.js';
@@ -200,6 +201,7 @@ describe('page redirects', () => {
     const { cookie, csrf } = await signedIn();
     const { event } = await run('/', { cookie });
     expect(event.locals.session?.csrfToken).toBe(csrf);
+    expect(event.locals.session?.kind).toBe('cookie');
     expect(JSON.stringify(event.locals.session)).not.toContain(cookie);
   });
 
@@ -489,5 +491,51 @@ describe('response headers', () => {
     expect(response.headers.get('strict-transport-security')).toContain('max-age=31536000');
     expect(response.headers.get('set-cookie')).toContain('__Host-srep_session=;');
     expect(response.headers.get('set-cookie')).toContain('Secure');
+  });
+});
+
+describe('Bearer API tokens and pairing exchange', () => {
+  it('lets pairing exchange POST without an Origin header', async () => {
+    h = await createHarness();
+    const { response, resolve } = await run('/api/auth/pairing/exchange', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+    });
+    expect(response.status).toBe(200);
+    expect(resolve).toHaveBeenCalledOnce();
+  });
+
+  it('authenticates API mutations with a Bearer token and no CSRF', async () => {
+    h = await createHarness();
+    const created = await createPairingCode(h.deps, { name: 'Phone' });
+    expect(created.ok).toBe(true);
+    if (!created.ok) {
+      return;
+    }
+    const exchanged = await exchangePairingCode(h.deps, { code: created.code });
+    expect(exchanged.ok).toBe(true);
+    if (!exchanged.ok) {
+      return;
+    }
+    const { response, resolve, event } = await run('/api/study/answer', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${exchanged.token}`,
+        'content-type': 'application/json',
+      },
+    });
+    expect(response.status).toBe(200);
+    expect(resolve).toHaveBeenCalledOnce();
+    expect(event.locals.session?.kind).toBe('bearer');
+    expect(event.locals.session?.id).toBe(exchanged.tokenId);
+  });
+
+  it('rejects a forged Bearer token', async () => {
+    h = await createHarness();
+    const { response, resolve } = await run('/api/decks', {
+      headers: { authorization: 'Bearer srep_not-a-real-token' },
+    });
+    expect(response.status).toBe(401);
+    expect(resolve).not.toHaveBeenCalled();
   });
 });

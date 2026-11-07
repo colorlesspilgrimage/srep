@@ -13,5 +13,5 @@ export async function useDomainRouteContext(mediaMaxBytes?: number): Promise<Dom
   return h;
 }
 
-export const SESSION = { id: 's', csrfToken: 't' };
+export const SESSION = { id: 's', csrfToken: 't', kind: 'cookie' as const };
 export const UNKNOWN_ID = '123e4567-e89b-42d3-a456-426614174000';
