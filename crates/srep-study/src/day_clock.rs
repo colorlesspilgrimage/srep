@@ -140,10 +140,10 @@ mod tests {
             rollover_hour: 4,
             timezone: "UTC".into(),
         };
-        let before = study_window(at(1_767_336_599_999), &settings); // 2026-01-02T03:59:59.999Z
-        assert_eq!(before.start_ms, 1_767_258_400_000);
-        assert_eq!(before.end_ms, 1_767_344_800_000);
-        let after = study_window(at(1_767_344_800_000), &settings);
+        let before = study_window(1_767_326_399_999, &settings); // 2026-01-02T03:59:59.999Z
+        assert_eq!(before.start_ms, 1_767_240_000_000); // 2026-01-01T04:00:00Z
+        assert_eq!(before.end_ms, 1_767_326_400_000); // 2026-01-02T04:00:00Z
+        let after = study_window(1_767_326_400_000, &settings);
         assert_eq!(after.start_ms, before.end_ms);
         assert_eq!(after.day_number, before.day_number + 1);
         assert_eq!(after.end_ms - after.start_ms, DAY);

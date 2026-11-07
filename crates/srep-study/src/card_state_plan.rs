@@ -100,9 +100,10 @@ mod tests {
     fn suspend_and_unsuspend() {
         let cards = vec![
             card("a", |c| c),
-            card("suspended", |c| {
+            card("suspended", |mut c| {
                 c.state = CardState::Suspended;
                 c.sched_state = SchedState::Review;
+                c
             }),
         ];
         assert_eq!(plan_suspend(&cards).len(), 1);
@@ -113,9 +114,10 @@ mod tests {
 
     #[test]
     fn unsuspend_rejects_orphan() {
-        let cards = vec![card("o", |c| {
+        let cards = vec![card("o", |mut c| {
             c.state = CardState::Suspended;
             c.flags = FLAG_ORPHANED;
+            c
         })];
         assert!(matches!(
             plan_unsuspend(&cards),

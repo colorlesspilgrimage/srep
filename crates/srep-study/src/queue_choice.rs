@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 pub const SHUFFLE_MULTIPLIER: u32 = 2_654_435_761;
-pub const SHUFFLE_MODULUS: u32 = 4_294_967_296;
+pub const SHUFFLE_MODULUS: u64 = 4_294_967_296;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -315,12 +315,9 @@ mod tests {
     #[test]
     fn shuffle_key_matches_imul() {
         assert_eq!(shuffle_key(0), 0);
-        assert_eq!(
-            shuffle_key(1),
-            SHUFFLE_MULTIPLIER % SHUFFLE_MODULUS
-        );
+        assert_eq!(shuffle_key(1), SHUFFLE_MULTIPLIER);
         let big = shuffle_key(2_000_000);
-        assert!(big < SHUFFLE_MODULUS);
+        assert!(u64::from(big) < SHUFFLE_MODULUS);
     }
 
     #[test]

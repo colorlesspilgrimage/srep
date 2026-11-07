@@ -9,10 +9,16 @@ pub const FSRS5_DEFAULT_DECAY: f64 = 0.5;
 pub const FSRS6_DEFAULT_DECAY: f64 = 0.1542;
 pub const W17_W18_CEILING: f64 = 2.0;
 
-pub const DEFAULT_W: [f64; 21] = [
-    0.212, 1.2931, 2.3065, 8.2956, 6.4133, 0.8334, 3.0194, 0.001, 1.8722, 0.1666, 0.796, 1.4835,
-    0.0614, 0.2629, 1.6483, 0.6014, 1.8729, 0.5425, 0.0912, 0.0658, FSRS6_DEFAULT_DECAY,
-];
+/// Default FSRS-6 weights; aligned with `fsrs::DEFAULT_PARAMETERS` and ts-fsrs `default_w`.
+pub const DEFAULT_W: [f64; 21] = {
+    let p = fsrs::DEFAULT_PARAMETERS;
+    [
+        p[0] as f64, p[1] as f64, p[2] as f64, p[3] as f64, p[4] as f64, p[5] as f64, p[6] as f64,
+        p[7] as f64, p[8] as f64, p[9] as f64, p[10] as f64, p[11] as f64, p[12] as f64,
+        p[13] as f64, p[14] as f64, p[15] as f64, p[16] as f64, p[17] as f64, p[18] as f64,
+        p[19] as f64, p[20] as f64,
+    ]
+};
 
 #[derive(Debug, Clone)]
 pub struct FsrsParameters {
