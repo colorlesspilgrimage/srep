@@ -7,6 +7,7 @@ export const NAV_ITEMS = [
   { id: 'decks', label: 'Decks', href: '/', icon: 'decks' },
   { id: 'study', label: 'Study', href: '/study', icon: 'study' },
   { id: 'browse', label: 'Browse', href: '/browse', icon: 'browse' },
+  { id: 'stats', label: 'Stats', href: '/stats', icon: 'stats' },
   { id: 'settings', label: 'Settings', href: '/settings', icon: 'settings' },
 ] as const;
 
@@ -14,12 +15,13 @@ export const APP_COMMANDS = [
   'Open Decks',
   'Open Study',
   'Open Browse',
+  'Open Stats',
   'Open Settings',
   'Open Gallery',
   'Open Security',
 ] as const;
 
-export type NavPath = '/' | '/study' | '/browse' | '/settings';
+export type NavPath = '/' | '/study' | '/browse' | '/stats' | '/settings';
 
 type CommandPath = NavPath | '/gallery' | '/security';
 
@@ -28,6 +30,7 @@ const TARGETS = new Map<string, CommandPath>([
   ['Open Decks', '/'],
   ['Open Study', '/study'],
   ['Open Browse', '/browse'],
+  ['Open Stats', '/stats'],
   ['Open Settings', '/settings'],
   ['Open Gallery', '/gallery'],
   ['Open Security', '/security'],

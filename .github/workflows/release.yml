@@ -1,0 +1,39 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  docker-multiarch:
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@19c01c633723746a54fcb21b0b602398c2bfb2e
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b9f9bbf6fa4661a0ec2cd0d6833c047185e1caa
+      - name: Log in to Docker Hub
+        if: env.DOCKERHUB_USERNAME != ''
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        if: env.DOCKERHUB_USERNAME != ''
+        uses: docker/build-push-action@aa88817b80e67c02f94563d94146ae286d868f3
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.DOCKERHUB_USERNAME }}/srep:${{ github.ref_name }}
+            ${{ env.DOCKERHUB_USERNAME }}/srep:latest
