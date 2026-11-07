@@ -5,8 +5,6 @@ import { appSettings } from '#lib/server/db/schema/pg.js';
 import { DISPLAY_SETTINGS_KEY } from '#lib/server/settings/display-key.js';
 import { createPgDisplayStore } from '#lib/server/settings/display-store.pg.js';
 
-// Contract: the Postgres display store with a stub database. No server is used.
-
 type Call = { name: string; arg: unknown };
 
 type StubRow = { value: unknown };

@@ -29,13 +29,6 @@
     type BrowseView,
   } from './browse-model.js';
 
-  // Contract: the browse page. Search uses URLSearchParams inside the client.
-  // One bulk write runs at a time. A second call does not send another request.
-  // A later search wins. A failed write stays on screen so the user can retry.
-  // A fresh load focuses the grid so ArrowDown moves a row.
-  // A search field or a dialog keeps its own focus.
-  // Front text is a text node. It is not HTML.
-
   type Props = {
     paletteOpen?: boolean;
     modalOpen?: boolean;

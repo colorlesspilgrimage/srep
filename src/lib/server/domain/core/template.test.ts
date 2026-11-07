@@ -95,7 +95,6 @@ describe('parseTemplate and renderTemplate', () => {
   });
 
   it('returns for a 100,000 character input (CWE-1333)', () => {
-    // The test timeout is the bound. A quadratic scan would not finish in time.
     expect(parseTemplate('{{'.repeat(50_000)).ok).toBe(true);
     expect(parseTemplate('{{'.repeat(50_000) + '}}').ok).toBe(true);
     expect(parseTemplate('{{x'.repeat(33_000) + '}}').ok).toBe(true);

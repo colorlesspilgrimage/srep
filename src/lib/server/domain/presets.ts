@@ -9,7 +9,6 @@ export async function listPresets(deps: DomainDeps): Promise<Result<{ presets: P
   return { ok: true, presets: await deps.store.listPresets() };
 }
 
-// The routes check the body with presetSchema. This check covers every other caller.
 function parsePreset(input: PresetInput): PresetInput | null {
   const parsed = presetSchema.safeParse(input);
   return parsed.success ? parsed.data : null;
@@ -30,7 +29,6 @@ export async function createPreset(
   return { ok: true, preset };
 }
 
-// A full replace. The default preset can be edited and renamed.
 export async function updatePreset(
   deps: DomainDeps,
   id: string,

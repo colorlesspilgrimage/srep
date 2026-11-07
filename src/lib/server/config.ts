@@ -76,7 +76,6 @@ function databaseError(url: string): string | undefined {
   return undefined;
 }
 
-// Reads the optional media folder. The default comes later from the database path.
 function mediaDirOf(raw: string | undefined, errors: string[]): string | undefined {
   if (raw === undefined) {
     return undefined;
@@ -110,7 +109,6 @@ function mediaMaxBytesOf(raw: string | undefined, errors: string[]): number {
   return value;
 }
 
-// SQLite files keep media next to the database. Other cases use ./data/media.
 function defaultMediaDir(database: Config['database']): string {
   if (database.dialect === 'sqlite' && database.path !== ':memory:') {
     return path.join(path.dirname(database.path), 'media');

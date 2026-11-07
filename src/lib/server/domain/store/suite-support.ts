@@ -42,7 +42,6 @@ export function draft(
   return { id, templateId, ordinal, deckId };
 }
 
-// Adds a note with its cards. The cards are Basic cards with ordinals 0, 1, 2 ...
 export async function addNote(
   h: DomainHarness,
   id: string,
@@ -53,7 +52,6 @@ export async function addNote(
   await h.store.insertNote({ note: noteRow(id, extra), tags: ['t'], cards, now: 5 });
 }
 
-// Runs a statement on either dialect. Tests use it to set state that M2 never writes.
 export async function execSql(h: DomainHarness, query: SQL): Promise<void> {
   if (h.handle.dialect === 'sqlite') {
     h.handle.db.run(query);

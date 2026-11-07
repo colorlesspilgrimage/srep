@@ -1,8 +1,6 @@
 <script lang="ts">
   import List from './List.svelte';
 
-  // Contract: the theme settings pane. This file does not call the network.
-
   type Props = {
     items: readonly string[];
     selectedIndex: number;

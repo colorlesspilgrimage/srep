@@ -1,4 +1,3 @@
-// Contract: the SQLite part of the StudyStore for card states: suspend, bury and unbury.
 import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { card } from '#lib/server/db/schema/sqlite.js';

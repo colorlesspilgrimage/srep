@@ -15,8 +15,6 @@ import { KEYBIND_SETTINGS_KEY } from '#lib/server/settings/keybind-key.js';
 import { readGallerySettings } from '#lib/server/settings/gallery-settings-read.js';
 import { THEME_SETTINGS_KEY } from '#lib/server/settings/theme-key.js';
 
-// Contract: the gallery read. A theme query does not rewrite the theme row.
-
 const BAD_THEME_QUERIES = [
   '',
   'Nord',

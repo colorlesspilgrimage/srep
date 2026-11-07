@@ -2,7 +2,6 @@ import type { AuthContext } from '#lib/server/auth/context.js';
 import { createLimiters } from '#lib/server/auth/limiters.js';
 import { createHarness, type Harness } from '#lib/server/auth/test-support/harness.js';
 
-// The route tests mock getAuthContext and read the context from here.
 export const routeState: { ctx: AuthContext | undefined } = { ctx: undefined };
 
 export type SetCookie = { name: string; value: string; options: Record<string, unknown> };
@@ -26,7 +25,6 @@ export type EventOptions = {
   address?: string;
 };
 
-// A fake request event. The cookies object records every set call.
 export function makeEvent(path: string, opts: EventOptions = {}) {
   const headers: Record<string, string> = { ...opts.headers };
   let body: string | undefined = opts.rawBody;
@@ -56,7 +54,6 @@ export function makeEvent(path: string, opts: EventOptions = {}) {
   return { event: event as never, cookiesSet };
 }
 
-// Reads a JSON body into the type that the test expects.
 export async function readBody<T>(response: Response): Promise<T> {
   return response.json();
 }

@@ -19,7 +19,6 @@ export function badRequest(): Response {
   return errorBody(400, 'bad_request');
 }
 
-// Reads at most MAX_BODY_BYTES. Returns null when the body is larger.
 async function readLimited(request: Request): Promise<string | null> {
   const declared = Number(request.headers.get('content-length') ?? '0');
   if (declared > MAX_BODY_BYTES) {
@@ -46,7 +45,6 @@ async function readLimited(request: Request): Promise<string | null> {
   return Buffer.concat(chunks).toString('utf8');
 }
 
-// Parses a JSON body with a strict schema. Errors never name schema details.
 export async function readJson<S extends z.ZodType>(
   request: Request,
   schema: S,
@@ -86,18 +84,14 @@ function limitResponse(result: RateLimitResult): Response | null {
   );
 }
 
-// Counts one attempt for the client address.
 export function checkAttempts(event: RequestEvent, ctx: AuthContext): Response | null {
   return limitResponse(ctx.limiters.authAttempts.check(event.getClientAddress()));
 }
 
-// Counts one failure before the secret check runs. Parallel requests then cannot
-// all pass the limit before the first failure is counted (CWE-307, CWE-362).
 export function reserveFailure(limiter: RateLimiter, key: string): Response | null {
   return limitResponse(limiter.check(key));
 }
 
-// Gives the reserved failure back, unless the secret check failed with this code.
 export function settleFailure(
   limiter: RateLimiter,
   key: string,
@@ -109,7 +103,6 @@ export function settleFailure(
   }
 }
 
-// Sets the session cookie. Returns the CSRF token for the new session.
 export function issueSession(
   cookies: Cookies,
   auth: AuthConfig,

@@ -24,8 +24,6 @@
   import Trash2 from 'lucide-svelte/icons/trash-2';
   import Undo2 from 'lucide-svelte/icons/undo-2';
 
-  // Contract: named Lucide icons for the app chrome. Decorative; pass aria on the control.
-
   export type AppIconName =
     | 'decks'
     | 'study'

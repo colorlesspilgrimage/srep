@@ -3,9 +3,6 @@ import { signInEditor } from './support/note-editor';
 import { E2E_ORIGIN } from './support/cli';
 import { createDeck, csrf } from './support/study-screen';
 
-// Contract: guest access, hostile text, URL tamper, and delete-dialog races.
-// This file uses 198.51.100.46. browse-screen uses .44. browse-screen-race uses .45.
-
 const CLIENT_IP = '198.51.100.46';
 const BASIC_ID = '00000000-0000-4000-8000-000000000011';
 const HOSTILE = '<img src=x onerror=alert(1)';

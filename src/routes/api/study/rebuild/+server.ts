@@ -5,7 +5,6 @@ import { emptyBodySchema } from '#lib/server/study/core/validation.js';
 import { getStudyContext } from '#lib/server/study/context.js';
 import { rebuildFromLog } from '#lib/server/study/replay-service.js';
 
-// Body: {}. Rewrites the cached card schedule from the review log.
 export const POST: RequestHandler = async ({ request }) => {
   const body = await readJson(request, emptyBodySchema);
   if (!body.ok) {

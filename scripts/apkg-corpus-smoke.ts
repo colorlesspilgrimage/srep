@@ -1,5 +1,4 @@
 #!/usr/bin/env tsx
-// Prints import dry-run warnings for each .apkg path argument. Not run in CI.
 import fs from 'node:fs/promises';
 import { planApkgImport } from '../src/lib/server/import-export/apkg/import.js';
 import { getSnapshotStore } from '../src/lib/server/import-export/snapshot-store.js';

@@ -16,7 +16,6 @@ export async function createChallenge(
   return id;
 }
 
-// The row is used up even when the purpose is wrong or the challenge is old.
 export async function takeChallenge(
   deps: AuthDeps,
   id: string,

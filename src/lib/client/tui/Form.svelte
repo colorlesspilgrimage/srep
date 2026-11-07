@@ -1,9 +1,6 @@
 <script lang="ts">
   import { acceptFormValue, FORM_VALUE_MAX, formIdsOk } from './form-value.js';
 
-  // Contract: one text field. An empty value does not call onSubmit.
-  // A value longer than 80 characters does not call onSubmit.
-
   type Props = {
     idPrefix: string;
     name: string;

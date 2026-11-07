@@ -16,8 +16,6 @@ import {
 } from './support/virtual-authenticator';
 
 const sameOrigin = { origin: E2E_ORIGIN };
-// SvelteKit rejects a body-less mutating request that has no content-type, because adapter-node
-// assumes https. Calls from the test send an empty JSON body, like the app does.
 
 test.describe.serial('authentication', () => {
   let context: BrowserContext;

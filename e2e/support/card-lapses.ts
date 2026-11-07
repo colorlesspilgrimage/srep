@@ -1,8 +1,3 @@
-// Sets card.lapses on the end-to-end database.
-// The child process reads SREP_DATABASE_URL. This file sets it from E2E_DATABASE_URL.
-// When E2E_DATABASE_URL is empty, the URL is sqlite:./data/e2e.db.
-// The card id is a UUID. The lapse count is a whole number from 0 to 1000000.
-
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 

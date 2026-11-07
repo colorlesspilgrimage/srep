@@ -1,9 +1,3 @@
-// Contract: getNext picks the next card of a deck tree (or of all decks) for the study day.
-// Reply: status 'card' (rendered card with four answer previews), 'wait' (a learning card
-// is due later today), or 'done'. Each reply has the counts and the study window.
-// Errors: 404 not_found (unknown deck), 422 bad_preset, 500 settings_corrupt.
-// Side effect: buried cards whose time is over come back (unburyExpired).
-// The rendered text is not sanitized (same contract as M2). A client must sanitize it.
 import { fail, type Result } from '#lib/server/auth/deps.js';
 import { subtreeIds } from '#lib/server/domain/core/deck-paths.js';
 import { toNoteView } from '#lib/server/domain/note-view.js';
@@ -42,7 +36,6 @@ export type NextReply =
   | { status: 'wait'; until: number; counts: StudyCounts; window: StudyWindow }
   | { status: 'done'; counts: StudyCounts; window: StudyWindow };
 
-// The deck and its descendants, or all decks. Archived decks are left out.
 async function studyScope(
   deps: StudyDeps,
   deckId: string | undefined,

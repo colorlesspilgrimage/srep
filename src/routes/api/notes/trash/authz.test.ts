@@ -5,9 +5,6 @@ import { createSession } from '#lib/server/auth/sessions.js';
 import { createHarness, type Harness } from '#lib/server/auth/test-support/harness.js';
 import { csrfTokenFor } from '#lib/server/auth/tokens.js';
 
-// Contract: trash list and bulk trash need a session. POST also needs origin and CSRF.
-// CWE-862, CWE-352, CWE-863.
-
 const ORIGIN = 'http://localhost:3000';
 const PATH = '/api/notes/trash';
 

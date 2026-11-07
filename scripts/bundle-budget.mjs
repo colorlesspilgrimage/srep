@@ -1,7 +1,3 @@
-// Contract: fail when client JS gzip bytes exceed the budget.
-// Input: the files under build/client/_app/immutable.
-// The budget number is read from bundle-budget.json next to this file.
-// The script does not read environment text into a path.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';

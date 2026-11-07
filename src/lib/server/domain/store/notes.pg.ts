@@ -8,12 +8,10 @@ import { card, deck, note, noteTag } from '#lib/server/db/schema/pg.js';
 
 type Exec = Pick<PostgresJsDatabase, 'select' | 'insert' | 'update' | 'delete'>;
 
-// New cards go to the end of the global order. The caller runs this in its transaction.
 async function insertCards(tx: Exec, noteId: string, drafts: CardDraft[], now: number) {
   const rows = await tx
     .select({ value: sql<number>`coalesce(max(${card.position}), -1) + 1` })
     .from(card);
-  // Postgres can return an aggregate as a string. Number() makes it a number.
   let position = Number(rows[0]?.value ?? 0);
   for (const draft of drafts) {
     await tx.insert(card).values(newCard(draft, noteId, now, position));
@@ -41,7 +39,6 @@ async function readState(tx: Exec, id: string): Promise<NoteState | undefined> {
   return { note: row, tags: tagRows.map((t) => t.tag), cards };
 }
 
-// The flag is a constant, not user text, so it can go into the SQL as is.
 const ORPHAN_BIT = sql.raw(String(FLAG_ORPHANED));
 
 async function setFlags(tx: Exec, ids: string[], orphan: boolean): Promise<void> {

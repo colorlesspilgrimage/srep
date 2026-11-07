@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { browseKeyAction, type BrowseKeyInput, type BrowseRegion } from './browse-keys.js';
 
-// Contract: every browse key from the browse-screen plan.
-
 function input(region: BrowseRegion, patch: Partial<BrowseKeyInput> = {}): BrowseKeyInput {
   return {
     key: 'x',

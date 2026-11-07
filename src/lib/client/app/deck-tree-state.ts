@@ -1,8 +1,3 @@
-// Contract: which deck rows are on screen, and how a key changes them.
-// Decks are in path order. A child is visible only when every ancestor is expanded.
-// A missing parent does not hide the row and does not throw.
-// No I/O.
-
 import { listKeyIndex } from '#lib/client/tui/list-state.js';
 import type { DeckTreeKeyAction } from './deck-tree-keys.js';
 

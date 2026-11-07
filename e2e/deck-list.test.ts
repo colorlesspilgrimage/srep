@@ -2,9 +2,6 @@ import { expect, test, type Browser, type BrowserContext, type Page } from '@pla
 import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
-// Contract: deck list keys and counts. Tree keys use page.keyboard on three rows.
-// Domain rows stay across runs. This file uses fixed names, so it deletes root decks first.
-
 const CLIENT_IP = '198.51.100.40';
 const BASIC_ID = '00000000-0000-4000-8000-000000000011';
 

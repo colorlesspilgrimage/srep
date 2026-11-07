@@ -1,5 +1,3 @@
-// Reads at most maxBytes of the body. Returns null when the body is larger.
-// A large content-length gets a refusal before any byte is read (CWE-400, CWE-770).
 export async function readBytesLimited(request: Request, maxBytes: number): Promise<Buffer | null> {
   const declared = Number(request.headers.get('content-length') ?? '0');
   if (declared > maxBytes) {

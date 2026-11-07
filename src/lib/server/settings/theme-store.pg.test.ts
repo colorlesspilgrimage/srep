@@ -5,8 +5,6 @@ import { appSettings } from '#lib/server/db/schema/pg.js';
 import { THEME_SETTINGS_KEY } from '#lib/server/settings/theme-key.js';
 import { createPgThemeStore } from '#lib/server/settings/theme-store.pg.js';
 
-// Contract: the Postgres theme store with a stub database. No server is used.
-
 type Call = { name: string; arg: unknown };
 
 type StubRow = { value: unknown };

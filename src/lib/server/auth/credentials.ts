@@ -18,7 +18,6 @@ export type PublicCredential = {
   transports: string[];
 };
 
-// The public view never holds the credential id or the public key.
 export function toPublicCredential(row: CredentialRow): PublicCredential {
   return {
     id: row.id,
@@ -47,7 +46,6 @@ export async function renameCredential(
   return renamed ? { ok: true } : fail(404, 'not_found');
 }
 
-// A revoke does not end other sessions. Use "log out everywhere" for that.
 export async function revokeCredential(
   deps: AuthDeps,
   id: string,
@@ -81,7 +79,6 @@ export async function registerOptions(
   return { ok: true, options, challengeId };
 }
 
-// Verifies a registration response and builds its row. Does not store the row.
 export async function buildCredentialRow(
   deps: AuthDeps,
   input: {

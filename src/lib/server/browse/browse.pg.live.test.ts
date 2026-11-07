@@ -1,6 +1,3 @@
-// Contract: live Postgres browse search. Skips when SREP_TEST_POSTGRES_URL is unset.
-// LIKE marks stay literal. The fold is A to Z only. A quote does not drop a table.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import { searchCards } from '#lib/server/browse/browse.pg.js';
 import { parseBrowseQuery } from '#lib/server/browse/parse-query.js';

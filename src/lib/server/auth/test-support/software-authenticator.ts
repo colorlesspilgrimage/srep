@@ -2,8 +2,6 @@ import crypto from 'node:crypto';
 import { isoBase64URL, isoCBOR } from '@simplewebauthn/server/helpers';
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
 
-// A software authenticator for tests. It builds real WebAuthn payloads (ES256, fmt none).
-
 const FLAG_UP = 0x01;
 const FLAG_UV = 0x04;
 const FLAG_AT = 0x40;

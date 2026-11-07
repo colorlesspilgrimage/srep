@@ -1,6 +1,3 @@
-// Contract: format a review interval in minutes for a rate button.
-// A non-integer or a negative value returns 0m. No I/O.
-
 export function formatInterval(minutes: number): string {
   if (!Number.isInteger(minutes) || minutes < 0) {
     return '0m';

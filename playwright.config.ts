@@ -4,8 +4,6 @@ import { defineConfig, devices } from '@playwright/test';
 const webEnv = { ...process.env };
 delete webEnv.NODE_ENV;
 
-// Every run gets its own client address, so the in-memory rate limit of a reused server
-// does not carry over. The server reads the address from this header (see ADDRESS_HEADER).
 const runAddress = `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 255)}`;
 
 export default defineConfig({
@@ -39,7 +37,6 @@ export default defineConfig({
       SREP_DATABASE_URL: process.env.E2E_DATABASE_URL ?? 'sqlite:./data/e2e.db',
       SREP_LOG_LEVEL: 'warn',
       SREP_MEDIA_DIR: './data/e2e-media',
-      // Lets e2e send x-srep-test-now. Production does not set this variable.
       SREP_E2E_CLOCK: '1',
       BODY_SIZE_LIMIT: '11M',
     },

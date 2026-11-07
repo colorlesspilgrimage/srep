@@ -83,7 +83,6 @@ describe('unauthenticated API access', () => {
     );
   });
 
-  // Regression: a login with a stale cookie set the new cookie, then the hook cleared it.
   it('keeps a new session cookie that the route sets', async () => {
     h = await createHarness();
     const fresh = 'srep_session=new; Path=/; Max-Age=60; HttpOnly; SameSite=Strict';
@@ -100,7 +99,6 @@ describe('unauthenticated API access', () => {
   });
 });
 
-// Every M2 and M3 route needs a session (CWE-862, ASVS V4). No route is in the public list.
 describe('unauthenticated access to the domain routes', () => {
   const ID = '123e4567-e89b-42d3-a456-426614174000';
   const SHA = '0'.repeat(64);
@@ -368,7 +366,6 @@ describe('origin and CSRF checks', () => {
     expect(good.response.status).toBe(200);
   });
 
-  // Regression: SvelteKit routes "/%61pi/..." to "/api/...". The guard must apply too.
   it('rejects a session POST to a percent-encoded API path without a CSRF header', async () => {
     h = await createHarness();
     const { cookie, csrf } = await signedIn();
@@ -390,7 +387,6 @@ describe('origin and CSRF checks', () => {
   });
 });
 
-// Kit decodes the path before it finds the route. The guard must see the same path.
 describe('percent-encoded paths (CWE-863, CWE-352)', () => {
   it('returns 401 for an encoded API path without a session', async () => {
     h = await createHarness();
@@ -434,7 +430,6 @@ describe('percent-encoded paths (CWE-863, CWE-352)', () => {
   });
 });
 
-// Kit runs remote functions at /_app/remote/<id>. They must not skip the guard.
 describe('remote function paths (CWE-863)', () => {
   it('does not let an unauthenticated remote call reach the app', async () => {
     h = await createHarness();

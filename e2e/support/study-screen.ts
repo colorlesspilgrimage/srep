@@ -59,8 +59,6 @@ export async function addNote(
   expect(response.status()).toBe(201);
 }
 
-// Undo reads the newest review row in the database. An earlier run can leave one.
-// This call repeats until the API says there is nothing to undo.
 export async function drainUndo(page: Page): Promise<void> {
   const token = await csrf(page);
   for (let step = 0; step < 100; step += 1) {

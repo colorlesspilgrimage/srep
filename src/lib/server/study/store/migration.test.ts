@@ -9,7 +9,6 @@ import { queryRows } from '#lib/server/study/test-support/simulation-checks.js';
 
 const root = path.resolve(import.meta.dirname, '../../../../..');
 
-// The backfill is the last statement of migration 0003 in each dialect.
 function backfillOf(dialect: 'sqlite' | 'pg'): string {
   const folder = path.join(root, 'drizzle', dialect);
   const file = fs.readdirSync(folder).find((name) => name.startsWith('0003_'));
@@ -51,7 +50,6 @@ describe('migration 0003 (sqlite)', () => {
     h = await createStudyHarness();
     await h.store.insertDeck(deckRow('d1', 'D1'));
     await addNote(h, 'a', ['d1', 'd1', 'd1', 'd1', 'd1']);
-    // M2 rows: sched_state has the column default 'new'.
     await setCard(h, 'a-c0', { state: 'suspended', reps: 3 });
     await setCard(h, 'a-c1', { state: 'suspended', reps: 0 });
     await setCard(h, 'a-c2', { state: 'buried', reps: 2 });

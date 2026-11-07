@@ -2,13 +2,6 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-// Contract: run drizzle-kit generate for one fixed config.
-// Input is the config name sqlite or pg.
-// The child env sets TSX_DISABLE_CACHE to 1.
-// That flag stops the shared tsx temp cache.
-// A bad name exits 1.
-// The runner does not use a shell.
-
 const root = path.resolve(import.meta.dirname, '..');
 
 const DB_GENERATE_CONFIGS = Object.create(null);

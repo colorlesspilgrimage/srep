@@ -8,7 +8,6 @@
 
   let { children, data }: { children: Snippet; data: { csrfToken: string | null } } = $props();
 
-  // Runs before the page code, so a page always sees the current token.
   $effect.pre(() => {
     setCsrfToken(data.csrfToken);
   });

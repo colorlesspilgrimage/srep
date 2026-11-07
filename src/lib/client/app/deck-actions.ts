@@ -1,7 +1,3 @@
-// Contract: load the deck list and the count list for the home screen.
-// Both reads run together. A failure becomes a short message.
-// No path is built here.
-
 import type { ApiResult } from '#lib/client/api.js';
 import { appMessageFor } from './app-messages.js';
 import { joinDeckViews, type CountRow, type DeckListRow, type DeckView } from './deck-screen.js';

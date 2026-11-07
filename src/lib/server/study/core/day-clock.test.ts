@@ -71,7 +71,6 @@ describe('studyWindow with time zones', () => {
 
   it('resolves a rollover hour in the DST gap to the first instant after the gap', () => {
     const day = studyWindow(at('2026-03-08T12:00:00Z'), newYork(2));
-    // 02:00 does not exist on 2026-03-08. The clock jumps from 01:59:59 EST to 03:00 EDT.
     expect(day.startMs).toBe(at('2026-03-08T07:00:00Z'));
     expect(day.endMs).toBe(at('2026-03-09T06:00:00Z'));
     const before = studyWindow(at('2026-03-08T06:59:59.999Z'), newYork(2));
@@ -79,7 +78,6 @@ describe('studyWindow with time zones', () => {
   });
 
   it('resolves a rollover hour in the DST overlap to the first occurrence', () => {
-    // 01:00 happens twice on 2026-11-01: at 05:00Z (EDT) and at 06:00Z (EST).
     const first = studyWindow(at('2026-11-01T05:30:00Z'), newYork(1));
     const second = studyWindow(at('2026-11-01T06:30:00Z'), newYork(1));
     expect(first.startMs).toBe(at('2026-11-01T05:00:00Z'));
@@ -155,8 +153,6 @@ describe('studyWindow properties (seeded)', () => {
   });
 });
 
-// CWE-770: Intl accepts every upper and lower case form of a zone name.
-// Each form is a new cache key, so the cache must have a bound.
 describe('the time-zone formatter cache', () => {
   it('keeps at most MAX_CACHED_TIMEZONES entries', () => {
     const name = 'europe/berlin';

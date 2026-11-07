@@ -195,8 +195,6 @@ describe('shuffleKey', () => {
     expect(big).toBe(Number((2_000_000n * BigInt(SHUFFLE_MULTIPLIER)) % BigInt(SHUFFLE_MODULUS)));
   });
 
-  // Regression: the plain JS product lost precision above 3 393 554, so the JS key and
-  // the SQL key gave a different order for a large position.
   it('equals the exact 64-bit SQL expression above the float limit', () => {
     const exact = (p: number) =>
       Number((BigInt(p) * BigInt(SHUFFLE_MULTIPLIER)) % BigInt(SHUFFLE_MODULUS));

@@ -61,12 +61,10 @@ export interface WebAuthnPort {
 
 const ALLOWED_TRANSPORTS = ['usb', 'nfc', 'ble', 'internal', 'hybrid', 'smart-card', 'cable'];
 
-// Drop every transport value that the WebAuthn spec does not list. Drop repeated values.
 export function sanitizeTransports(transports: readonly string[] | undefined): string[] {
   return [...new Set(transports ?? [])].filter((t) => ALLOWED_TRANSPORTS.includes(t));
 }
 
-// Both values 0 is fine: many passkey providers always send 0.
 export function checkSignCount(stored: number, reported: number): boolean {
   if (stored === 0 && reported === 0) {
     return true;
@@ -152,8 +150,6 @@ export const webAuthn: WebAuthnPort = {
         expectedOrigin: auth.origin,
         expectedRPID: auth.rpId,
         requireUserVerification: false,
-        // Counter 0 is deliberate. The library error is generic,
-        // so the check below gives the typed counter_replay code.
         credential: {
           id: credential.credentialId,
           publicKey: isoBase64URL.toBuffer(credential.publicKey),

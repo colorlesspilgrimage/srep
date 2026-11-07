@@ -5,8 +5,6 @@ import { describe, expect, it } from 'vitest';
 import { commandsFor } from '#lib/client/tui/keymap.js';
 import { filterCommands, paletteNames } from './command-filter.js';
 
-// Contract: ASCII fold only. I folds. A non-ASCII letter stays.
-
 const source = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), 'command-filter.ts'),
   'utf8',

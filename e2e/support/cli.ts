@@ -5,8 +5,6 @@ const root = path.resolve(import.meta.dirname, '..', '..');
 
 export const E2E_ORIGIN = 'http://localhost:4173';
 
-// Runs "srep reset-auth --yes" against the e2e database and returns the new setup token.
-// The command uses an argument array and no shell.
 export function resetAuthViaCli(): string {
   const result = spawnSync('npx', ['tsx', 'scripts/srep.ts', 'reset-auth', '--yes'], {
     cwd: root,

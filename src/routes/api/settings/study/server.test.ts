@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-// vi.mock runs before the static imports, so the factory loads the state module itself.
 vi.mock('#lib/server/study/context.js', async () => {
   const { studyRouteState } = await import('#lib/server/study/test-support/route-support.js');
   return { getStudyContext: () => studyRouteState.deps };

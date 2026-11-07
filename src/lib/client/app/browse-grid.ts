@@ -1,7 +1,3 @@
-// Contract: turn a grid key action into one row change.
-// An empty grid still tabs and blurs. It does not move.
-// No I/O.
-
 import { pageCardIds, rowIndexAfter } from './browse-model.js';
 import type { BrowseKeyAction } from './browse-keys.js';
 

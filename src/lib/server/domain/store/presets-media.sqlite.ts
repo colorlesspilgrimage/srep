@@ -21,7 +21,6 @@ export type PresetMediaStore = Pick<
   | 'findMissingMedia'
 >;
 
-// Drizzle writes a JS null as SQL NULL. The column is NOT NULL and keeps JSON null.
 function presetValues(row: PresetRow) {
   return { ...row, fsrsParams: row.fsrsParams ?? sql`'null'` };
 }
@@ -38,7 +37,6 @@ function nameTaken(tx: Exec, name: string, exceptId: string): boolean {
 function seedNoteTypes(tx: Exec, seed: Parameters<DomainStore['seedDefaults']>[0]): void {
   for (const { noteType: row, templates } of seed.noteTypes) {
     tx.insert(noteType).values(row).onConflictDoNothing().run();
-    // A user type with the same name blocks the seed row. Then no template is added.
     if (tx.select().from(noteType).where(eq(noteType.id, row.id)).get() === undefined) {
       continue;
     }
@@ -134,7 +132,6 @@ export function createSqlitePresetMediaStore(db: BetterSQLite3Database): PresetM
     async insertMediaIfAbsent(row) {
       return db.transaction((tx) => {
         tx.insert(media).values(row).onConflictDoNothing({ target: media.sha256 }).run();
-        // The row exists now: this call or an earlier call inserted it.
         return tx.select().from(media).where(eq(media.sha256, row.sha256)).get() as MediaRow;
       });
     },

@@ -4,7 +4,6 @@ import { ensureSetupToken } from '#lib/server/auth/setup.js';
 
 const MAINTENANCE_INTERVAL_MS = 10 * 60 * 1000;
 
-// Prints the setup token once, when setup is open. This is the only place that logs it.
 export async function announceSetupToken(deps: AuthDeps): Promise<void> {
   const token = await ensureSetupToken(deps);
   if (token !== null) {
@@ -24,7 +23,6 @@ async function maintain(deps: AuthDeps): Promise<void> {
   }
 }
 
-// Runs the cleanup now and then every 10 minutes. Returns a function that stops it.
 export async function startMaintenance(deps: AuthDeps): Promise<() => void> {
   await maintain(deps);
   const timer = setInterval(() => void maintain(deps), MAINTENANCE_INTERVAL_MS);

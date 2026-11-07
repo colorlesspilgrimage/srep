@@ -57,7 +57,6 @@ export function createPgStore(db: PostgresJsDatabase): AuthStore {
 
     async completeSetup({ credential, recoveryHashes, session: newSession }) {
       return db.transaction(async (tx) => {
-        // The insert is the lock. A parallel setup waits here, then finds the row.
         const lock = await tx
           .insert(appSettings)
           .values({ key: SETTING_SETUP_COMPLETE, value: true })
@@ -130,7 +129,6 @@ export function createPgStore(db: PostgresJsDatabase): AuthStore {
 
     async deleteCredentialUnlessLast(id): Promise<DeleteCredentialResult> {
       return db.transaction(async (tx) => {
-        // Lock every credential row, so parallel revokes run one after the other.
         const all = await tx.select({ id: authCredential.id }).from(authCredential).for('update');
         if (!all.some((row) => row.id === id)) {
           return 'not_found';

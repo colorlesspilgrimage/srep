@@ -14,8 +14,6 @@ export type MediaView = MediaRow & { created: boolean };
 
 export type MediaUpload = { bytes: Buffer; declaredMime: string; originalName: string };
 
-// Order of checks: empty, size, type from magic bytes, declared type (CWE-434, CWE-770).
-// The file is written before the row, so a row never points at a missing file.
 export async function storeMedia(
   deps: DomainDeps,
   upload: MediaUpload,
@@ -47,7 +45,6 @@ export async function storeMedia(
   return { ok: true, media: { ...stored, created: stored.id === row.id } };
 }
 
-// An invalid hash never reaches the file system (CWE-22).
 export async function readMedia(
   deps: DomainDeps,
   sha: string,

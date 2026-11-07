@@ -1,9 +1,3 @@
-// Contract: the study JSON client.
-// A deck id or a note id enters a path only after the UUID check.
-// A card id is checked, then sent with JSON.stringify through apiFetch.
-// reps is an integer from 0 to 1000000. elapsedMs is 0 to 3600000.
-// A failed check does not call fetch. No shell command is built.
-
 import { apiFetch, rejectedResult, type ApiResult } from '#lib/client/api.js';
 import { isDeckUuid } from './deck-id.js';
 import { MAX_ELAPSED_MS } from './study-elapsed.js';

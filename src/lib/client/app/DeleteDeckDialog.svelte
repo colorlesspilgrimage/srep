@@ -5,10 +5,6 @@
   import { shownCount } from './deck-screen.js';
   import { dialogKeyAction } from './dialog-focus.js';
 
-  // Contract: the delete dialog. It loads impact when it opens. No fetch for a bad id.
-  // Trash and Move use apiFetch. Escape closes and does not delete.
-  // Tab stays in the dialog. Close returns focus to the control that opened it.
-
   type Impact = { decks: number; cards: number; notes: number };
   type Target = { id: string; name: string };
 

@@ -13,8 +13,6 @@
   } from './preset-form.js';
   import { createPresetsClient } from './presets-client.js';
 
-  // Contract: list / create / edit / delete presets. API errors surface in status.
-
   const client = createPresetsClient();
 
   let presets = $state<PresetRow[]>([]);

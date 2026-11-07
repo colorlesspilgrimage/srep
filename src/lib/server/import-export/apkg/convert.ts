@@ -30,7 +30,6 @@ function stableGuid(ankiGuid: string): string {
   return ankiGuid.length > 0 ? ankiGuid : uuid();
 }
 
-// Strips Anki-only tokens. Unsupported pieces become warnings, not errors.
 export function convertAnkiTemplate(source: string, warnings: string[]): string {
   let out = source;
   if (out.includes('{{FrontSide}}') || out.includes('{{#') || /\{\{[^}]+\}\}/.test(out)) {

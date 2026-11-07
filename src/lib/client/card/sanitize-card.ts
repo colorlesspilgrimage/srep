@@ -1,12 +1,3 @@
-// Contract: sanitize rendered card HTML before display (CWE-79).
-// Input: one string. A non-string returns an empty string.
-// Allowed marks are the exact strings <span class="cloze">, </span>, <br>, and <hr>.
-// {{media: plus 64 lower-case hex digits plus }} becomes an img.
-// Every other <, >, and & is escaped. A </span> with no open span is escaped.
-// Nested cloze spans stop at 32. A deeper span is escaped (CWE-400).
-// An output longer than 200000 characters is escaped text cut at that limit.
-// The scan is one left-to-right pass. It does not use a regex (CWE-1333). No I/O.
-
 const MAX_HTML = 200_000;
 const MAX_DEPTH = 32;
 const MEDIA_MARK = '{{media:';
@@ -26,7 +17,6 @@ function escapeChar(ch: string): string {
   return ch;
 }
 
-// Escapes from the start and stops at the character limit. A cut may split an entity.
 function escapePrefix(input: string): string {
   let out = '';
   for (let index = 0; index < input.length && out.length < MAX_HTML; index += 1) {

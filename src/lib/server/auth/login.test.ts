@@ -107,7 +107,6 @@ describe('loginVerify', () => {
     expect(h.warnings.map((w) => w.msg)).toContain('sign counter replay');
   });
 
-  // Two parallel logins both read counter 0. Only one may raise it to 5 (CWE-362).
   it('lets only one of two parallel logins with the same counter pass', async () => {
     h = await createHarness();
     await doSetup(h);

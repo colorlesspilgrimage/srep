@@ -57,7 +57,6 @@ export function createSqliteStore(db: BetterSQLite3Database): AuthStore {
 
     async completeSetup({ credential, recoveryHashes, session: newSession }) {
       return db.transaction((tx) => {
-        // The insert is the lock. A second setup finds the row and writes nothing.
         const lock = tx
           .insert(appSettings)
           .values({ key: SETTING_SETUP_COMPLETE, value: true })

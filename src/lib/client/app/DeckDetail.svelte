@@ -4,11 +4,6 @@
   import { isDeckUuid } from './deck-id.js';
   import { studyDeckQuery } from './study-paths.js';
 
-  // Contract: the deck name field and the create, rename, delete, study, and add-note controls.
-  // Enter in the field saves the rename. Escape blurs the field.
-  // The Study and Add note hrefs use the deck id only after the UUID check.
-  // This file does not call the network.
-
   type Props = {
     name: string;
     ready: boolean;

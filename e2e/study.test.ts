@@ -3,8 +3,6 @@ import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
 import { studyClockHeader, studyClockMs } from './support/study-clock';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
-// The e2e database keeps its rows across runs. Each deck name is unique, and every
-// study call is scoped to that deck.
 let counter = 0;
 const unique = (name: string) => `${name}-${process.pid}-${(counter += 1)}`;
 let clockHeaders: Record<string, string> = {};

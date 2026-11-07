@@ -1,6 +1,3 @@
-// Contract: gallery chords, hints, and the command list.
-// A chord has at most 32 characters. A space is not valid (CWE-20).
-
 export const PALETTE_OPEN = 'palette.open';
 export const PALETTE_OPEN_COLON = 'palette.open-colon';
 export const PALETTE_CLOSE = 'palette.close';
@@ -34,8 +31,6 @@ const NAMED_KEYS = ['Escape', 'ArrowUp', 'ArrowDown', 'Enter', 'Home', 'End', 'T
 const MODIFIER_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta']);
 const MAX_CHORD = 32;
 
-// Ctrl or Meta plus one of these keys closes, reloads, or moves a browser tab.
-// Ctrl+K stays allowed. It is the default open chord (CWE-20).
 const RESERVED_CHORD_KEYS = new Set([
   'D',
   'F',
@@ -194,7 +189,6 @@ function modifiersMatch(event: ChordEvent, modifiers: readonly string[]): boolea
   return event.shiftKey === want.has('Shift') && event.metaKey === want.has('Meta');
 }
 
-// ASCII only. Locale case fold maps ı to I and ſ to S (CWE-176).
 function asciiUpper(text: string): string | null {
   if (text.length !== 1) {
     return null;
@@ -267,8 +261,6 @@ export function isReservedChord(chord: string): boolean {
   return parsed.modifiers.includes('Ctrl') || parsed.modifiers.includes('Meta');
 }
 
-// A letter, digit, or ":" with no Ctrl, Alt, or Meta is a character shortcut.
-// Shift still produces a character (WCAG 2.1.4).
 export function isCharacterKeyChord(chord: string): boolean {
   const parsed = parseChordOrNull(chord);
   if (parsed === null) {
@@ -326,7 +318,6 @@ export function remap(map: KeybindMap, actionId: string, chord: string): Keybind
   return { ...map, [actionId]: canonical };
 }
 
-// Tab, Enter, and Space stay with the Cancel button. Escape restores the draft.
 export function captureKeyEffect(key: string): CaptureKeyEffect {
   if (key === 'Escape') {
     return 'cancel';

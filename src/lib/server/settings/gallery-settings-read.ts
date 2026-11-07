@@ -1,9 +1,3 @@
-// Contract: read the gallery theme, the key chords, and the display prefs.
-// A null theme query reads the saved theme, chords, and display.
-// A theme query reads only the chords and display.
-// Both reads use the process cache. A bad row is 500.
-// This read does not write (CWE-362).
-
 import { themeIdFromQuery } from '#lib/client/tui/themes.js';
 import type { DisplayPrefs } from '#lib/client/app/display-prefs.js';
 import type { KeybindMap } from '#lib/client/tui/keymap.js';

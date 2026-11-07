@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-// Postgres text cannot hold U+0000. Every user text is checked (CWE-20).
 const noNul = (value: string): boolean => !value.includes('\u0000');
 
 const text = (max: number) => z.string().max(max).refine(noNul);
@@ -12,7 +11,6 @@ export const MAX_CARDS_PER_MOVE = 500;
 
 export const idSchema = z.uuid();
 
-// Returns the id, or null when the raw value is not a valid id.
 export function parseId(raw: string | undefined): string | null {
   const parsed = idSchema.safeParse(raw);
   return parsed.success ? parsed.data : null;
@@ -37,7 +35,6 @@ export const presetSchema = z
 
 export type PresetInput = z.output<typeof presetSchema>;
 
-// The deck services check the deck name rules. The schema only bounds the size.
 const deckName = text(1000);
 const description = text(10_000);
 

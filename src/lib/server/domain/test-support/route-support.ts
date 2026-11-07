@@ -4,7 +4,6 @@ import {
   type DomainHarness,
 } from '#lib/server/domain/test-support/harness.js';
 
-// The route tests mock getDomainContext and read the deps from here.
 export const domainRouteState: { deps: DomainDeps | undefined } = { deps: undefined };
 
 export async function useDomainRouteContext(mediaMaxBytes?: number): Promise<DomainHarness> {

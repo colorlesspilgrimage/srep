@@ -1,5 +1,3 @@
-// Contract: the Postgres part of the StudyStore for replay: verify batches and rebuild.
-// The rebuild takes the study lock as the first statement of its transaction.
 import { asc, eq, gt, inArray, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { card, reviewLog } from '#lib/server/db/schema/pg.js';
@@ -42,7 +40,6 @@ async function readBatch(
   return cards.map((c) => ({ card: c, logs: logs.filter((l) => l.cardId === c.id) }));
 }
 
-// state follows sched_state unless the card is suspended or buried.
 async function applyRebuild(tx: Exec, update: CardRebuildUpdate): Promise<void> {
   const { fields } = update;
   await tx
@@ -56,8 +53,6 @@ async function applyRebuild(tx: Exec, update: CardRebuildUpdate): Promise<void> 
 
 export function createPgStudyReplayStore(db: PostgresJsDatabase): StudyReplayStore {
   return {
-    // A card row and its log rows come from one snapshot, so a concurrent answer cannot
-    // show up as a false mismatch in verify.
     async readReplayBatch(afterCardId, limit) {
       return db.transaction(async (tx) => readBatch(tx, afterCardId, limit), PG_READ_SNAPSHOT);
     },

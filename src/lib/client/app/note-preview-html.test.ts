@@ -3,9 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { sanitizeCardHtml } from '#lib/client/card/sanitize-card.js';
 import { parsePreview } from './note-editor-parse.js';
 
-// Contract: preview text is sanitized before display.
-// The editor files do not assign raw HTML. CardHtml is the only site.
-
 describe('preview HTML', () => {
   it('escapes a script in preview output and does not use a raw html tag', () => {
     const parsed = parsePreview({

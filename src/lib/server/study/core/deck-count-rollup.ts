@@ -1,9 +1,3 @@
-// Contract: roll counts up parent links. No I/O. Output keeps input order.
-// Decks have id, parentId, archivedAt, and a quota. Snapshots come from one read.
-// Archived decks are left out. A missing snapshot is zero. subtree adds descendants.
-// own new and due use remainingQuota. own learning is learningTodayCount.
-// A negative or non-finite count is zero. A missing parent or a cycle does not throw.
-
 import { childrenByParent, shownCount } from '#lib/client/app/deck-screen.js';
 import { remainingQuota, type DeckQuota, type DeckSnapshot } from './queue-choice.js';
 
@@ -69,7 +63,6 @@ function subtreeOf(
     return zeroCounts();
   }
   seen.add(id);
-  // Every id here is a visible deck, so the map has a row.
   const base = own.get(id) as CountTriple;
   let total = { new: base.new, learning: base.learning, due: base.due };
   for (const child of children.get(id) ?? []) {

@@ -1,7 +1,3 @@
-// Contract: the settings JSON client for theme, keybinds, study day, and display.
-// Theme ids leave only after the catalog check. Study and display bodies leave
-// after accept helpers. A failed check does not call fetch. No shell command is built.
-
 import { apiFetch, rejectedResult, type ApiResult } from '#lib/client/api.js';
 import { themeById } from '#lib/client/tui/themes.js';
 import type { KeybindMap } from '#lib/client/tui/keymap.js';

@@ -7,9 +7,6 @@ import {
 import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
-// Contract: one gallery screenshot for each theme at 360px and at 1440px.
-// The command palette stays closed. The status line uses the default hints.
-
 const CLIENT_IP = '198.51.100.32';
 const DEFAULT_MAP = {
   'palette.open': 'Ctrl+K',

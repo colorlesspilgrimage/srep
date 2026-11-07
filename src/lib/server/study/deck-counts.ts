@@ -1,9 +1,3 @@
-// Contract: read-only deck counts for the home tree.
-// Reads settings, decks, presets, and one snapshot batch.
-// Does not call unburyExpired. A GET must not write.
-// A settings failure is returned as that failure.
-// Output: { ok: true, counts } for each visible deck.
-
 import type { Result } from '#lib/server/auth/deps.js';
 import type { DeckRow, PresetRow } from '#lib/server/domain/store/store-types.js';
 import { studyWindow } from '#lib/server/study/core/day-clock.js';

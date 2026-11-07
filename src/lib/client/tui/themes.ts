@@ -1,7 +1,3 @@
-// Contract: pre-made theme maps and the gallery theme id rule.
-// A query must match the catalog. This blocks CWE-20 and CWE-79.
-// Legacy CRT theme ids migrate to xai-dark or xai-light.
-
 import { XAI_DARK, type ThemeTokens } from './tokens.js';
 
 export type PremadeTheme = {

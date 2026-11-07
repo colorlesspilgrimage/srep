@@ -2,10 +2,6 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// Contract: the CI workflow file must stay safe for pull requests.
-// Actions use a full commit SHA. Test steps do not see CI tokens.
-// Failure reports expire after one day. Temp files stay out of /tmp.
-
 const workflow = readFileSync(
   path.resolve(import.meta.dirname, '../.github/workflows/ci.yml'),
   'utf8',

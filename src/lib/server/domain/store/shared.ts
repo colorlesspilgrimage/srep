@@ -1,6 +1,5 @@
 import type { CardDraft, CardRow, TemplateRow } from '#lib/server/domain/store/store-types.js';
 
-// SQLite allows a limited count of bound values in one statement.
 export const ID_CHUNK = 500;
 
 export function chunk<T>(items: T[], size = ID_CHUNK): T[][] {

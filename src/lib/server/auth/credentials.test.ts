@@ -63,7 +63,6 @@ describe('rename', () => {
     ['a'.repeat(65)],
     ['bad\u0007name'],
     ['line\nbreak'],
-    // Regression: C1 control characters (U+0080 to U+009F) are control characters too.
     ['next\u0085line'],
     ['csi\u009bname'],
   ])('rejects %j', async (nickname) => {

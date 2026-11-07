@@ -16,7 +16,6 @@ export async function loginOptions(
   }
   let allow: { credentialId: string; transports: string[] }[] | undefined;
   if (input.kind === 'security_key') {
-    // A security key may not hold a discoverable credential. The list is needed.
     const keys = (await deps.store.listCredentials()).filter((c) => c.kind === 'security_key');
     if (keys.length === 0) {
       return fail(400, 'no_security_key');
@@ -28,7 +27,6 @@ export async function loginOptions(
   return { ok: true, options, challengeId };
 }
 
-// Every failure after the challenge check gives the same 401 (CWE-204).
 export async function loginVerify(
   deps: AuthDeps,
   input: { challengeId: string; response: AuthenticationResponseJSON; userAgent: string },
@@ -58,7 +56,6 @@ export async function loginVerify(
     }
     return fail(401, 'login_failed');
   }
-  // A parallel login with the same counter loses here. It counts as a replay.
   if (!(await deps.store.updateSignCount(credential.id, newSignCount, deps.now()))) {
     deps.logger.warn({ credentialId: credential.id }, 'sign counter replay');
     return fail(401, 'login_failed');

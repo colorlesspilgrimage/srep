@@ -1,8 +1,3 @@
-// Contract: Postgres bulk tag replace and bulk trash.
-// One transaction. FOR UPDATE locks note rows ordered by id (CWE-362).
-// The lock runs before the read. A missing or trashed id writes nothing.
-// User ids are UUIDs before they reach SQL (CWE-89).
-
 import { asc, eq, inArray } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import {

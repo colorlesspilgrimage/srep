@@ -1,7 +1,3 @@
-// Contract: pure queue logic. Inputs are per-deck snapshots (counts and head cards that the
-// store read) and per-deck quotas from each deck's own preset. Output: the next card, a
-// wait time, or done. No I/O and no clock: the caller passes nowMs.
-// A parent deck never caps a child deck. Each deck uses only its own quota.
 import type { NewOrder } from '#lib/server/db/schema/sqlite.js';
 
 export type DeckQuota = {
@@ -41,10 +37,6 @@ export type QueueChoice =
 
 export type StudyCounts = { new: number; learning: number; review: number };
 
-// Knuth multiplicative hash for newOrder 'random'. The stores compute the same value in SQL:
-// (position * SHUFFLE_MULTIPLIER) % SHUFFLE_MODULUS. Math.imul gives the exact low 32 bits.
-// A plain JS product loses precision above position 3_393_263 (2^53 / multiplier). The SQL
-// product stays inside 64 bits below position 3_474_701_543 (2^63 / multiplier).
 export const SHUFFLE_MULTIPLIER = 2654435761;
 export const SHUFFLE_MODULUS = 4294967296;
 
@@ -76,7 +68,6 @@ export function studyCounts(snapshots: DeckSnapshot[], quotas: DeckQuota[]): Stu
   return counts;
 }
 
-// A card that competes for the next slot. Smaller keys win. Equal keys compare the card id.
 type RankedCandidate = { keys: number[]; cardId: string };
 
 function lessThan(a: RankedCandidate, b: RankedCandidate) {
@@ -144,9 +135,6 @@ function pickLearning(snapshots: DeckSnapshot[]): string | null {
   );
 }
 
-// Order: due learning cards first. Then new and review cards interleave in proportion:
-// take new when newDone / (newDone + newLeft) <= revDone / (revDone + reviewsLeft).
-// The rule is stateless, so it gives the same order after a restart.
 export function chooseNext(
   snapshots: DeckSnapshot[],
   quotas: DeckQuota[],

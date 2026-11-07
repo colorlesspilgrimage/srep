@@ -1,8 +1,3 @@
-// Contract: the deck JSON client.
-// A deck id enters a path only after the UUID check, then encodeURIComponent.
-// A failed check does not call fetch. The name goes out as JSON, not as a path.
-// No shell command is built.
-
 import { apiFetch, rejectedResult, type ApiResult } from '#lib/client/api.js';
 import type { DeckClient } from './deck-actions.js';
 import { deckResourcePath, isDeckUuid } from './deck-id.js';

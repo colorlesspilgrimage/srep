@@ -1,6 +1,4 @@
 <script lang="ts">
-  // Contract: the status line shows the mode and the hints.
-
   type Props = { mode: string; hints: readonly string[] };
 
   let { mode, hints }: Props = $props();

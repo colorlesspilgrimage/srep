@@ -1,8 +1,3 @@
-// Runs the study simulation with a fake clock and prints JSON lines.
-// Usage: npm run study:simulate [-- --days N] (N is 1..3650, default 365).
-// Database: always a fresh in-memory SQLite database. The script ignores SREP_DATABASE_URL,
-// because it adds decks and notes, changes the study settings and undoes reviews (CWE-1188).
-// Exit codes: 0 all counters are 0, 1 a counter is not 0 or a step failed, 2 bad arguments.
 import type { Config } from '../src/lib/server/config.ts';
 import { parseConfig } from '../src/lib/server/config.ts';
 import { createDb, type DbHandle } from '../src/lib/server/db/client.ts';
@@ -19,7 +14,6 @@ const EXIT_USAGE = 2;
 const USAGE = 'Usage: npm run study:simulate [-- --days N]  (N is an integer from 1 to 3650)';
 const SEED = 20260101;
 
-// Returns the day count, or null for bad arguments.
 function parseDays(args: string[]): number | null {
   if (args.length === 0) {
     return 365;

@@ -1,7 +1,3 @@
-// Contract: GET lists trashed notes. POST bulk-trashes note ids.
-// Body: { noteIds }. One transaction. A missing id writes nothing.
-// A guest is rejected by the auth hook before this handler runs.
-
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { errorResponse } from '#lib/server/auth/http.js';

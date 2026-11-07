@@ -19,9 +19,6 @@
   import { effectForTreeKey, visibleDeckRows } from '#lib/client/app/deck-tree-state.js';
   import { targetIsTextField } from '#lib/client/tui/text-target.js';
 
-  // Contract: the signed-in home page. Guests stay on the auth pages.
-  // Counts and deck rows load together. A child create expands the parent.
-
   let { data }: { data: PageData } = $props();
   const client = createDeckClient();
 

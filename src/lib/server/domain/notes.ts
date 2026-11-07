@@ -33,9 +33,6 @@ export const TRASH_RETENTION_MS = 30 * 24 * 3600 * 1000;
 
 type NoteResult = Promise<Result<{ note: NoteView }>>;
 
-// Checks the field count and size, the tags, the render cost and the media tokens.
-// `existing` lists the stored cards of the note, which the view renders too.
-// Returns the clean tags.
 async function checkContent(
   deps: DomainDeps,
   noteType: NoteTypeWithTemplates,
@@ -109,8 +106,6 @@ export async function createNote(deps: DomainDeps, input: NoteCreateInput): Note
   return viewOf(deps, noteType, note.id);
 }
 
-// `fields` and `tags` are undefined when the patch does not change them. Then the
-// transaction keeps the stored values, so a parallel edit is not lost (CWE-362).
 type PlannedEdit = {
   noteType: NoteTypeWithTemplates;
   fields: string[] | undefined;
@@ -119,8 +114,6 @@ type PlannedEdit = {
   now: number;
 };
 
-// Pure step in the store transaction. A new card goes to the deck of the first card
-// that has one. Without such a card, it goes to the requested deck.
 function planNoteChange(deps: DomainDeps, edit: PlannedEdit, state: NoteState): NoteChange {
   const fields = edit.fields ?? state.note.fields;
   const desired = desiredCards(edit.noteType, fieldsByName(edit.noteType, fields));
@@ -142,7 +135,6 @@ function planNoteChange(deps: DomainDeps, edit: PlannedEdit, state: NoteState): 
   };
 }
 
-// Cards that stay keep their review history. See reconcile() for removed cards.
 export async function updateNote(deps: DomainDeps, id: string, patch: NotePatchInput): NoteResult {
   const current = await deps.store.getNoteState(id);
   const noteType =
@@ -195,7 +187,6 @@ export async function listTrash(
   return { ok: true, notes: await deps.store.listTrashedNotes() };
 }
 
-// A card whose deck was deleted needs a new deck before the note comes back.
 export async function restoreNote(
   deps: DomainDeps,
   id: string,
@@ -211,13 +202,11 @@ export async function restoreNote(
   return getNote(deps, id);
 }
 
-// Moves cards and keeps their review state. One unknown id stops the whole move.
 export async function moveCards(deps: DomainDeps, input: CardsMoveInput): Promise<Result<object>> {
   const result = await deps.store.moveCards(input.cardIds, input.deckId);
   return result === 'ok' ? { ok: true } : fail(404, 'not_found');
 }
 
-// Removes the notes that are in the trash for TRASH_RETENTION_MS or longer.
 export async function purgeTrash(deps: DomainDeps): Promise<Result<{ purged: number }>> {
   return { ok: true, purged: await deps.store.purgeTrash(deps.now() - TRASH_RETENTION_MS) };
 }

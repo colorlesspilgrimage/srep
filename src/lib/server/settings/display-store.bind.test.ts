@@ -1,14 +1,10 @@
-import Database from 'better-sqlite3';
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { describe, expect, it } from 'vitest';
 import { appSettings } from '#lib/server/db/schema/sqlite.js';
 import { DISPLAY_SETTINGS_KEY } from '#lib/server/settings/display-key.js';
 import { getDisplaySettings } from '#lib/server/settings/display-settings.js';
 import { createSqliteDisplayStore } from '#lib/server/settings/display-store.sqlite.js';
-
-// Contract: the display upsert binds its values. It does not join them into SQL text.
-// Extra fields do not become other app_settings keys (CWE-89, CWE-915).
+import { openTracedAppSettings } from '#lib/server/settings/test-support/traced-app-settings.js';
 
 const EVIL = "x' OR 1=1; DROP TABLE app_settings;--";
 const STUDY_VALUE = { rolloverHour: 4, timezone: 'UTC' };
@@ -20,22 +16,10 @@ const GOOD = {
   cursorBlink: true,
 };
 
-function openTraced() {
-  const sqlite = new Database(':memory:');
-  const sqls: string[] = [];
-  const prepare = sqlite.prepare.bind(sqlite);
-  sqlite.prepare = ((sql: string) => {
-    sqls.push(sql);
-    return prepare(sql);
-  }) as typeof sqlite.prepare;
-  sqlite.exec('create table app_settings (key text primary key, value text not null)');
-  const db = drizzle(sqlite);
-  return { sqlite, sqls, db, store: createSqliteDisplayStore(db) };
-}
-
 describe('display store binding', () => {
   it('keeps the payload out of the SQL text', async () => {
-    const { sqlite, sqls, store } = openTraced();
+    const { sqlite, sqls, db } = openTracedAppSettings();
+    const store = createSqliteDisplayStore(db);
     await store.putDisplayValue({
       fontSize: 16,
       reducedMotion: false,
@@ -57,7 +41,8 @@ describe('display store binding', () => {
   });
 
   it('drops extra fields and leaves other keys in place', async () => {
-    const { sqlite, db, store } = openTraced();
+    const { sqlite, db } = openTracedAppSettings();
+    const store = createSqliteDisplayStore(db);
     db.insert(appSettings).values({ key: 'study', value: STUDY_VALUE }).run();
     db.insert(appSettings).values({ key: 'auth.setup_complete', value: AUTH_VALUE }).run();
     await store.putDisplayValue({

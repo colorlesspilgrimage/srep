@@ -8,13 +8,11 @@ const root = path.resolve(import.meta.dirname, '..');
 const tsx = path.join(root, 'node_modules', '.bin', 'tsx');
 const script = path.join(root, 'scripts', 'study-simulate.ts');
 
-// An argument array and no shell. The script must always use an in-memory database.
 function runSimulate(args: string[], databaseUrl = 'sqlite::memory:') {
   const env = { ...process.env, SREP_DATABASE_URL: databaseUrl, SREP_LOG_LEVEL: 'silent' };
   return spawnSync(tsx, [script, ...args], { cwd: root, env, encoding: 'utf8', input: '' });
 }
 
-// Each case starts tsx. A loaded host needs more than the default 5 s.
 describe('study simulation script', { timeout: 30_000 }, () => {
   it('runs 20 days and prints a last line with zero violations', () => {
     const result = runSimulate(['--days', '20']);
@@ -42,7 +40,6 @@ describe('study simulation script', { timeout: 30_000 }, () => {
     expect(result.stderr).toContain('Usage');
   });
 
-  // CWE-1188: the Docker image sets SREP_DATABASE_URL. The simulation must not write to it.
   it('never opens the database of SREP_DATABASE_URL', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'srep-simulate-'));
     try {

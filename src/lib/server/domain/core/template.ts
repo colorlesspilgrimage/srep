@@ -1,10 +1,6 @@
 import { renderCloze } from '#lib/server/domain/core/cloze.js';
 import { isBlank } from '#lib/server/domain/core/text.js';
 
-// Template syntax: {{Field}}, {{#Field}}...{{/Field}} and {{cloze:Field}}.
-// Every other `{{` stays literal text. One hand-written scan, linear time (CWE-1333).
-// The output is not escaped or sanitized. The caller must sanitize it before display.
-
 export type TemplateNode =
   | { kind: 'text'; text: string }
   | { kind: 'field'; name: string }
@@ -16,7 +12,6 @@ export type ParsedTemplate =
 
 export const MAX_BLOCK_DEPTH = 10;
 export const MAX_FIELD_NAME = 50;
-// A tag body longer than this cannot be valid. The limit keeps the scan linear.
 const MAX_TAG_BODY = MAX_FIELD_NAME + 'cloze:'.length + 64;
 const FORBIDDEN_IN_NAME = /[{}#/^:\p{Cc}]/u;
 
@@ -50,7 +45,6 @@ function readTag(body: string): Tag | null {
 
 type Frame = { name: string; children: TemplateNode[] };
 
-// Adds a tag to the tree. Returns false when the tag breaks the block structure.
 function applyTag(stack: Frame[], tag: Tag): boolean {
   const top = stack[stack.length - 1] as Frame;
   if (tag.kind === 'field' || tag.kind === 'cloze') {
@@ -114,7 +108,6 @@ export function parseTemplate(source: string): ParsedTemplate {
   return { ok: true, ast: root.children };
 }
 
-// All field names that the template uses, also inside blocks.
 export function templateFields(ast: TemplateNode[]): { plain: Set<string>; cloze: Set<string> } {
   const plain = new Set<string>();
   const cloze = new Set<string>();
@@ -137,9 +130,6 @@ export function isClozeTemplate(frontAst: TemplateNode[]): boolean {
   return templateFields(frontAst).cloze.size > 0;
 }
 
-// The budget counts the work of a render: nodes, field text read and text written.
-// A template can name one field many times, so the output can be much larger than
-// the input (CWE-400, CWE-405). The caller sets the budget and catches the error.
 export type RenderBudget = { left: number };
 
 export class RenderLimitError extends Error {
@@ -161,8 +151,6 @@ export function chargeRender(budget: RenderBudget | undefined, cost: number): vo
 
 export type RenderContext = { side: 'front' | 'back'; clozeIndex: number; budget?: RenderBudget };
 
-// One pass. A field value that contains `{{...}}` is not expanded again.
-// The depth of the recursion is at most MAX_BLOCK_DEPTH (CWE-674).
 export function renderTemplate(
   ast: TemplateNode[],
   fields: Record<string, string>,

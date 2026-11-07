@@ -1,5 +1,3 @@
-// Contract: code-unit order and note tag lists. Pure. No I/O.
-
 export function compareCodeUnit(a: string, b: string): number {
   if (a < b) return -1;
   if (a > b) return 1;

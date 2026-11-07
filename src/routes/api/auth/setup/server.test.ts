@@ -118,7 +118,6 @@ describe('POST /api/auth/setup/options', () => {
     expect(await response.json()).toEqual({ error: 'rate_limited' });
   });
 
-  // Regression: a parallel burst of bad tokens must stop at the global failure limit.
   it('stops a parallel burst of bad tokens at the failure limit', async () => {
     ({ h } = await useRouteContext());
     await open();
@@ -147,7 +146,6 @@ describe('POST /api/auth/setup/options', () => {
     expect(last).toBe(429);
   });
 
-  // Parallel requests must not pass the global limit before one failure is counted (CWE-307).
   it('lets at most 5 parallel bad tokens reach the token check', async () => {
     ({ h } = await useRouteContext());
     await open();
@@ -242,7 +240,6 @@ describe('POST /api/auth/setup/verify', () => {
     expect((await verifyPost(event)).status).toBe(400);
   });
 
-  // Regression: a parallel burst of bad tokens must stop at the global failure limit.
   it('counts bad tokens in a parallel burst and then blocks', async () => {
     ({ h } = await useRouteContext());
     await open();

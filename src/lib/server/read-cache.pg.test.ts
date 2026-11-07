@@ -12,9 +12,6 @@ import { createPgThemeStore } from '#lib/server/settings/theme-store.pg.js';
 import { createPgStudySettingsStore } from '#lib/server/study/store/settings-store.pg.js';
 import { DEFAULT_KEYBINDS } from '#lib/client/tui/keymap.js';
 
-// Contract: Postgres stores with a stub database. No server is used.
-// A successful write raises the cache version. A failed write does not.
-
 type Stub = {
   db: PostgresJsDatabase;
   selects: number;

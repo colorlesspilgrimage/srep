@@ -18,9 +18,6 @@ import {
 } from './support/study-screen';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
-// Contract: study screen keys, congrats, wait, undo, suspend, edit, and mobile buttons.
-// Keys use page.keyboard. The queue has three notes. Each file uses its own client IP.
-
 const CLIENT_IP = '198.51.100.41';
 
 let context: BrowserContext;

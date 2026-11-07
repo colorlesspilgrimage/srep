@@ -79,7 +79,6 @@ export async function getNoteType(
   return noteType === undefined ? fail(404, 'not_found') : { ok: true, noteType };
 }
 
-// Checks the fields and every template before anything is stored.
 export async function createNoteType(
   deps: DomainDeps,
   input: NoteTypeCreateInput,

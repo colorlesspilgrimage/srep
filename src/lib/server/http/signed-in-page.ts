@@ -1,7 +1,3 @@
-// Contract: load theme, keybinds, and display prefs for a signed-in page.
-// The theme query is null. The gallery page keeps its own query.
-// Caches must not store the document. A read failure uses error(status, error).
-
 import { error } from '@sveltejs/kit';
 import { getDb } from '#lib/server/db/index.js';
 import { readGallerySettings } from '#lib/server/settings/gallery-settings-read.js';

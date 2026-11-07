@@ -17,8 +17,6 @@ import {
 } from '#lib/server/settings/theme-settings.js';
 import { getThemeStore } from '#lib/server/settings/theme-store.js';
 
-// Contract: the saved theme id. A bad id is refused. Legacy CRT ids migrate on read.
-
 const STUDY_VALUE = { rolloverHour: 4, timezone: 'UTC' };
 const BAD_IDS = ['nope', 'Nord', 'nord ', '<script>', 'phosphor-green\n', 'nord'];
 const CATALOG = new Set(PREMADE_THEMES.map((theme) => theme.id));

@@ -4,9 +4,6 @@
   import { deckLevel, visibleDeckRows } from './deck-tree-state.js';
   import type { DeckView } from './deck-screen.js';
 
-  // Contract: the deck tree. Each row shows subtree New, Learning, and Due.
-  // A row with children has aria-expanded. Keys are handled by the parent.
-
   type Props = {
     decks: readonly DeckView[];
     expanded: ReadonlySet<string>;

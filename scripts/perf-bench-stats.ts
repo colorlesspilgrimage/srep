@@ -1,8 +1,3 @@
-// Contract: median and p95 for a bench sample.
-// Input: a non-empty list of numbers. Output: one number.
-// An even count uses the mean of the two middle sorted values.
-// p95 uses sorted index ceil(0.95 * count) - 1.
-
 export function median(samples: readonly number[]): number {
   const sorted = [...samples].sort((left, right) => left - right);
   const mid = Math.floor(sorted.length / 2);

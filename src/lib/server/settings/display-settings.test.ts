@@ -16,8 +16,6 @@ import {
 } from '#lib/server/settings/display-settings.js';
 import { getDisplayStore } from '#lib/server/settings/display-store.js';
 
-// Contract: the saved display prefs. A bad body is refused. A bad stored value is not repaired.
-
 const STUDY_VALUE = { rolloverHour: 4, timezone: 'UTC' };
 const LARGE: DisplayPrefs = {
   fontSize: 20,

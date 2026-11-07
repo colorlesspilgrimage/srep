@@ -3,11 +3,6 @@
   import { MEDIA_ACCEPT } from './media-upload.js';
   import type { EditorDeck, EditorType } from './note-editor-parse.js';
 
-  // Contract: the note form controls. The parent owns the values and the save.
-  // Tab order is the fields, then tags, then the deck list, then Save.
-  // Cloze buttons and file inputs follow Save so they do not break that order.
-  // This file does not call fetch.
-
   type Props = {
     types: readonly EditorType[];
     noteTypeId: string;

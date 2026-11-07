@@ -1,6 +1,3 @@
-// Contract: Postgres card search for browse. The caller passes db.
-// Same filter as the SQLite search. User text is a bound parameter (CWE-89).
-
 import { asc, eq, inArray } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { tagsByNote, toBrowsePage } from '#lib/server/browse/browse-page.js';

@@ -1,10 +1,3 @@
-// Contract: pure key map for the deck tree.
-// When a dialog, the palette, a text field, or a modifier chord is active, return none.
-// Space asks the caller to prevent the scroll. It does not change the row.
-// Delete and Backspace do not delete a deck.
-// Shift+Tab is Tab with shiftKey true. isRoot tells a collapsed child from a root.
-// No I/O.
-
 export type DeckTreeKeyInput = {
   key: string;
   shiftKey: boolean;

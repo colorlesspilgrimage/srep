@@ -11,7 +11,6 @@ export type Outcome<T> = { ok: true; body: T } | { ok: false; message: string };
 
 type OptionsBody<O> = { options: O; challengeId: string };
 
-// Runs the two-step enrollment: ask for options, call the authenticator, verify.
 export async function enroll<T>(
   base: '/api/auth/setup' | '/api/auth/credentials',
   fields: { kind: Kind; nickname: string; setupToken?: string },
@@ -36,7 +35,6 @@ export async function enroll<T>(
     : { ok: false, message: messageFor(second.error) };
 }
 
-// Logs in with a passkey or a security key. On success the CSRF token is stored.
 export async function loginWith(kind: Kind): Promise<Outcome<null>> {
   const first = await apiFetch<OptionsBody<PublicKeyCredentialRequestOptionsJSON>>(
     '/api/auth/login/options',

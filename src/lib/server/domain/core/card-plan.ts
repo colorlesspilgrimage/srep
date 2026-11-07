@@ -10,7 +10,6 @@ import {
 } from '#lib/server/domain/core/template.js';
 import { isBlank } from '#lib/server/domain/core/text.js';
 
-// The card lost its source (template or cloze) and waits for the user to confirm.
 export const FLAG_ORPHANED = 1;
 
 export type PlanTemplate = { id: string; ordinal: number; frontTpl: string; backTpl: string };
@@ -32,15 +31,12 @@ export type Reconciliation = {
   unorphanIds: string[];
 };
 
-// Templates are checked when the note type is made. A broken one gives no output.
 function astOf(source: string, budget?: RenderBudget): TemplateNode[] {
   chargeRender(budget, source.length);
   const parsed = parseTemplate(source);
   return parsed.ok ? parsed.ast : [];
 }
 
-// The map has no prototype. A field named `__proto__` or `constructor` then reads
-// its own value, not an Object.prototype member (CWE-1321).
 export function fieldsByName(
   noteType: { fields: string[] },
   values: string[],
@@ -76,7 +72,6 @@ function desiredForTemplate(
     .map((ordinal) => ({ templateId: template.id, ordinal }));
 }
 
-// The cards that the note must have. Sorted by template ordinal, then card ordinal.
 export function desiredCards(
   noteType: PlanNoteType,
   fields: Record<string, string>,
@@ -100,12 +95,8 @@ export function renderCard(
   };
 }
 
-// The maximum work to plan and render all cards of one note. A normal note uses
-// much less. A note over the limit is refused when it is saved, so a read of a
-// stored note stays bounded too (CWE-400, CWE-405).
 export const MAX_NOTE_RENDER_COST = 32_000_000;
 
-// True when the planned cards plus the given cards render within `limit`.
 export function withinRenderCost(
   noteType: PlanNoteType,
   fields: Record<string, string>,
@@ -135,7 +126,6 @@ export function withinRenderCost(
 
 const keyOf = (card: DesiredCard): string => `${card.templateId}:${card.ordinal}`;
 
-// Compares the wanted cards with the stored cards. A reviewed card is never deleted.
 export function reconcile(desired: DesiredCard[], existing: ExistingCard[]): Reconciliation {
   const result: Reconciliation = {
     create: [],

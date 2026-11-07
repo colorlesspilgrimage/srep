@@ -3,10 +3,6 @@
   import { dialogMustStop } from './browse-guard.js';
   import { dialogKeyAction } from './dialog-focus.js';
 
-  // Contract: confirm dialog for bulk delete.
-  // Escape closes and does not delete. Enter on Confirm delete deletes.
-  // Tab and Shift+Tab stay inside. Close returns focus to the opener.
-
   type Props = {
     busy: boolean;
     onClose: () => void;

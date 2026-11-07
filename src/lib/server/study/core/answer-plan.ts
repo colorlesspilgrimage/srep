@@ -1,7 +1,3 @@
-// Contract: pure plans for an answer and for an undo. The store reads the rows in its
-// transaction, calls a plan, and writes the result. No I/O and no clock.
-// planAnswer failures: 409 stale_card (reps differ from the client value),
-// 409 card_not_studyable (suspended or buried), 422 bad_preset (ts-fsrs refuses the preset).
 import { fail, type Failure } from '#lib/server/auth/deps.js';
 import type { CardRow, CardState } from '#lib/server/domain/store/store-types.js';
 import { answerCard, type SchedulerPreset } from '#lib/server/study/core/fsrs-adapter.js';
@@ -62,8 +58,6 @@ export function schedFieldsOf(card: CardRow): SchedFields {
   };
 }
 
-// reviewed_at is strictly increasing over the whole log, so "the latest review" is
-// always one row, also when the clock does not move or goes back.
 export function planAnswer(input: AnswerInput): AnswerPlan | Failure {
   const { card } = input;
   if (card.reps !== input.expectedReps) {
@@ -109,7 +103,6 @@ export function planAnswer(input: AnswerInput): AnswerPlan | Failure {
   };
 }
 
-// A card that the user suspended or buried after the answer keeps that state.
 export function planUndo(input: UndoInput): UndoPlan {
   const { log, card } = input;
   const keepState = isParkedState(card.state);

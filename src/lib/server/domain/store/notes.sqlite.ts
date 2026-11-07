@@ -20,7 +20,6 @@ export type NoteStore = Pick<
   | 'purgeTrash'
 >;
 
-// New cards go to the end of the global order. The caller runs this in its transaction.
 function insertCards(tx: Exec, noteId: string, drafts: CardDraft[], now: number): void {
   const next = tx
     .select({ value: sql<number>`coalesce(max(${card.position}), -1) + 1` })
@@ -57,7 +56,6 @@ function readState(tx: Exec, id: string): NoteState | undefined {
   return { note: row, tags, cards };
 }
 
-// The flag is a constant, not user text, so it can go into the SQL as is.
 const ORPHAN_BIT = sql.raw(String(FLAG_ORPHANED));
 
 function setFlags(tx: Exec, ids: string[], orphan: boolean): void {

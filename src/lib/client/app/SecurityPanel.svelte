@@ -7,8 +7,6 @@
   import { messageFor } from '#lib/client/messages.js';
   import AppIcon from './AppIcon.svelte';
 
-  // Contract: lean credentials + recovery count + logout. Reuses apiFetch/ceremonies.
-
   type Credential = { id: string; nickname: string; kind: Kind };
 
   let credentials = $state<Credential[]>([]);

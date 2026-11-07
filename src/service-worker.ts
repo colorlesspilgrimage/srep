@@ -1,5 +1,3 @@
-/// <reference types="@sveltejs/kit" />
-/// <reference lib="webworker" />
 declare const self: ServiceWorkerGlobalScope;
 import { version } from '$app/environment';
 import { immutable } from '$app/manifest';

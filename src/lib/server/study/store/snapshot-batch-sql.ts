@@ -1,8 +1,3 @@
-// Contract: SQL for one batched study snapshot.
-// Inputs are deck ids, the study window, and a shuffle expression.
-// Each value is a bound parameter. The shuffle numbers are constants.
-// Deleted notes stay out of card counts and heads.
-// Done counts use the old review_log join. They keep trashed notes.
 import { sql, type SQL } from 'drizzle-orm';
 import { card, note, reviewLog } from '#lib/server/db/schema/sqlite.js';
 import { SHUFFLE_MODULUS, SHUFFLE_MULTIPLIER } from '#lib/server/study/core/queue-choice.js';
@@ -126,7 +121,6 @@ export function newOrder(shuffleIds: string[], shuffleKey: SQL): SQL {
   return sql`${first} asc, ${card.position} asc, ${card.id} asc`;
 }
 
-// Added order is position, then id. Skip the shuffle expression.
 export function freshOrder(shuffleIds: string[], shuffleKey: SQL): SQL {
   if (shuffleIds.length === 0) {
     return sql`${card.position} asc, ${card.id} asc`;

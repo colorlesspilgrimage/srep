@@ -2,8 +2,6 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// Contract: chord text is a text node. The palette does not inject HTML (CWE-79).
-
 const FILES = ['CommandPalette.svelte', 'KeymapForm.svelte', 'GalleryShell.svelte'];
 
 describe('keybind render safety', () => {

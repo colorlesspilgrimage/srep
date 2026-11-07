@@ -1,9 +1,6 @@
 <script lang="ts">
   import type { BrowseView } from './browse-model.js';
 
-  // Contract: the browse table. Front text is a text node.
-  // A row click selects that row and focuses the grid.
-
   type Props = {
     rows: readonly BrowseView[];
     active: number;

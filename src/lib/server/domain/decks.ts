@@ -20,7 +20,6 @@ export async function getDeck(deps: DomainDeps, id: string): Promise<Result<{ de
   return deck === undefined ? fail(404, 'not_found') : { ok: true, deck };
 }
 
-// A deck without a preset uses the preset of its parent. A root deck uses the default.
 export async function createDeck(
   deps: DomainDeps,
   input: DeckCreateInput,
@@ -51,7 +50,6 @@ export async function createDeck(
   return { ok: true, deck };
 }
 
-// Rename, move, preset and description change in one transaction.
 export async function updateDeck(
   deps: DomainDeps,
   id: string,
@@ -69,7 +67,6 @@ export async function getDeckImpact(deps: DomainDeps, id: string): Promise<Resul
   return impact === undefined ? fail(404, 'not_found') : { ok: true, ...impact };
 }
 
-// `move` sends the cards to another deck. `trash` puts their notes in the trash.
 export async function deleteDeck(
   deps: DomainDeps,
   id: string,

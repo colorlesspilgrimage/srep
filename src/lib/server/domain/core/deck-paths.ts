@@ -13,10 +13,6 @@ export type DeckPatch = {
   description?: string;
 };
 
-// Returns the trimmed name, or null when the name is not valid.
-// \p{Cc} also matches U+0000.
-// A name must not start or end with ':'. Such a name makes `:::` in a path, and then
-// two different trees can have the same path (for example `a` + `:b` and `a:` + `b`).
 export function validateDeckName(name: string): string | null {
   const trimmed = name.trim();
   if (
@@ -40,8 +36,6 @@ export function depthOf(path: string): number {
   return path.split(DECK_SEPARATOR).length;
 }
 
-// A deck is in the subtree when its path is the root path, or starts with root path + '::'.
-// Plain string compare. No pattern match, so `%`, `_` and `\` have no special meaning.
 export function subtreeIds(decks: DeckRow[], rootId: string): string[] {
   const root = decks.find((d) => d.id === rootId);
   if (root === undefined) {
@@ -51,7 +45,6 @@ export function subtreeIds(decks: DeckRow[], rootId: string): string[] {
   return [root.id, ...decks.filter((d) => d.path.startsWith(prefix)).map((d) => d.id)];
 }
 
-// Finds the parent and the path of a new deck.
 export function planDeckCreate(
   decks: DeckRow[],
   name: string,
@@ -94,8 +87,6 @@ function resolveMove(decks: DeckRow[], id: string, patch: DeckPatch): Failure | 
   return { target, parent, name, subtree: decks.filter((d) => ids.has(d.id)) };
 }
 
-// Plans a rename, a move, and a preset or description change of one deck.
-// Descendants keep their paths relative to the moved deck.
 export function planDeckUpdate(decks: DeckRow[], id: string, patch: DeckPatch): DeckChange {
   const move = resolveMove(decks, id, patch);
   if ('ok' in move) {

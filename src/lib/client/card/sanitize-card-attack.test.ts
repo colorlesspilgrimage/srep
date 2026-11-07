@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { sanitizeCardHtml } from './sanitize-card.js';
 
-// Contract: attack cases for the card HTML allowlist (CWE-79).
-// A raw < is allowed only for a cloze span, br, hr, or a media img.
-// The img src is /api/media/ plus 64 lower-case hex digits.
-
 const HEX = 'ab'.repeat(32);
 const MARKS = ['<span class="cloze">', '</span>', '<br>', '<hr>'];
 const MAX_DEPTH = 32;

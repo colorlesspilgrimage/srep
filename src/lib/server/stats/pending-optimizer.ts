@@ -1,5 +1,3 @@
-// Contract: short-lived optimizer preview tokens. Process-local map.
-
 const TTL_MS = 15 * 60 * 1000;
 
 type Pending = {

@@ -1,9 +1,3 @@
-// Contract: SQLite bulk tag replace and bulk trash.
-// One immediate transaction. The write lock starts before the read (CWE-362).
-// A missing or trashed id writes nothing.
-// User ids are lower-case UUIDs before they reach SQL (CWE-89).
-// A second connection waits. It does not use FOR UPDATE.
-
 import { eq, inArray } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import {

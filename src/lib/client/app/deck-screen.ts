@@ -1,8 +1,3 @@
-// Contract: join deck rows with count rows, and pick a move target.
-// An archived deck stays off the list. A missing count is zero.
-// A move target is not the deck and is not in its subtree.
-// No I/O.
-
 export type CountTriple = { new: number; learning: number; due: number };
 
 export type DeckListRow = {
@@ -24,7 +19,6 @@ export type DeckView = {
   subtree: CountTriple;
 };
 
-// A count on screen is a finite number. A bad JSON value becomes zero (CWE-20).
 export function shownCount(value: unknown): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
     return 0;

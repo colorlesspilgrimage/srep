@@ -18,7 +18,6 @@ import {
 } from '#lib/server/domain/store/suite-support.js';
 import type { DomainHarness } from '#lib/server/domain/test-support/harness.js';
 
-// One suite for every dialect. SQLite runs always. Postgres runs when a URL is set.
 export function defineDomainStoreSuite(make: MakeHarness): void {
   let h: DomainHarness | undefined;
   afterEach(async () => {
@@ -166,7 +165,6 @@ export function defineDomainStoreSuite(make: MakeHarness): void {
       const result = await hh.store.changeDecks((all) => planDeckUpdate(all, 's5', { name: '%_' }));
       expect(result.ok && result.updates.map((d) => d.path)).toEqual(['%_', '%_::😀']);
       expect(await hh.store.deleteDeckTree('s0', { kind: 'trash' }, 1)).toBe('ok');
-      // Postgres sorts by locale. Compare as sets.
       expect((await paths(hh)).sort()).toEqual(
         ['%_', '%_::😀', 'A\\', 'AB', 'A_', "O'Neil"].sort(),
       );

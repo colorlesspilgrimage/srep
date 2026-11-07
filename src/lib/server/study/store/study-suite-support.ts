@@ -1,4 +1,3 @@
-// Helpers for the study store suite. They work on SQLite and Postgres.
 import { sql, type SQL } from 'drizzle-orm';
 import type { Failure } from '#lib/server/auth/deps.js';
 import { deckRow, execSql } from '#lib/server/domain/store/suite-support.js';

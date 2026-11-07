@@ -1,8 +1,6 @@
 <script lang="ts">
   import { listKeyIndex } from './list-state.js';
 
-  // Contract: a listbox. Arrow keys stop at the ends. They do not wrap.
-
   type Props = {
     label: string;
     items: readonly string[];

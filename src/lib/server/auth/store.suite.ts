@@ -40,7 +40,6 @@ function setupInput(id: string, credentialId = `cid-${id}`) {
   };
 }
 
-// One suite for every dialect. SQLite runs always. Postgres runs when a URL is set.
 export function defineStoreSuite(make: () => Promise<Harness>): void {
   let harness: Harness | undefined;
 
@@ -133,7 +132,6 @@ export function defineStoreSuite(make: () => Promise<Harness>): void {
       expect(row?.lastUsedAt).toBe(99);
     });
 
-    // The update is the replay check. Two logins cannot both raise the counter to 7 (CWE-362).
     it('refuses a counter that is not above the stored counter', async () => {
       const s = await store();
       await s.insertCredential(credential('a', { signCount: 5 }));

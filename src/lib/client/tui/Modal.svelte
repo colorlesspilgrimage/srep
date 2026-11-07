@@ -2,9 +2,6 @@
   import type { Snippet } from 'svelte';
   import { modalKeyAction } from './modal-key.js';
 
-  // Contract: a dialog. Escape and Close call onClose. Tab stays on Close.
-  // The key listener is on the window. Focus cannot move to the page behind.
-
   type Props = {
     title: string;
     open: boolean;

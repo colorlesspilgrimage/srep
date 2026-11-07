@@ -19,7 +19,6 @@ const W0 = Date.parse('2026-01-01T04:00:00Z');
 const WINDOW = { dayNumber: 0, startMs: W0, endMs: W0 + DAY_MS };
 const NOW = W0 + 10 * 3_600_000;
 
-// One suite for every dialect. SQLite runs always. Postgres runs when a URL is set.
 export function defineStudyStoreSuite(make: MakeStudyHarness): void {
   let h: StudyHarness | undefined;
   afterEach(async () => {
@@ -34,7 +33,6 @@ export function defineStudyStoreSuite(make: MakeStudyHarness): void {
   }
 
   describe('readStudySnapshots', () => {
-    // Each card is the only card of note <name>, id <name>-c0.
     async function fixture(s: StudyHarness): Promise<void> {
       const set = async (name: string, patch: Parameters<typeof setCard>[2]) => {
         await addNote(s, name, ['d1']);
@@ -90,7 +88,6 @@ export function defineStudyStoreSuite(make: MakeStudyHarness): void {
       const input = { deckIds: ['d1', 'd2'], nowMs: NOW, window: WINDOW, shuffleDeckIds: [] };
       const [d1, d2] = await s.studyStore.readStudySnapshots(input);
       expect([d1?.newDone, d1?.reviewDone, d2?.newDone, d2?.reviewDone]).toEqual([1, 1, 0, 0]);
-      // Documented behavior: the counts follow the card's current deck.
       expect(await s.store.moveCards(['a-c0'], 'd2')).toBe('ok');
       const [m1, m2] = await s.studyStore.readStudySnapshots(input);
       expect([m1?.newDone, m1?.reviewDone, m2?.newDone, m2?.reviewDone]).toEqual([0, 0, 1, 1]);
@@ -116,8 +113,6 @@ export function defineStudyStoreSuite(make: MakeStudyHarness): void {
       expect(added?.newHead?.cardId).toBe('r0-c0');
     });
 
-    // Regression: above position 3 393 554 the JS key lost precision. These two positions
-    // have exact keys 1466011291 < 1466011301, but the float product put them in reverse.
     it('agrees with the JS shuffle key for positions above the float limit', async () => {
       const s = await open();
       const positions = [2_000_000_011, 145_059_125];

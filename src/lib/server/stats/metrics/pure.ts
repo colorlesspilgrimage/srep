@@ -1,4 +1,3 @@
-// Contract: pure stats metrics from review rows and card rows. No I/O.
 import { studyWindow } from '#lib/server/study/core/day-clock.js';
 import type { StudySettings } from '#lib/server/study/core/types.js';
 import type {

@@ -76,8 +76,6 @@ export const pairingCode = sqliteTable('pairing_code', {
   consumedAt: integer('consumed_at'),
 });
 
-// Each deck points at one preset. A card has a deck, but card.deck_id is NULL
-// only for the cards of a trashed note whose deck was deleted.
 export const deckPreset = sqliteTable('deck_preset', {
   id: text('id').primaryKey(),
   name: text('name').notNull().unique(),
@@ -131,7 +129,6 @@ export const cardTemplate = sqliteTable(
   (t) => [uniqueIndex('card_template_note_type_ordinal_idx').on(t.noteTypeId, t.ordinal)],
 );
 
-// deleted_at is the trash flag. A note in the trash has a value here.
 export const note = sqliteTable(
   'note',
   {
@@ -163,8 +160,6 @@ export const noteTag = sqliteTable(
   (t) => [primaryKey({ columns: [t.noteId, t.tag] }), index('note_tag_tag_idx').on(t.tag)],
 );
 
-// ordinal is 0 for a normal template and the cloze index for a cloze template.
-// card.deck_id is NULL only for the cards of a trashed note whose deck was deleted.
 export const card = sqliteTable(
   'card',
   {
@@ -198,8 +193,6 @@ export const card = sqliteTable(
   ],
 );
 
-// Written by the study engine. Undo deletes a row. A trash purge cascades to the card's rows.
-// The *_before columns hold the card scheduling fields before the answer.
 export const reviewLog = sqliteTable(
   'review_log',
   {

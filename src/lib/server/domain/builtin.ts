@@ -5,7 +5,6 @@ import type {
   TemplateRow,
 } from '#lib/server/domain/store/store-types.js';
 
-// Built-in rows have fixed ids. The user cannot delete them.
 export const DEFAULT_PRESET_ID = '00000000-0000-4000-8000-000000000001';
 export const BASIC_ID = '00000000-0000-4000-8000-000000000011';
 export const BASIC_REVERSED_ID = '00000000-0000-4000-8000-000000000012';

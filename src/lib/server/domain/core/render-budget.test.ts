@@ -12,8 +12,6 @@ import {
   type TemplateNode,
 } from '#lib/server/domain/core/template.js';
 
-// Render cost limits (CWE-400, CWE-405) and prototype-free field maps (CWE-1321).
-
 function ast(source: string): TemplateNode[] {
   const parsed = parseTemplate(source);
   if (!parsed.ok) {

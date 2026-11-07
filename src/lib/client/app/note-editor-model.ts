@@ -1,10 +1,3 @@
-// Contract: pure values for the note editor.
-// Tags split on white space. An empty part is dropped.
-// A preview response is current only when its serial matches.
-// A media token is built only from 64 lower-case hex digits.
-// The duplicate sentence does not block a save. The caller shows it after save.
-// No I/O.
-
 export type NoteEditorProps = {
   mode: 'new' | 'edit';
   noteId: string | null;

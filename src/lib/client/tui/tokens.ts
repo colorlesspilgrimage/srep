@@ -1,5 +1,3 @@
-// Contract: xAI-inspired theme tokens and WCAG 2.2 contrast checks.
-
 export type ThemeTokens = {
   bg: string;
   fg: string;
@@ -17,7 +15,6 @@ export type Rgb = { red: number; green: number; blue: number };
 export const THEME_ID = 'xai-dark';
 export const THEME_NAME = 'xAI Dark';
 
-// Near-black canvas, white ink, muted accents. Hex only so contrast checks stay strict.
 export const XAI_DARK = {
   bg: '#0c0f14',
   fg: '#f4f7fb',

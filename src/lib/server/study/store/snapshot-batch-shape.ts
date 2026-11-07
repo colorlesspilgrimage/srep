@@ -1,7 +1,3 @@
-// Contract: build DeckSnapshot rows from batched SQL results.
-// Input: deck ids in caller order, plus one row set per query.
-// Output: one snapshot per deck id. Missing groups are zero or null.
-// Counts from Postgres may be strings. This module converts them with Number.
 import type { DeckSnapshot, HeadCard } from '#lib/server/study/core/queue-choice.js';
 
 export type SqlRow = Record<string, unknown>;

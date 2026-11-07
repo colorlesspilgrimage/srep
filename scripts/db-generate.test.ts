@@ -7,11 +7,6 @@ import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import { dbGenerateCommand } from './db-generate.mjs';
 
-// Contract: db:generate exits 0 and does not change migration files.
-// The runner sets TSX_DISABLE_CACHE so the kit skips its temp cache.
-// The test reads local files and runs the local kit.
-// The test does not use the network.
-
 const root = path.resolve(import.meta.dirname, '..');
 const NO_SCHEMA_CHANGE = 'No schema changes, nothing to migrate';
 const ORM_MISMATCH = 'Please install latest version of drizzle-orm';

@@ -1,8 +1,3 @@
-// Contract: HTTP services for bulk note tags and bulk note trash.
-// The body schemas are strict. noteIds length is 1 to 100.
-// Each id is a UUID. A bad id is 400 and is not a SQL parameter (CWE-89).
-// replace and trash each run in one transaction.
-
 import { z } from 'zod';
 import { fail, type Result } from '#lib/server/auth/deps.js';
 import { readJson } from '#lib/server/auth/http.js';

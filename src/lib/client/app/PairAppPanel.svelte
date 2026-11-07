@@ -5,8 +5,6 @@
   import AppIcon from './AppIcon.svelte';
   import { pairingQrDataUrl } from './pairing-qr.js';
 
-  // Contract: mint a short-lived pairing code + QR, list and revoke paired devices.
-
   type Token = {
     id: string;
     name: string;

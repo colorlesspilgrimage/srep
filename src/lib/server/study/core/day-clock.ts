@@ -1,13 +1,3 @@
-// Contract: pure study-day arithmetic. Inputs are epoch milliseconds and StudySettings.
-// No clock and no I/O. The time-zone rules come from the Intl data of the Node build.
-//
-// A study day starts at rolloverHour:00 local time. A local time before rolloverHour
-// belongs to the previous calendar day. The end of a day is the start of the next
-// local calendar date, so a DST day is 23 or 25 hours long.
-// A rollover hour inside a DST gap (spring forward) resolves to the first instant after
-// the gap. A rollover hour inside a DST overlap (fall back) resolves to the first occurrence.
-// Errors: studyWindow throws a RangeError for a time zone that Intl does not know.
-// Call isValidTimezone before a time zone is stored.
 import type { StudySettings, StudyWindow } from '#lib/server/study/core/types.js';
 
 const DAY_MS = 86_400_000;
@@ -25,8 +15,6 @@ export function isValidTimezone(name: string): boolean {
   }
 }
 
-// Intl accepts every case form of a zone name, so the keys are not bounded by the IANA list.
-// The cache clears when full (CWE-770).
 export const MAX_CACHED_TIMEZONES = 64;
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
@@ -93,8 +81,6 @@ function sameWallHour(utcMs: number, timezone: string, target: LocalParts): bool
   );
 }
 
-// Two passes: the offset one day before and one day after the wall time. They are the
-// offsets on both sides of a transition. A valid candidate shows the target wall time.
 function localWallToUtc(dateUtcMs: number, hour: number, timezone: string): number {
   const wallAsUtc = dateUtcMs + hour * 3_600_000;
   const date = new Date(dateUtcMs);
@@ -111,7 +97,6 @@ function localWallToUtc(dateUtcMs: number, hour: number, timezone: string): numb
   if (valid.length > 0) {
     return Math.min(...valid);
   }
-  // A gap: the offset before the gap moves the wall time to the end of the gap.
   return before;
 }
 

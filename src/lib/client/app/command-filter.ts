@@ -1,9 +1,3 @@
-// Contract: filter command names for the palette.
-// Compare with an ASCII lower fold only. Codes 65 to 90 become 97 to 122.
-// A non-ASCII letter stays unchanged. Locale case fold is not used.
-// An empty filter returns no rows.
-// No I/O.
-
 import { commandsFor } from '#lib/client/tui/keymap.js';
 
 function asciiFold(text: string): string {
@@ -27,7 +21,6 @@ export function filterCommands(commands: readonly string[], filter: string): str
   return commands.filter((name) => asciiFold(name).includes(needle));
 }
 
-// Absent commands keep the gallery list. Present commands use filterCommands.
 export function paletteNames(filter: string, commands: readonly string[] | undefined): string[] {
   if (filter.trim() === '') {
     return [];

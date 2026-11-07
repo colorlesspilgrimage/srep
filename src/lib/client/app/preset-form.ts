@@ -1,7 +1,3 @@
-// Contract: pure preset form values aligned with presetSchema. No I/O.
-// A bad field does not become a request body (CWE-20). No Zod on the client.
-// FSRS params stay opaque: null on create, preserved on edit (no text field).
-
 export type PresetInput = {
   name: string;
   newPerDay: number;

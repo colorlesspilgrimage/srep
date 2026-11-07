@@ -1,5 +1,3 @@
-// Contract: character-grid frames and the desktop or mobile layout mode.
-
 export const DESKTOP_COLUMNS = 80;
 export const MOBILE_COLUMNS = 32;
 export const BREAKPOINT_PX = 720;
@@ -50,7 +48,6 @@ export function frameBottom(columns: number): string {
   return BOTTOM_LEFT + HORIZONTAL.repeat(columns - 2) + BOTTOM_RIGHT;
 }
 
-// A negative limit has no legal title length. Return an empty string.
 export function fitTitle(title: string, columns: number): string {
   const cleaned = title.replace(/[^A-Za-z0-9 -]/g, '');
   const max = columns - 4;

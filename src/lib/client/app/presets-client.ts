@@ -1,7 +1,3 @@
-// Contract: the presets JSON client.
-// A preset id enters a path only after the UUID check, then encodeURIComponent.
-// Bodies leave only after acceptPreset. A failed check does not call fetch.
-
 import { apiFetch, rejectedResult, type ApiResult } from '#lib/client/api.js';
 import { encodedUuid } from './deck-id.js';
 import { acceptPreset, type PresetDraft, type PresetInput, type PresetRow } from './preset-form.js';

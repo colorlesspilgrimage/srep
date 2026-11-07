@@ -1,31 +1,17 @@
-// Contract: the Postgres part of the StudyStore for the study settings (app_settings key 'study').
-import { eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { appSettings } from '#lib/server/db/schema/pg.js';
-import { dropCacheSlot, readCached } from '#lib/server/read-cache.js';
+import { createPgAppSettingsSlot } from '#lib/server/settings/app-settings-store.js';
 import {
   STUDY_SETTINGS_KEY,
   type StudySettingsStore,
 } from '#lib/server/study/store/study-store-types.js';
 
 export function createPgStudySettingsStore(db: PostgresJsDatabase): StudySettingsStore {
+  const slot = createPgAppSettingsSlot(db, {
+    key: STUDY_SETTINGS_KEY,
+    cacheSlot: 'study',
+  });
   return {
-    async getStudySettings() {
-      return readCached(db, 'study', async () => {
-        const [row] = await db
-          .select({ value: appSettings.value })
-          .from(appSettings)
-          .where(eq(appSettings.key, STUDY_SETTINGS_KEY));
-        return row?.value;
-      });
-    },
-
-    async putStudySettings(value) {
-      await db
-        .insert(appSettings)
-        .values({ key: STUDY_SETTINGS_KEY, value })
-        .onConflictDoUpdate({ target: appSettings.key, set: { value } });
-      dropCacheSlot(db, 'study');
-    },
+    getStudySettings: () => slot.getValue(),
+    putStudySettings: (value) => slot.putValue(value),
   };
 }

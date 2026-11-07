@@ -2,8 +2,6 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// Contract: the settings pane status uses its visible text as its name.
-
 const source = readFileSync(path.join(import.meta.dirname, 'SettingsPane.svelte'), 'utf8');
 
 describe('settings pane accessibility', () => {

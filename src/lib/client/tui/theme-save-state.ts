@@ -1,6 +1,3 @@
-// Contract: a later choice or a later save wins.
-// An older reply must not set the status text (CWE-362).
-
 export type ThemeSaveState = {
   serial: number;
   statusText: string;

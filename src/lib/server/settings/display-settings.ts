@@ -1,6 +1,3 @@
-// Contract: read and replace the saved display prefs. A bad stored value is 500.
-// It is not repaired. Extra fields are refused (CWE-20, CWE-915).
-
 import { z } from 'zod';
 import {
   DEFAULT_DISPLAY,

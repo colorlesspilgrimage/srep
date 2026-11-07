@@ -1,5 +1,3 @@
-// Test harness for the study engine. It builds on the domain harness: a real store, a fake
-// clock ({ now }) that both the domain and the study services read, and seeded random ids.
 import { sql } from 'drizzle-orm';
 import { seededRandom } from '#lib/server/auth/test-support/harness.js';
 import { BASIC_ID } from '#lib/server/domain/builtin.js';
@@ -45,7 +43,6 @@ export async function createStudyHarness(): Promise<StudyHarness> {
   return withStudy(await createDomainHarness());
 }
 
-// Every call starts with empty domain tables and no stored study settings.
 export async function createPgStudyHarness(url: string): Promise<StudyHarness> {
   const h = await createPgDomainHarness(url);
   if (h.handle.dialect === 'postgres') {

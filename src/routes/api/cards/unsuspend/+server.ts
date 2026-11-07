@@ -5,7 +5,6 @@ import { cardIdsSchema } from '#lib/server/study/core/validation.js';
 import { getStudyContext } from '#lib/server/study/context.js';
 import { unsuspendCards } from '#lib/server/study/card-state.js';
 
-// Body: { cardIds } (1 to 500 ids). All or nothing.
 export const POST: RequestHandler = async ({ request }) => {
   const body = await readJson(request, cardIdsSchema);
   if (!body.ok) {

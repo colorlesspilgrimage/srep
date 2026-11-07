@@ -1,6 +1,3 @@
-// Contract: list trashed notes and restore one.
-// A restore id enters a path only after the UUID check, then encodeURIComponent.
-
 import { apiFetch, rejectedResult, type ApiResult } from '#lib/client/api.js';
 import { encodedUuid } from './deck-id.js';
 

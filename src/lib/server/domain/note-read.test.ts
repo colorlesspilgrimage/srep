@@ -7,8 +7,6 @@ import {
   type DomainHarness,
 } from '#lib/server/domain/test-support/harness.js';
 
-// Contract: getNote reads the note state once and keeps the view JSON.
-
 let h: DomainHarness | undefined;
 
 afterEach(async () => {

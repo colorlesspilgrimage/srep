@@ -43,7 +43,6 @@ function expectConsistent(result: SimulationResult): void {
   expect(result.undoMismatches).toBe(0);
 }
 
-// The milestone exit test: a 365-day run with a fake clock stays consistent.
 describe('365-day study simulation', { timeout: 120_000 }, () => {
   it('keeps limits, replays to the cached state, and undo restores the exact rows', async () => {
     const first = await simulate(365, 42);

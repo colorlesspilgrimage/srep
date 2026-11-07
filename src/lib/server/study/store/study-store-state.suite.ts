@@ -16,7 +16,6 @@ async function noteCards(h: StudyHarness, noteId: string): Promise<CardRow[]> {
   return (await h.store.getNoteState(noteId))?.cards ?? [];
 }
 
-// The second half of the study store suite. `open` gives a harness with deck 'd1'.
 export function defineStudyStateSuite(open: () => Promise<StudyHarness>): void {
   describe('undoLastReview', () => {
     it('restores the exact card and sibling rows and deletes only the latest log', async () => {

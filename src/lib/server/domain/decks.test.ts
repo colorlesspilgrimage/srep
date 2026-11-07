@@ -86,8 +86,6 @@ describe('createDeck', () => {
     expect(await getDeck(h.deps, root.id)).toMatchObject({ ok: true, deck: root });
   });
 
-  // Regression: `a:` + `b` and `a` + `:b` both gave the path `a:::b`. Then a delete of
-  // deck `a` also deleted the child of deck `a:`.
   it('refuses names that start or end with a colon, so paths stay unique per tree', async () => {
     h = await createDomainHarness();
     const a = await make('a');

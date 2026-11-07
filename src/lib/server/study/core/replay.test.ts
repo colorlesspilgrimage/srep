@@ -10,7 +10,6 @@ import { cardRow, TEST_PRESET } from '#lib/server/study/test-support/rows.js';
 const T0 = Date.parse('2026-01-01T09:00:00Z');
 const WINDOW = { dayNumber: 0, startMs: 0, endMs: 1 };
 
-// Runs the live answer path (planAnswer) and returns the log and the final card.
 function liveChain(ratings: Rating[], gaps: number[]): { logs: ReviewLogRow[]; card: CardRow } {
   let card = cardRow('c1', { due: T0 - 5000 });
   let now = T0;

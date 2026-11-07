@@ -6,10 +6,6 @@ import { MAX_FIELD_TEXT } from '#lib/server/domain/core/validation.js';
 import { getDomainContext } from '#lib/server/domain/context.js';
 import { previewNote } from '#lib/server/domain/note-preview.js';
 
-// Contract: POST /api/notes/preview renders cards and does not write.
-// The body is a strict object: noteTypeId UUID and fields.
-// A guest is rejected by the auth hook before this handler runs.
-
 const noNul = (value: string): boolean => !value.includes('\u0000');
 
 const notePreviewSchema = z

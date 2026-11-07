@@ -1,8 +1,3 @@
-// Contract: keys for the delete dialog.
-// Tab stays in the dialog. Escape closes the dialog and does not delete.
-// Space on the dialog box does not scroll. Enter stays with the focused control.
-// No I/O.
-
 export type DialogKeyAction =
   { type: 'close' } | { type: 'tab'; shift: boolean } | { type: 'prevent' } | { type: 'none' };
 
