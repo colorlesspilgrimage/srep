@@ -1,4 +1,6 @@
 mod metrics;
+mod optimizer;
+mod pending_optimizer;
 mod queries;
 
 use axum::{
@@ -10,9 +12,11 @@ use axum::{
 };
 use serde::Deserialize;
 use serde_json::json;
-use sqlx::Row;
 use srep_auth::middleware::RequestAuth;
 use srep_auth::AppState;
+use srep_domain::builtin::DEFAULT_PRESET_ID;
+use srep_domain::deps::DomainCtx;
+use srep_domain::service::presets;
 use srep_study::day_clock::study_window;
 use srep_study::store::StudyStore;
 use srep_study::study_settings::get_settings_default;
@@ -50,47 +54,12 @@ async fn stats_today(
     };
     let now = chrono::Utc::now().timestamp_millis();
     let window = study_window(now, &settings);
-    let parsed = match &state.db {
-        srep_db::DbPool::Sqlite(p) => {
-            let rows = sqlx::query(
-                "SELECT reviewed_at, rating, state_before FROM review_log WHERE reviewed_at >= ? AND reviewed_at < ?",
-            )
-            .bind(window.start_ms)
-            .bind(window.end_ms)
-            .fetch_all(p)
-            .await
-            .unwrap_or_default();
-            rows.iter()
-                .filter_map(|r| {
-                    Some((
-                        r.try_get("reviewed_at").ok()?,
-                        r.try_get("rating").ok()?,
-                        r.try_get::<String, _>("state_before").ok()?,
-                    ))
-                })
-                .collect::<Vec<_>>()
-        }
-        srep_db::DbPool::Postgres(p) => {
-            let rows = sqlx::query(
-                "SELECT reviewed_at, rating, state_before FROM review_log WHERE reviewed_at >= $1 AND reviewed_at < $2",
-            )
-            .bind(window.start_ms)
-            .bind(window.end_ms)
-            .fetch_all(p)
-            .await
-            .unwrap_or_default();
-            rows.iter()
-                .filter_map(|r| {
-                    Some((
-                        r.try_get("reviewed_at").ok()?,
-                        r.try_get("rating").ok()?,
-                        r.try_get::<String, _>("state_before").ok()?,
-                    ))
-                })
-                .collect::<Vec<_>>()
-        }
-    };
-    let today = metrics::summarize_today(&parsed);
+    let rows = queries::list_review_stats(&state.db).await.unwrap_or_default();
+    let window_rows: Vec<_> = metrics::reviews_in_window(&rows, window.start_ms, window.end_ms)
+        .into_iter()
+        .cloned()
+        .collect();
+    let today = metrics::summarize_today(&window_rows);
     Json(json!({ "today": today })).into_response()
 }
 
@@ -123,11 +92,7 @@ async fn stats_heatmap(
     let today = study_window(now, &settings).day_number;
     let since = now - days * metrics::DAY_MS;
     let rows = queries::list_review_stats_since(&state.db, since).await.unwrap_or_default();
-    let parsed: Vec<_> = rows
-        .iter()
-        .map(|r| (r.reviewed_at, r.rating, r.state_before.clone()))
-        .collect();
-    let cells = metrics::build_heatmap(&parsed, &settings, today - days + 1, today);
+    let cells = metrics::build_heatmap(&rows, &settings, today - days + 1, today);
     Json(json!({ "cells": cells })).into_response()
 }
 
@@ -145,79 +110,203 @@ async fn stats_streak(
     };
     let now = chrono::Utc::now().timestamp_millis();
     let rows = queries::list_review_stats(&state.db).await.unwrap_or_default();
-    let parsed: Vec<_> = rows
-        .iter()
-        .map(|r| (r.reviewed_at, r.rating, r.state_before.clone()))
-        .collect();
-    let streak = metrics::study_streak(&parsed, &settings, now);
+    let streak = metrics::study_streak(&rows, &settings, now);
     Json(json!({ "streak": streak })).into_response()
 }
 
+#[derive(Deserialize)]
+struct PresetParam {
+    preset_id: Option<String>,
+}
+
 async fn stats_retention(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     req_auth: Option<axum::Extension<RequestAuth>>,
+    Query(q): Query<PresetParam>,
 ) -> impl IntoResponse {
     if let Some(resp) = require_auth(req_auth).await {
         return resp;
     }
-    Json(json!({ "retention": { "desired": 0.9, "estimated": null } })).into_response()
+    let ctx = DomainCtx::new(&state);
+    let presets = ctx.store().list_presets().await.unwrap_or_default();
+    let desired = presets
+        .iter()
+        .find(|p| p.id == DEFAULT_PRESET_ID)
+        .map(|p| p.desired_retention)
+        .unwrap_or(0.9);
+    let preset_filter = q.preset_id.as_deref();
+    if let Some(pid) = preset_filter {
+        if !presets.iter().any(|p| p.id == pid) {
+            return (StatusCode::NOT_FOUND, Json(json!({"error":"not_found"}))).into_response();
+        }
+    }
+    let rows = queries::list_review_stats(&state.db).await.unwrap_or_default();
+    let retention = metrics::compute_retention(&rows, desired, preset_filter);
+    Json(json!({ "retention": retention })).into_response()
 }
 
 async fn stats_forecast(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     req_auth: Option<axum::Extension<RequestAuth>>,
+    Query(q): Query<DaysParam>,
 ) -> impl IntoResponse {
     if let Some(resp) = require_auth(req_auth).await {
         return resp;
     }
-    Json(json!({ "days": [] })).into_response()
+    let days = q
+        .days
+        .as_deref()
+        .and_then(|s| s.parse::<i64>().ok())
+        .unwrap_or(30)
+        .clamp(1, 365);
+    let study = StudyStore::new(&state.db);
+    let settings = match get_settings_default(study.get_study_settings().await.ok().flatten().as_ref()) {
+        Ok(s) => s,
+        Err(_) => return (StatusCode::BAD_REQUEST, Json(json!({"error":"bad_request"}))).into_response(),
+    };
+    let now = chrono::Utc::now().timestamp_millis();
+    let cards = queries::list_card_due_rows(&state.db).await.unwrap_or_default();
+    let days_json = metrics::forecast_due(&cards, &settings, now, days);
+    Json(json!({ "days": days_json })).into_response()
 }
 
 async fn stats_distribution(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     req_auth: Option<axum::Extension<RequestAuth>>,
 ) -> impl IntoResponse {
     if let Some(resp) = require_auth(req_auth).await {
         return resp;
     }
-    Json(json!({ "distribution": { "buckets": [] } })).into_response()
+    let now = chrono::Utc::now().timestamp_millis();
+    let cards = queries::list_card_due_rows(&state.db).await.unwrap_or_default();
+    let distribution = metrics::card_distribution(&cards, now);
+    Json(json!({ "distribution": distribution })).into_response()
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[allow(dead_code)]
 struct OptimizerPreviewQuery {
     preset_id: String,
 }
 
 async fn optimizer_preview(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     req_auth: Option<axum::Extension<RequestAuth>>,
-    Query(_q): Query<OptimizerPreviewQuery>,
+    Query(q): Query<OptimizerPreviewQuery>,
 ) -> impl IntoResponse {
     if let Some(resp) = require_auth(req_auth).await {
         return resp;
     }
-    (StatusCode::NOT_FOUND, Json(json!({"error":"not_found"}))).into_response()
+    let ctx = DomainCtx::new(&state);
+    let presets = ctx.store().list_presets().await.unwrap_or_default();
+    let Some(preset) = presets.iter().find(|p| p.id == q.preset_id) else {
+        return (StatusCode::NOT_FOUND, Json(json!({"error":"not_found"}))).into_response();
+    };
+    let review_count = queries::count_reviews_for_preset(&state.db, &q.preset_id)
+        .await
+        .unwrap_or(0);
+    let rows = queries::list_preset_reviews(&state.db, &q.preset_id)
+        .await
+        .unwrap_or_default();
+    let preview_token = uuid::Uuid::new_v4().to_string();
+    let now = chrono::Utc::now().timestamp_millis();
+    pending_optimizer::prune(now);
+    match optimizer::preview_optimizer(preset, review_count, &rows, preview_token.clone()) {
+        Ok(preview) => {
+            pending_optimizer::stash_preview(
+                preview_token.clone(),
+                q.preset_id.clone(),
+                preview.proposed.desired_retention,
+                preview.proposed.fsrs_params.clone(),
+                now,
+            );
+            Json(json!({
+                "reviewCount": preview.review_count,
+                "current": preview.current,
+                "proposed": preview.proposed,
+                "retention": preview.retention,
+                "previewToken": preview.preview_token,
+            }))
+            .into_response()
+        }
+        Err("insufficient_reviews") => (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({"error":"insufficient_reviews"})),
+        )
+            .into_response(),
+        Err(_) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error":"bad_request"})),
+        )
+            .into_response(),
+    }
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[allow(dead_code)]
 struct OptimizerApplyBody {
     preset_id: String,
     preview_token: String,
 }
 
 async fn optimizer_apply(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     req_auth: Option<axum::Extension<RequestAuth>>,
-    Json(_body): Json<OptimizerApplyBody>,
+    Json(body): Json<OptimizerApplyBody>,
 ) -> impl IntoResponse {
     if let Some(resp) = require_auth(req_auth).await {
         return resp;
     }
-    (StatusCode::NOT_FOUND, Json(json!({"error":"not_found"}))).into_response()
+    let ctx = DomainCtx::new(&state);
+    let presets = ctx.store().list_presets().await.unwrap_or_default();
+    let Some(preset) = presets.iter().find(|p| p.id == body.preset_id) else {
+        return (StatusCode::NOT_FOUND, Json(json!({"error":"not_found"}))).into_response();
+    };
+    let now = chrono::Utc::now().timestamp_millis();
+    let Some(pending) = pending_optimizer::take_preview(&body.preview_token, now) else {
+        return (
+            StatusCode::CONFLICT,
+            Json(json!({"error":"preview_expired"})),
+        )
+            .into_response();
+    };
+    if pending.preset_id != body.preset_id {
+        return (
+            StatusCode::CONFLICT,
+            Json(json!({"error":"preview_expired"})),
+        )
+            .into_response();
+    }
+    let review_count = queries::count_reviews_for_preset(&state.db, &body.preset_id)
+        .await
+        .unwrap_or(0);
+    if review_count < optimizer::MIN_REVIEWS_FOR_OPTIMIZE {
+        return (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({"error":"insufficient_reviews"})),
+        )
+            .into_response();
+    }
+    let input = srep_domain::core::validation::PresetInput {
+        name: preset.name.clone(),
+        new_per_day: preset.new_per_day,
+        reviews_per_day: preset.reviews_per_day,
+        desired_retention: pending.proposed_desired_retention,
+        learning_steps: preset.learning_steps.clone(),
+        relearning_steps: preset.relearning_steps.clone(),
+        max_interval: preset.max_interval,
+        fsrs_params: Some(pending.proposed_fsrs_params),
+        bury_siblings: preset.bury_siblings,
+        new_order: preset.new_order.clone(),
+    };
+    match presets::update_preset(&ctx, &body.preset_id, input).await {
+        Ok(_) => Json(json!({ "presetId": body.preset_id })).into_response(),
+        Err(_) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error":"bad_request"})),
+        )
+            .into_response(),
+    }
 }
 
 async fn require_auth(

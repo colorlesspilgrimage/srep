@@ -29,6 +29,7 @@ async fn main() -> anyhow::Result<()> {
         webauthn,
         setup_token: Default::default(),
         limiters: Arc::new(srep_auth::limiters::AuthLimiters::new()),
+        simulation_clock: None,
     };
     if let Some(token) = state.ensure_setup_token().await {
         tracing::info!("Setup token (first run): {token}");

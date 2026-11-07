@@ -52,6 +52,7 @@ async fn test_state() -> (AppState, tempfile::TempDir) {
         webauthn,
         setup_token: Default::default(),
         limiters: Arc::new(AuthLimiters::new()),
+        simulation_clock: None,
     };
     let token = state.ensure_setup_token().await.unwrap();
     let hash = sha256_hex(token.as_bytes());

@@ -12,6 +12,9 @@ use srep_auth::middleware::RequestAuth;
 use srep_auth::AppState;
 
 pub mod backup;
+mod detect_format;
+mod pending;
+mod service;
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -23,6 +26,7 @@ pub fn router() -> Router<AppState> {
 async fn import_dry_run(
     State(state): State<AppState>,
     req_auth: Option<axum::Extension<RequestAuth>>,
+    headers: axum::http::HeaderMap,
     body: Bytes,
 ) -> impl IntoResponse {
     if let Some(resp) = require_auth(req_auth).await {
@@ -35,27 +39,21 @@ async fn import_dry_run(
         )
             .into_response();
     }
-    if body.len() < 4 || &body[0..2] != b"PK" {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(json!({"error":"unknown_format"})),
-        )
-            .into_response();
+    let content_type = headers
+        .get(axum::http::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    match service::dry_run_import(&state, &body, content_type).await {
+        Ok(report) => (StatusCode::OK, Json(json!({ "report": report.body }))).into_response(),
+        Err(code) => {
+            let status = match code {
+                "unknown_format" => StatusCode::BAD_REQUEST,
+                "bad_archive" | "bad_csv" | "bad_csv_header" => StatusCode::BAD_REQUEST,
+                _ => StatusCode::BAD_REQUEST,
+            };
+            (status, Json(json!({"error": code}))).into_response()
+        }
     }
-    (
-        StatusCode::OK,
-        Json(json!({
-            "report": {
-                "format": "native",
-                "summary": "Native srep archive.",
-                "warnings": [],
-                "conflicts": [],
-                "wouldImport": { "presets": 0, "decks": 0, "notes": 0, "cards": 0 },
-                "importToken": uuid::Uuid::new_v4().to_string(),
-            }
-        })),
-    )
-        .into_response()
 }
 
 #[derive(Deserialize)]
@@ -65,7 +63,7 @@ struct ApplyBody {
 }
 
 async fn import_apply(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     req_auth: Option<axum::Extension<RequestAuth>>,
     Json(body): Json<ApplyBody>,
 ) -> impl IntoResponse {
@@ -75,7 +73,15 @@ async fn import_apply(
     if body.import_token.is_empty() {
         return (StatusCode::BAD_REQUEST, Json(json!({"error":"bad_token"}))).into_response();
     }
-    Json(json!({"ok": true})).into_response()
+    match service::apply_import(&state, &body.import_token).await {
+        Ok(()) => Json(json!({"ok": true})).into_response(),
+        Err("bad_token") => (StatusCode::BAD_REQUEST, Json(json!({"error":"bad_token"}))).into_response(),
+        Err(code) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": code})),
+        )
+            .into_response(),
+    }
 }
 
 #[derive(Deserialize)]

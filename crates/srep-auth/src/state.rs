@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::Arc;
 
 use srep_config::Config;
@@ -15,6 +16,18 @@ pub struct AppState {
     pub webauthn: Arc<WebAuthnState>,
     pub setup_token: Arc<RwLock<Option<String>>>,
     pub limiters: Arc<AuthLimiters>,
+    /// When set, study scheduling reads this millisecond clock instead of wall time.
+    pub simulation_clock: Option<Arc<AtomicI64>>,
+}
+
+impl AppState {
+    pub fn now_ms(&self) -> i64 {
+        if let Some(clock) = &self.simulation_clock {
+            clock.load(Ordering::Relaxed)
+        } else {
+            chrono::Utc::now().timestamp_millis()
+        }
+    }
 }
 
 impl AppState {

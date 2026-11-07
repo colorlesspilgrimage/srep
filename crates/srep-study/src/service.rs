@@ -56,6 +56,7 @@ pub enum NextReply {
     },
 }
 
+#[derive(Debug)]
 pub enum StudyError {
     Unauthorized,
     BadRequest,
@@ -74,15 +75,11 @@ async fn load_settings(store: &StudyStore<'_>) -> Result<StudySettings, StudyErr
     get_settings_default(raw.as_ref()).map_err(|_| StudyError::BadRequest)
 }
 
-fn now_ms() -> i64 {
-    chrono::Utc::now().timestamp_millis()
-}
-
 pub async fn study_next(state: &AppState, deck_id: Option<&str>) -> Result<NextReply, StudyError> {
     let study = StudyStore::new(&state.db);
     let domain = DomainStore::new(&state.db);
     let settings = load_settings(&study).await?;
-    let now = now_ms();
+    let now = state.now_ms();
     let window = study_window(now, &settings);
     study
         .unbury_expired(now)
@@ -307,7 +304,7 @@ pub async fn study_answer(
 ) -> Result<serde_json::Value, StudyError> {
     let study = StudyStore::new(&state.db);
     let settings = load_settings(&study).await?;
-    let now = now_ms();
+    let now = state.now_ms();
     let window = study_window(now, &settings);
     study
         .unbury_expired(now)
@@ -363,7 +360,7 @@ pub async fn study_answer(
 pub async fn study_undo(state: &AppState) -> Result<serde_json::Value, StudyError> {
     let study = StudyStore::new(&state.db);
     study
-        .unbury_expired(now_ms())
+        .unbury_expired(state.now_ms())
         .await
         .map_err(|_| StudyError::Internal)?;
     let result = study
@@ -557,7 +554,7 @@ pub async fn change_cards_bury(state: &AppState, ids: &[String]) -> Result<(), S
         let study = StudyStore::new(&state.db);
         load_settings(&study).await?
     };
-    let until = study_window(now_ms(), &settings).end_ms;
+    let until = study_window(state.now_ms(), &settings).end_ms;
     change_cards(state, ids, move |cards| Ok(plan_bury(cards, until))).await
 }
 

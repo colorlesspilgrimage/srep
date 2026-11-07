@@ -24,6 +24,7 @@ fn app_state(
         webauthn: Arc::new(WebAuthnState::new(&config.auth).unwrap()),
         setup_token: Default::default(),
         limiters: Arc::new(AuthLimiters::new()),
+        simulation_clock: None,
     };
     (state, config)
 }

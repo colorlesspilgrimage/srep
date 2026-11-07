@@ -67,6 +67,7 @@ pub fn StudyScreen() -> impl IntoView {
     let edit_note_id = RwSignal::new(String::new());
     let reveal_start = RwSignal::new(0f64);
     let generation = RwSignal::new(0u32);
+    let last_interval = RwSignal::new(0f64);
 
     let deck_param = move || query.with(|q| q.get("deck").map(|s| s.to_string()));
 
@@ -149,8 +150,10 @@ pub fn StudyScreen() -> impl IntoView {
                                 .get("counts")
                                 .and_then(|c| serde_json::from_value::<StudyCounts>(c.clone()).ok())
                                 .unwrap_or(StudyCounts { new_count: 0, learning: 0, review: 0 });
+                            let due_text =
+                                client_js::format_interval(last_interval.get_untracked());
                             phase.set(Phase::Done {
-                                due_text: "soon".to_string(),
+                                due_text,
                                 counts: parsed_counts,
                             });
                         }
@@ -193,9 +196,7 @@ pub fn StudyScreen() -> impl IntoView {
                     Ok(ans) => {
                         if let Some(review) = ans.get("review") {
                             if let Ok(iv) = serde_json::from_value::<PreviewInterval>(review.clone()) {
-                                if rating == 4 {
-                                    let _due = client_js::format_interval(iv.interval_minutes);
-                                }
+                                last_interval.set(iv.interval_minutes);
                             }
                         }
                     }

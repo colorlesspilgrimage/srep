@@ -33,6 +33,13 @@ enum Commands {
         #[arg(long)]
         yes: bool,
     },
+    /// Run an in-memory study simulation (`scripts/study-simulate.ts` parity).
+    StudySimulate {
+        #[arg(long, default_value_t = 365)]
+        days: u32,
+        #[arg(long, default_value_t = 2026_01_01)]
+        seed: u64,
+    },
 }
 
 #[tokio::main]
@@ -51,6 +58,7 @@ async fn main() -> Result<()> {
         webauthn,
         setup_token: Default::default(),
         limiters: Arc::new(srep_auth::limiters::AuthLimiters::new()),
+        simulation_clock: None,
     };
 
     match cli.command {
@@ -74,6 +82,20 @@ async fn main() -> Result<()> {
             }
             restore_sqlite(&config, &from).await?;
             println!("Restored from {}", from.display());
+        }
+        Commands::StudySimulate { days, seed } => {
+            if !(1..=3650).contains(&days) {
+                eprintln!("Usage: days must be 1..=3650");
+                std::process::exit(2);
+            }
+            let result = srep_study::simulation::run_simulation(days, seed).await?;
+            println!("{}", serde_json::to_string(&result)?);
+            let violations = result.limit_violations
+                + result.replay_mismatches
+                + result.undo_mismatches;
+            if violations != 0 {
+                std::process::exit(1);
+            }
         }
     }
     Ok(())

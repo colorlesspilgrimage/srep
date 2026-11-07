@@ -33,6 +33,7 @@ pub mod parked;
 pub mod queue_choice;
 pub mod replay;
 pub mod sched;
+pub mod simulation;
 pub mod service;
 pub mod store;
 pub mod study_settings;

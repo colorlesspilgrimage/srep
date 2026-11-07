@@ -8,6 +8,24 @@ use srep_study::day_clock::study_window;
 use srep_study::store::StudyStore;
 use srep_study::study_settings::get_settings_default;
 
+const FRONT_LIMIT: usize = 80;
+
+fn front_text_of(fields: &[String]) -> String {
+    let raw = fields.first().map(String::as_str).unwrap_or("");
+    let stripped: String = raw
+        .replace("<br>", " ")
+        .replace("<hr>", " ")
+        .chars()
+        .filter(|c| *c != '<' && *c != '>')
+        .collect();
+    let chars: Vec<char> = stripped.chars().collect();
+    if chars.len() <= FRONT_LIMIT {
+        stripped
+    } else {
+        chars[..FRONT_LIMIT].iter().collect()
+    }
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BrowseRow {
@@ -18,7 +36,9 @@ pub struct BrowseRow {
     pub state: String,
     pub due: i64,
     pub lapses: i32,
+    #[serde(skip_serializing)]
     pub fields: Vec<String>,
+    pub front_text: String,
     pub tags: Vec<String>,
 }
 
@@ -131,6 +151,7 @@ async fn rows_to_browse(
         let note_id: String = row.try_get("note_id")?;
         let tags = load_tags_sqlite(p, &note_id).await?;
         let fields_json: String = row.try_get("fields")?;
+        let fields: Vec<String> = serde_json::from_str(&fields_json).unwrap_or_default();
         out.push(BrowseRow {
             card_id: row.try_get("card_id")?,
             note_id,
@@ -139,7 +160,8 @@ async fn rows_to_browse(
             state: row.try_get("state")?,
             due: row.try_get("due")?,
             lapses: row.try_get("lapses")?,
-            fields: serde_json::from_str(&fields_json).unwrap_or_default(),
+            front_text: front_text_of(&fields),
+            fields,
             tags,
         });
     }
@@ -155,6 +177,7 @@ async fn rows_to_browse_pg(
         let note_id: String = row.try_get("note_id")?;
         let tags = load_tags_pg(p, &note_id).await?;
         let fields_json: String = row.try_get("fields")?;
+        let fields: Vec<String> = serde_json::from_str(&fields_json).unwrap_or_default();
         out.push(BrowseRow {
             card_id: row.try_get("card_id")?,
             note_id,
@@ -163,7 +186,8 @@ async fn rows_to_browse_pg(
             state: row.try_get("state")?,
             due: row.try_get("due")?,
             lapses: row.try_get("lapses")?,
-            fields: serde_json::from_str(&fields_json).unwrap_or_default(),
+            front_text: front_text_of(&fields),
+            fields,
             tags,
         });
     }

@@ -63,5 +63,6 @@ pub fn app_state(pool: &DbPool, media: std::path::PathBuf) -> AppState {
         ),
         setup_token: Default::default(),
         limiters: Arc::new(AuthLimiters::new()),
+        simulation_clock: None,
     }
 }

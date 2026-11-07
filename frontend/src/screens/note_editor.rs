@@ -59,6 +59,47 @@ fn deck_id_from_note(note: &NoteBody) -> Option<String> {
     note.cards.iter().find_map(|c| c.deck_id.clone())
 }
 
+fn media_token(sha: &str) -> Option<String> {
+    if sha.len() != 64 || !sha.chars().all(|c| c.is_ascii_hexdigit()) {
+        return None;
+    }
+    Some(format!("{{{{media:{}}}}}", sha.to_ascii_lowercase()))
+}
+
+fn insert_slice(text: &str, start: u32, end: u32, chunk: &str) -> String {
+    let start = (start as usize).min(text.len());
+    let end = (end as usize).min(text.len()).max(start);
+    format!("{}{}{}", &text[..start], chunk, &text[end..])
+}
+
+fn apply_cloze(
+    active_field: usize,
+    cloze_index: u32,
+    fields: &RwSignal<Vec<String>>,
+    caret_start: &RwSignal<u32>,
+    caret_end: &RwSignal<u32>,
+) -> bool {
+    let text = fields
+        .get_untracked()
+        .get(active_field)
+        .cloned()
+        .unwrap_or_default();
+    let Some(wrapped) = client_js::wrap_cloze(
+        &text,
+        caret_start.get_untracked(),
+        caret_end.get_untracked(),
+        cloze_index,
+    ) else {
+        return false;
+    };
+    fields.update(|f| {
+        if active_field < f.len() {
+            f[active_field] = wrapped;
+        }
+    });
+    true
+}
+
 fn split_tags(text: &str) -> Vec<String> {
     text.split_whitespace().map(|s| s.to_string()).collect()
 }
@@ -423,13 +464,15 @@ pub fn NoteEditorScreen(
             </select>
             <For
                 each=move || {
+                    let tid = note_type_id.get();
                     field_names()
                         .into_iter()
                         .enumerate()
+                        .map(|(i, name)| (tid.clone(), i, name))
                         .collect::<Vec<_>>()
                 }
-                key=|(i, _)| *i
-                children=move |(index, name)| {
+                key=|(tid, i, name)| format!("{tid}:{i}:{name}")
+                children=move |(_tid, index, name)| {
                     let id = format!("note-field-{index}");
                     view! {
                         <label for=id.clone()>{name.clone()}</label>
@@ -473,17 +516,11 @@ pub fn NoteEditorScreen(
                                             .get(index)
                                             .cloned()
                                             .unwrap_or_default();
-                                        if let Some(wrapped) = client_js::wrap_cloze(
+                                        let idx = client_js::next_cloze_index(
                                             &text,
                                             caret_start.get_untracked(),
-                                            caret_end.get_untracked(),
-                                            1,
-                                        ) {
-                                            fields.update(|f| {
-                                                if index < f.len() {
-                                                    f[index] = wrapped;
-                                                }
-                                            });
+                                        );
+                                        if apply_cloze(index, idx, &fields, &caret_start, &caret_end) {
                                             schedule_preview();
                                         }
                                     }
@@ -533,34 +570,111 @@ pub fn NoteEditorScreen(
             <button
                 type="button"
                 disabled=move || !ready.get() || busy.get()
+                on:mousedown=|ev: web_sys::MouseEvent| ev.prevent_default()
                 on:click=move |_| {
-                    let text = fields
-                        .get_untracked()
-                        .get(active_field.get_untracked())
-                        .cloned()
-                        .unwrap_or_default();
-                    if let Some(wrapped) = client_js::wrap_cloze(
-                        &text,
-                        caret_start.get_untracked(),
-                        caret_end.get_untracked(),
+                    if apply_cloze(
+                        active_field.get_untracked(),
                         1,
+                        &fields,
+                        &caret_start,
+                        &caret_end,
                     ) {
-                        let idx = active_field.get_untracked();
-                        fields.update(|f| {
-                            if idx < f.len() {
-                                f[idx] = wrapped;
-                            }
-                        });
                         schedule_preview();
                     }
                 }
             >
                 "Cloze 1"
             </button>
-            <button type="button" disabled=move || !ready.get() || busy.get()>"Cloze 2"</button>
-            <button type="button" disabled=move || !ready.get() || busy.get()>"Next cloze"</button>
+            <button
+                type="button"
+                disabled=move || !ready.get() || busy.get()
+                on:mousedown=|ev: web_sys::MouseEvent| ev.prevent_default()
+                on:click=move |_| {
+                    if apply_cloze(
+                        active_field.get_untracked(),
+                        2,
+                        &fields,
+                        &caret_start,
+                        &caret_end,
+                    ) {
+                        schedule_preview();
+                    }
+                }
+            >
+                "Cloze 2"
+            </button>
+            <button
+                type="button"
+                disabled=move || !ready.get() || busy.get()
+                on:mousedown=|ev: web_sys::MouseEvent| ev.prevent_default()
+                on:click=move |_| {
+                    let idx = active_field.get_untracked();
+                    let text = fields.get_untracked().get(idx).cloned().unwrap_or_default();
+                    let next = client_js::next_cloze_index(&text, caret_start.get_untracked());
+                    if apply_cloze(idx, next, &fields, &caret_start, &caret_end) {
+                        schedule_preview();
+                    }
+                }
+            >
+                "Next cloze"
+            </button>
             <label for="note-upload">"Upload"</label>
-            <input id="note-upload" class="note-upload" type="file" disabled=move || !ready.get() || busy.get() />
+            <input
+                id="note-upload"
+                class="note-upload"
+                type="file"
+                accept="image/png,image/jpeg,image/gif,image/webp,audio/wav,audio/ogg,audio/mpeg,audio/mp4"
+                disabled=move || !ready.get() || busy.get()
+                on:change=move |ev| {
+                    let on_field_input = on_field_input;
+                    let fields = fields;
+                    let active_field = active_field;
+                    let caret_start = caret_start;
+                    let caret_end = caret_end;
+                    let message = message;
+                    let busy = busy;
+                    let schedule_preview = schedule_preview;
+                    spawn_local(async move {
+                        let target = ev.target();
+                        let Some(input) = target.and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok()) else {
+                            return;
+                        };
+                        let Some(file) = input.files().and_then(|f| f.get(0)) else {
+                            return;
+                        };
+                        let _ = input.set_value("");
+                        if busy.get_untracked() {
+                            return;
+                        }
+                        busy.set(true);
+                        message.set(String::new());
+                        match api::upload_media_file(&file).await {
+                            Ok(sha) => {
+                                let Some(token) = media_token(&sha) else {
+                                    message.set(message_for("bad_request"));
+                                    busy.set(false);
+                                    return;
+                                };
+                                let idx = active_field.get_untracked();
+                                let current = fields.get_untracked().get(idx).cloned().unwrap_or_default();
+                                let start = caret_start.get_untracked();
+                                let end = caret_end.get_untracked();
+                                let next = insert_slice(&current, start, end, &token);
+                                fields.update(|f| {
+                                    if idx < f.len() {
+                                        f[idx] = next;
+                                    }
+                                });
+                                schedule_preview();
+                            }
+                            Err(ApiError { body, .. }) => {
+                                message.set(message_for(&error_code_from_body(&body)));
+                            }
+                        }
+                        busy.set(false);
+                    });
+                }
+            />
             <label for="note-camera">"Camera"</label>
             <input
                 id="note-camera"

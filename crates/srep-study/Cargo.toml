@@ -14,11 +14,15 @@ regex.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 srep-auth = { path = "../srep-auth" }
+srep-config = { path = "../srep-config" }
 srep-db = { path = "../srep-db" }
 srep-domain = { path = "../srep-domain" }
 sqlx.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
+rand.workspace = true
+tempfile = "3"
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

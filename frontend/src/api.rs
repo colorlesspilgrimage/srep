@@ -145,6 +145,86 @@ async fn parse_json_response<T: DeserializeOwned>(response: Response) -> Result<
     })
 }
 
+pub async fn upload_media_file(file: &web_sys::File) -> Result<String, ApiError> {
+    let size = file.size() as u64;
+    if size == 0 {
+        return Err(ApiError {
+            status: 400,
+            body: r#"{"error":"empty_file"}"#.into(),
+        });
+    }
+    let buf = wasm_bindgen_futures::JsFuture::from(file.array_buffer())
+        .await
+        .map_err(|e| ApiError {
+            status: 0,
+            body: format!("{e:?}"),
+        })?;
+    let content_type = file.type_();
+    let opts = RequestInit::new();
+    opts.set_method("POST");
+    opts.set_mode(RequestMode::Cors);
+    opts.set_body(&buf);
+    let request = Request::new_with_str_and_init("/api/media", &opts).map_err(|e| ApiError {
+        status: 0,
+        body: format!("request: {e:?}"),
+    })?;
+    let headers = request.headers();
+    headers
+        .set("Content-Type", &content_type)
+        .map_err(|e| ApiError {
+            status: 0,
+            body: format!("header: {e:?}"),
+        })?;
+    if let Some(token) = csrf_token() {
+        let _ = headers.set("x-srep-csrf", &token);
+    }
+    if let Some(window) = web_sys::window() {
+        if let Ok(origin) = window.location().origin() {
+            let _ = headers.set("origin", &origin);
+        }
+    }
+    let name = file.name();
+    if !name.is_empty() && name.len() <= 200 && !name.contains(['/', '\\']) {
+        let _ = headers.set("x-filename", &name);
+    }
+    let window = web_sys::window().ok_or(ApiError {
+        status: 0,
+        body: "no window".into(),
+    })?;
+    let resp_value = wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request))
+        .await
+        .map_err(|e| ApiError {
+            status: 0,
+            body: format!("fetch: {e:?}"),
+        })?;
+    let response: Response = resp_value.dyn_into().map_err(|e| ApiError {
+        status: 0,
+        body: format!("response: {e:?}"),
+    })?;
+    let status = response.status();
+    let text = wasm_bindgen_futures::JsFuture::from(response.text().unwrap())
+        .await
+        .ok()
+        .and_then(|v| v.as_string())
+        .unwrap_or_default();
+    if !(200..300).contains(&status) {
+        return Err(ApiError { status, body: text });
+    }
+    #[derive(serde::Deserialize)]
+    struct MediaBody {
+        media: MediaSha,
+    }
+    #[derive(serde::Deserialize)]
+    struct MediaSha {
+        sha256: String,
+    }
+    let parsed: MediaBody = serde_json::from_str(&text).map_err(|_| ApiError {
+        status,
+        body: text,
+    })?;
+    Ok(parsed.media.sha256)
+}
+
 pub async fn fetch_raw(path: &str, method: &str, body: Option<String>) -> Result<Response, ApiError> {
     let opts = RequestInit::new();
     opts.set_method(method);
