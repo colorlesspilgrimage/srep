@@ -1,4 +1,5 @@
 mod metrics;
+mod queries;
 
 use axum::{
     extract::{Query, State},
@@ -100,24 +101,56 @@ struct DaysParam {
 }
 
 async fn stats_heatmap(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     req_auth: Option<axum::Extension<RequestAuth>>,
-    Query(_q): Query<DaysParam>,
+    Query(q): Query<DaysParam>,
 ) -> impl IntoResponse {
     if let Some(resp) = require_auth(req_auth).await {
         return resp;
     }
-    Json(json!({ "cells": [] })).into_response()
+    let days = q
+        .days
+        .as_deref()
+        .and_then(|s| s.parse::<i64>().ok())
+        .unwrap_or(365)
+        .clamp(1, 730);
+    let study = StudyStore::new(&state.db);
+    let settings = match get_settings_default(study.get_study_settings().await.ok().flatten().as_ref()) {
+        Ok(s) => s,
+        Err(_) => return (StatusCode::BAD_REQUEST, Json(json!({"error":"bad_request"}))).into_response(),
+    };
+    let now = chrono::Utc::now().timestamp_millis();
+    let today = study_window(now, &settings).day_number;
+    let since = now - days * metrics::DAY_MS;
+    let rows = queries::list_review_stats_since(&state.db, since).await.unwrap_or_default();
+    let parsed: Vec<_> = rows
+        .iter()
+        .map(|r| (r.reviewed_at, r.rating, r.state_before.clone()))
+        .collect();
+    let cells = metrics::build_heatmap(&parsed, &settings, today - days + 1, today);
+    Json(json!({ "cells": cells })).into_response()
 }
 
 async fn stats_streak(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     req_auth: Option<axum::Extension<RequestAuth>>,
 ) -> impl IntoResponse {
     if let Some(resp) = require_auth(req_auth).await {
         return resp;
     }
-    Json(json!({ "streak": { "current": 0, "longest": 0 } })).into_response()
+    let study = StudyStore::new(&state.db);
+    let settings = match get_settings_default(study.get_study_settings().await.ok().flatten().as_ref()) {
+        Ok(s) => s,
+        Err(_) => return (StatusCode::BAD_REQUEST, Json(json!({"error":"bad_request"}))).into_response(),
+    };
+    let now = chrono::Utc::now().timestamp_millis();
+    let rows = queries::list_review_stats(&state.db).await.unwrap_or_default();
+    let parsed: Vec<_> = rows
+        .iter()
+        .map(|r| (r.reviewed_at, r.rating, r.state_before.clone()))
+        .collect();
+    let streak = metrics::study_streak(&parsed, &settings, now);
+    Json(json!({ "streak": streak })).into_response()
 }
 
 async fn stats_retention(
@@ -194,7 +227,7 @@ async fn require_auth(
         return Some(
             (
                 StatusCode::UNAUTHORIZED,
-                Json(json!({"error":"unauthorized"})),
+                Json(json!({"error":"unauthenticated"})),
             )
                 .into_response(),
         );
@@ -203,7 +236,7 @@ async fn require_auth(
         return Some(
             (
                 StatusCode::UNAUTHORIZED,
-                Json(json!({"error":"unauthorized"})),
+                Json(json!({"error":"unauthenticated"})),
             )
                 .into_response(),
         );

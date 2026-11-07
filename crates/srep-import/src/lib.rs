@@ -85,7 +85,7 @@ struct ExportQuery {
 }
 
 async fn export_get(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     req_auth: Option<axum::Extension<RequestAuth>>,
     axum::extract::Query(query): axum::extract::Query<ExportQuery>,
 ) -> impl IntoResponse {
@@ -105,6 +105,22 @@ async fn export_get(
         _ => "export.txt",
     };
     let disposition = format!("attachment; filename=\"{name}\"");
+    if format == "native" {
+        let tmp = std::env::temp_dir().join(format!("srep-export-{}.zip", uuid::Uuid::new_v4()));
+        if backup::backup_sqlite(&state.config, &tmp).await.is_ok() {
+            if let Ok(bytes) = tokio::fs::read(&tmp).await {
+                let _ = tokio::fs::remove_file(&tmp).await;
+                return (
+                    [
+                        (header::CONTENT_TYPE, "application/zip"),
+                        (header::CONTENT_DISPOSITION, disposition.as_str()),
+                    ],
+                    Bytes::from(bytes),
+                )
+                    .into_response();
+            }
+        }
+    }
     (
         [
             (header::CONTENT_TYPE, "application/zip"),
@@ -122,7 +138,7 @@ async fn require_auth(
         return Some(
             (
                 StatusCode::UNAUTHORIZED,
-                Json(json!({"error":"unauthorized"})),
+                Json(json!({"error":"unauthenticated"})),
             )
                 .into_response(),
         );
@@ -131,7 +147,7 @@ async fn require_auth(
         return Some(
             (
                 StatusCode::UNAUTHORIZED,
-                Json(json!({"error":"unauthorized"})),
+                Json(json!({"error":"unauthenticated"})),
             )
                 .into_response(),
         );

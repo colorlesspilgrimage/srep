@@ -8,6 +8,7 @@ members = [
   "crates/srep-study",
   "crates/srep-browse",
   "crates/srep-stats",
+  "crates/srep-settings",
   "crates/srep-import",
   "crates/srep-cli",
   "crates/srep-server",

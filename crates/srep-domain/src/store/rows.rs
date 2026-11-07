@@ -124,6 +124,38 @@ pub fn row_to_template_pg(row: &PgRow) -> Result<TemplateRow> {
     })
 }
 
+fn parse_note_fields(raw: &str) -> Result<Vec<String>> {
+    serde_json::from_str(raw).map_err(Into::into)
+}
+
+pub fn row_to_note_sqlite(row: &SqliteRow) -> Result<NoteRow> {
+    let fields: String = row.try_get("fields")?;
+    Ok(NoteRow {
+        id: row.try_get("id")?,
+        note_type_id: row.try_get("note_type_id")?,
+        guid: row.try_get("guid")?,
+        fields: parse_note_fields(&fields)?,
+        created_at: row.try_get("created_at")?,
+        updated_at: row.try_get("updated_at")?,
+        checksum: row.try_get("checksum")?,
+        deleted_at: row.try_get("deleted_at")?,
+    })
+}
+
+pub fn row_to_note_pg(row: &PgRow) -> Result<NoteRow> {
+    let fields: String = row.try_get("fields")?;
+    Ok(NoteRow {
+        id: row.try_get("id")?,
+        note_type_id: row.try_get("note_type_id")?,
+        guid: row.try_get("guid")?,
+        fields: parse_note_fields(&fields)?,
+        created_at: row.try_get("created_at")?,
+        updated_at: row.try_get("updated_at")?,
+        checksum: row.try_get("checksum")?,
+        deleted_at: row.try_get("deleted_at")?,
+    })
+}
+
 pub fn row_to_card_sqlite(row: &SqliteRow) -> Result<CardRow> {
     Ok(CardRow {
         id: row.try_get("id")?,

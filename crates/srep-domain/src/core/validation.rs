@@ -121,3 +121,24 @@ pub struct NoteCreateInput {
     #[serde(default)]
     pub tags: Vec<String>,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct NotePatchInput {
+    pub fields: Option<Vec<String>>,
+    pub tags: Option<Vec<String>>,
+    pub deck_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct NotePreviewInput {
+    pub note_type_id: String,
+    pub fields: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct NoteRestoreInput {
+    pub deck_id: Option<String>,
+}

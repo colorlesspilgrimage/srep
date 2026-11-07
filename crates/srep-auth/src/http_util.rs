@@ -10,6 +10,10 @@ pub fn error_response(status: StatusCode, error: &str) -> Response {
     (status, Json(json!({ "error": error }))).into_response()
 }
 
+pub fn unauthenticated() -> Response {
+    error_response(StatusCode::UNAUTHORIZED, "unauthenticated")
+}
+
 pub fn rate_limited(retry_after_sec: u64) -> Response {
     (
         StatusCode::TOO_MANY_REQUESTS,

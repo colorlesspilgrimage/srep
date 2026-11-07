@@ -26,6 +26,8 @@ use srep_auth::AppState;
 pub mod answer_plan;
 pub mod card_state_plan;
 pub mod day_clock;
+pub mod deck_count_rollup;
+pub mod deck_counts;
 pub mod fsrs_adapter;
 pub mod parked;
 pub mod queue_choice;
@@ -48,6 +50,24 @@ pub fn router() -> Router<AppState> {
             "/api/settings/study",
             get(settings_study_get).put(settings_study_put),
         )
+        .route("/api/decks/counts", get(deck_counts_get))
+}
+
+async fn deck_counts_get(
+    State(state): State<AppState>,
+    req_auth: Option<axum::Extension<RequestAuth>>,
+) -> impl IntoResponse {
+    if let Some(resp) = require_auth(req_auth).await {
+        return resp;
+    }
+    match deck_counts::get_deck_counts(&state).await {
+        Ok(records) => Json(deck_counts::counts_json(&records)).into_response(),
+        Err(_) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error":"bad_request"})),
+        )
+            .into_response(),
+    }
 }
 
 #[derive(Deserialize)]
@@ -234,7 +254,7 @@ async fn require_auth(
         return Some(
             (
                 StatusCode::UNAUTHORIZED,
-                Json(json!({"error":"unauthorized"})),
+                Json(json!({"error":"unauthenticated"})),
             )
                 .into_response(),
         );
@@ -243,7 +263,7 @@ async fn require_auth(
         return Some(
             (
                 StatusCode::UNAUTHORIZED,
-                Json(json!({"error":"unauthorized"})),
+                Json(json!({"error":"unauthenticated"})),
             )
                 .into_response(),
         );

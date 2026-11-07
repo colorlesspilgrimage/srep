@@ -17,7 +17,7 @@ pub fn require_session(req_auth: Option<axum::Extension<RequestAuth>>) -> Option
 fn unauthorized() -> Response {
     (
         StatusCode::UNAUTHORIZED,
-        Json(json!({"error":"unauthorized"})),
+        Json(json!({"error":"unauthenticated"})),
     )
         .into_response()
 }

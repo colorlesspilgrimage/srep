@@ -10,6 +10,7 @@ use srep_auth::{auth_layer, routes as auth_routes, state::AppState};
 use srep_browse::router as browse_router;
 use srep_domain::router as domain_router;
 use srep_import::router as import_router;
+use srep_settings::router as settings_router;
 use srep_stats::router as stats_router;
 use srep_study::router as study_router;
 use tower::ServiceBuilder;
@@ -25,6 +26,7 @@ pub fn build_app(state: AppState) -> Router {
         .merge(browse_router())
         .merge(stats_router())
         .merge(import_router())
+        .merge(settings_router())
         .route("/healthz", get(healthz))
         .route("/api", get(|| async { StatusCode::NOT_FOUND }));
 

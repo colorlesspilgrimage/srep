@@ -99,10 +99,10 @@ async fn auth_logout_all(
     req_auth: Option<axum::Extension<RequestAuth>>,
 ) -> impl IntoResponse {
     let Some(axum::Extension(auth)) = req_auth else {
-        return error_response(StatusCode::UNAUTHORIZED, "unauthorized");
+        return error_response(StatusCode::UNAUTHORIZED, "unauthenticated");
     };
     if auth.session_token.is_none() {
-        return error_response(StatusCode::UNAUTHORIZED, "unauthorized");
+        return error_response(StatusCode::UNAUTHORIZED, "unauthenticated");
     }
     let _ = state.auth_store().delete_all_sessions().await;
     let headers = [(header::SET_COOKIE, clear_session_cookie())];
@@ -455,7 +455,7 @@ async fn recovery_status(
     req_auth: Option<axum::Extension<RequestAuth>>,
 ) -> impl IntoResponse {
     if !require_session(req_auth) {
-        return error_response(StatusCode::UNAUTHORIZED, "unauthorized");
+        return error_response(StatusCode::UNAUTHORIZED, "unauthenticated");
     }
     let unused = state
         .auth_store()
@@ -531,7 +531,7 @@ async fn list_credentials(
     req_auth: Option<axum::Extension<RequestAuth>>,
 ) -> impl IntoResponse {
     if !require_session(req_auth) {
-        return error_response(StatusCode::UNAUTHORIZED, "unauthorized");
+        return error_response(StatusCode::UNAUTHORIZED, "unauthenticated");
     }
     let creds = state
         .auth_store()
@@ -555,7 +555,7 @@ async fn credentials_options(
     Json(body): Json<RegisterOptionsBody>,
 ) -> impl IntoResponse {
     if !require_session(req_auth) {
-        return error_response(StatusCode::UNAUTHORIZED, "unauthorized");
+        return error_response(StatusCode::UNAUTHORIZED, "unauthenticated");
     }
     if let Some(r) = check_auth_attempts(&state, &headers) {
         return r;
@@ -610,7 +610,7 @@ async fn credentials_verify(
     Json(body): Json<RegisterVerifyBody>,
 ) -> impl IntoResponse {
     if !require_session(req_auth) {
-        return error_response(StatusCode::UNAUTHORIZED, "unauthorized");
+        return error_response(StatusCode::UNAUTHORIZED, "unauthenticated");
     }
     let nick = match normalize_nickname(&body.nickname) {
         Some(n) => n,
@@ -661,7 +661,7 @@ async fn rename_credential(
     Json(body): Json<RenameBody>,
 ) -> impl IntoResponse {
     if !require_session(req_auth) {
-        return error_response(StatusCode::UNAUTHORIZED, "unauthorized");
+        return error_response(StatusCode::UNAUTHORIZED, "unauthenticated");
     }
     let Ok(uid) = Uuid::parse_str(&id) else {
         return error_response(StatusCode::BAD_REQUEST, "bad_request");
@@ -688,7 +688,7 @@ async fn delete_credential(
     req_auth: Option<axum::Extension<RequestAuth>>,
 ) -> impl IntoResponse {
     if !require_session(req_auth) {
-        return error_response(StatusCode::UNAUTHORIZED, "unauthorized");
+        return error_response(StatusCode::UNAUTHORIZED, "unauthenticated");
     }
     let Ok(uid) = Uuid::parse_str(&id) else {
         return error_response(StatusCode::BAD_REQUEST, "bad_request");
@@ -718,7 +718,7 @@ async fn pairing_code(
     Json(body): Json<PairingCodeBody>,
 ) -> impl IntoResponse {
     if !require_session(req_auth) {
-        return error_response(StatusCode::UNAUTHORIZED, "unauthorized");
+        return error_response(StatusCode::UNAUTHORIZED, "unauthenticated");
     }
     let store = state.auth_store();
     match create_pairing_code(&store, &state.config.auth.origin, body.name.as_deref()).await {
@@ -779,7 +779,7 @@ async fn list_tokens(
     req_auth: Option<axum::Extension<RequestAuth>>,
 ) -> impl IntoResponse {
     if !require_session(req_auth) {
-        return error_response(StatusCode::UNAUTHORIZED, "unauthorized");
+        return error_response(StatusCode::UNAUTHORIZED, "unauthenticated");
     }
     let tokens: Vec<ApiTokenView> = state
         .auth_store()
@@ -804,7 +804,7 @@ async fn rename_token(
     Json(body): Json<TokenRenameBody>,
 ) -> impl IntoResponse {
     if !require_session(req_auth) {
-        return error_response(StatusCode::UNAUTHORIZED, "unauthorized");
+        return error_response(StatusCode::UNAUTHORIZED, "unauthenticated");
     }
     let Ok(uid) = Uuid::parse_str(&id) else {
         return error_response(StatusCode::BAD_REQUEST, "bad_request");
@@ -830,7 +830,7 @@ async fn revoke_token(
     req_auth: Option<axum::Extension<RequestAuth>>,
 ) -> impl IntoResponse {
     if !require_session(req_auth) {
-        return error_response(StatusCode::UNAUTHORIZED, "unauthorized");
+        return error_response(StatusCode::UNAUTHORIZED, "unauthenticated");
     }
     let Ok(uid) = Uuid::parse_str(&id) else {
         return error_response(StatusCode::BAD_REQUEST, "bad_request");

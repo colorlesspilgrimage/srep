@@ -1,3 +1,4 @@
+use crate::browse_where::{browse_where_pg, browse_where_sqlite};
 use crate::query::parse_query;
 use anyhow::Result;
 use serde::Serialize;
@@ -33,7 +34,10 @@ pub async fn search_browse(
     cursor: Option<&str>,
 ) -> Result<Result<BrowsePage, &'static str>> {
     let limit = limit.clamp(1, 100);
-    let _parsed = parse_query(q.unwrap_or(""));
+    let parsed = parse_query(q.unwrap_or(""));
+    if !parsed.ok {
+        return Ok(Err("bad_query"));
+    }
     let study = StudyStore::new(pool);
     let raw = study.get_study_settings().await?;
     let settings = match get_settings_default(raw.as_ref()) {
@@ -48,8 +52,8 @@ pub async fn search_browse(
     }
     let fetch = limit + 1;
     let rows = match pool {
-        DbPool::Sqlite(p) => fetch_sqlite(p, cursor, fetch, window_end).await?,
-        DbPool::Postgres(p) => fetch_pg(p, cursor, fetch, window_end).await?,
+        DbPool::Sqlite(p) => fetch_sqlite(p, &parsed.query, cursor, fetch, window_end).await?,
+        DbPool::Postgres(p) => fetch_pg(p, &parsed.query, cursor, fetch, window_end).await?,
     };
     let has_more = rows.len() > limit;
     let page_rows: Vec<_> = rows.into_iter().take(limit).collect();
@@ -66,37 +70,62 @@ pub async fn search_browse(
 
 async fn fetch_sqlite(
     p: &sqlx::Pool<sqlx::Sqlite>,
+    query: &crate::query::BrowseQuery,
     cursor: Option<&str>,
     limit: usize,
     window_end: i64,
 ) -> Result<Vec<BrowseRow>> {
-    let sql = if cursor.is_some() {
+    let parts = browse_where_sqlite(query, window_end, cursor);
+    let sql = format!(
         r#"SELECT card.id AS card_id, note.id AS note_id, deck.id AS deck_id, deck.path AS deck_path,
            card.state, card.due, card.lapses, note.fields
            FROM card
            INNER JOIN note ON note.id = card.note_id
            INNER JOIN deck ON deck.id = card.deck_id
-           WHERE note.deleted_at IS NULL AND deck.archived_at IS NULL
-             AND card.id > ?
-           ORDER BY card.id LIMIT ?"#
-    } else {
+           WHERE {where_sql}
+           ORDER BY card.id LIMIT ?"#,
+        where_sql = parts.sql
+    );
+    let mut q = sqlx::query(&sql);
+    for b in &parts.binds {
+        q = q.bind(b);
+    }
+    q = q.bind(limit as i64);
+    let rows = q.fetch_all(p).await?;
+    rows_to_browse(p, rows).await
+}
+
+async fn fetch_pg(
+    p: &sqlx::Pool<sqlx::Postgres>,
+    query: &crate::query::BrowseQuery,
+    cursor: Option<&str>,
+    limit: usize,
+    window_end: i64,
+) -> Result<Vec<BrowseRow>> {
+    let parts = browse_where_pg(query, window_end, cursor);
+    let sql = format!(
         r#"SELECT card.id AS card_id, note.id AS note_id, deck.id AS deck_id, deck.path AS deck_path,
            card.state, card.due, card.lapses, note.fields
            FROM card
            INNER JOIN note ON note.id = card.note_id
            INNER JOIN deck ON deck.id = card.deck_id
-           WHERE note.deleted_at IS NULL AND deck.archived_at IS NULL
-           ORDER BY card.id LIMIT ?"#
-    };
-    let rows = if let Some(c) = cursor {
-        sqlx::query(sql)
-            .bind(c)
-            .bind(limit as i64)
-            .fetch_all(p)
-            .await?
-    } else {
-        sqlx::query(sql).bind(limit as i64).fetch_all(p).await?
-    };
+           WHERE {where_sql}
+           ORDER BY card.id LIMIT {limit}"#,
+        where_sql = parts.sql,
+        limit = limit
+    );
+    let mut q = sqlx::query(&sql);
+    for b in &parts.binds {
+        q = q.bind(b);
+    }
+    let rows = q.fetch_all(p).await?;
+    rows_to_browse_pg(p, rows).await
+}
+
+async fn rows_to_browse(
+    p: &sqlx::Pool<sqlx::Sqlite>,
+    rows: Vec<sqlx::sqlite::SqliteRow>,
+) -> Result<Vec<BrowseRow>> {
     let mut out = Vec::new();
     for row in rows {
         let note_id: String = row.try_get("note_id")?;
@@ -114,45 +143,13 @@ async fn fetch_sqlite(
             tags,
         });
     }
-    let _ = window_end;
     Ok(out)
 }
 
-async fn fetch_pg(
+async fn rows_to_browse_pg(
     p: &sqlx::Pool<sqlx::Postgres>,
-    cursor: Option<&str>,
-    limit: usize,
-    window_end: i64,
+    rows: Vec<sqlx::postgres::PgRow>,
 ) -> Result<Vec<BrowseRow>> {
-    let rows = if let Some(c) = cursor {
-        sqlx::query(
-            r#"SELECT card.id AS card_id, note.id AS note_id, deck.id AS deck_id, deck.path AS deck_path,
-               card.state, card.due, card.lapses, note.fields
-               FROM card
-               INNER JOIN note ON note.id = card.note_id
-               INNER JOIN deck ON deck.id = card.deck_id
-               WHERE note.deleted_at IS NULL AND deck.archived_at IS NULL
-                 AND card.id > $1
-               ORDER BY card.id LIMIT $2"#,
-        )
-        .bind(c)
-        .bind(limit as i64)
-        .fetch_all(p)
-        .await?
-    } else {
-        sqlx::query(
-            r#"SELECT card.id AS card_id, note.id AS note_id, deck.id AS deck_id, deck.path AS deck_path,
-               card.state, card.due, card.lapses, note.fields
-               FROM card
-               INNER JOIN note ON note.id = card.note_id
-               INNER JOIN deck ON deck.id = card.deck_id
-               WHERE note.deleted_at IS NULL AND deck.archived_at IS NULL
-               ORDER BY card.id LIMIT $1"#,
-        )
-        .bind(limit as i64)
-        .fetch_all(p)
-        .await?
-    };
     let mut out = Vec::new();
     for row in rows {
         let note_id: String = row.try_get("note_id")?;
@@ -170,7 +167,6 @@ async fn fetch_pg(
             tags,
         });
     }
-    let _ = window_end;
     Ok(out)
 }
 

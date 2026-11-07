@@ -16,7 +16,6 @@ use crate::service::decks;
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/decks", get(list_decks).post(create_deck))
-        .route("/api/decks/counts", get(deck_counts))
         .route(
             "/api/decks/:id",
             get(get_deck).patch(update_deck).delete(delete_deck),
@@ -142,9 +141,3 @@ async fn deck_impact(
     }
 }
 
-async fn deck_counts(req_auth: Option<axum::Extension<RequestAuth>>) -> axum::response::Response {
-    if let Some(r) = require_session(req_auth) {
-        return r;
-    }
-    Json(json!({"counts": {}})).into_response()
-}

@@ -1,3 +1,4 @@
+pub mod notes;
 pub mod rows;
 
 use crate::builtin::builtin_seed;

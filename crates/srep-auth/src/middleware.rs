@@ -76,7 +76,7 @@ pub async fn auth_layer(
     if !public && !authenticated {
         return (
             StatusCode::UNAUTHORIZED,
-            Json(json!({"error":"unauthorized"})),
+            Json(json!({"error":"unauthenticated"})),
         )
             .into_response();
     }
@@ -88,7 +88,7 @@ pub async fn auth_layer(
                 &state.config.auth.origin,
             );
         if !origin_ok {
-            return (StatusCode::FORBIDDEN, Json(json!({"error":"origin"}))).into_response();
+            return (StatusCode::FORBIDDEN, Json(json!({"error":"bad_origin"}))).into_response();
         }
         if let Some(ref raw) = auth.session_token {
             let csrf_hdr = req
@@ -96,7 +96,7 @@ pub async fn auth_layer(
                 .get("x-srep-csrf")
                 .and_then(|v| v.to_str().ok());
             if !check_csrf(csrf_hdr, raw) {
-                return (StatusCode::FORBIDDEN, Json(json!({"error":"csrf"}))).into_response();
+                return (StatusCode::FORBIDDEN, Json(json!({"error":"bad_csrf"}))).into_response();
             }
         }
     }

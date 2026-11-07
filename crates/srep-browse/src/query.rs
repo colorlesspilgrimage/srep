@@ -1,24 +1,60 @@
-//! Browse search parser (port target: `parse-query.ts`).
+//! Browse search parser (parity: `parse-query.ts`).
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct BrowseQuery {
-    pub deck: Option<String>,
-    pub tag: Option<String>,
-    pub text: Option<String>,
+    pub decks: Vec<String>,
+    pub tags: Vec<String>,
+    pub texts: Vec<String>,
 }
 
-pub fn parse_query(input: &str) -> BrowseQuery {
-    let mut q = BrowseQuery::default();
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsedBrowse {
+    pub ok: bool,
+    pub query: BrowseQuery,
+}
+
+const MAX_QUERY_CHARS: usize = 500;
+const MAX_TOKENS: usize = 8;
+
+pub fn parse_query(input: &str) -> ParsedBrowse {
+    if input.len() > MAX_QUERY_CHARS || input.contains('\0') {
+        return ParsedBrowse {
+            ok: false,
+            query: BrowseQuery::default(),
+        };
+    }
+    let mut query = BrowseQuery::default();
+    let mut tokens = 0usize;
     for token in input.split_whitespace() {
+        tokens += 1;
+        if tokens > MAX_TOKENS {
+            return ParsedBrowse {
+                ok: false,
+                query: BrowseQuery::default(),
+            };
+        }
         if let Some(rest) = token.strip_prefix("deck:") {
-            q.deck = Some(rest.to_string());
+            if rest.trim().is_empty() {
+                return ParsedBrowse {
+                    ok: false,
+                    query: BrowseQuery::default(),
+                };
+            }
+            query.decks.push(rest.to_string());
         } else if let Some(rest) = token.strip_prefix("tag:") {
-            q.tag = Some(rest.to_string());
-        } else {
-            q.text = Some(token.to_string());
+            let tag = rest.trim().to_lowercase();
+            if tag.is_empty() || tag.chars().any(|c| c.is_whitespace() || c.is_control()) {
+                return ParsedBrowse {
+                    ok: false,
+                    query: BrowseQuery::default(),
+                };
+            }
+            query.tags.push(tag);
+        } else if !token.is_empty() {
+            query.texts.push(token.to_string());
         }
     }
-    q
+    ParsedBrowse { ok: true, query }
 }
 
 #[cfg(test)]
@@ -27,7 +63,8 @@ mod tests {
 
     #[test]
     fn parses_deck_prefix() {
-        let q = parse_query("deck:Languages");
-        assert_eq!(q.deck.as_deref(), Some("Languages"));
+        let parsed = parse_query("deck:Languages");
+        assert!(parsed.ok);
+        assert_eq!(parsed.query.decks, vec!["Languages".to_string()]);
     }
 }

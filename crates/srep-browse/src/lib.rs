@@ -11,6 +11,7 @@ use serde_json::json;
 use srep_auth::middleware::RequestAuth;
 use srep_auth::AppState;
 
+pub mod browse_where;
 pub mod bulk;
 pub mod query;
 pub mod search;
@@ -135,7 +136,7 @@ async fn require_auth(
         return Some(
             (
                 StatusCode::UNAUTHORIZED,
-                Json(json!({"error":"unauthorized"})),
+                Json(json!({"error":"unauthenticated"})),
             )
                 .into_response(),
         );
@@ -144,7 +145,7 @@ async fn require_auth(
         return Some(
             (
                 StatusCode::UNAUTHORIZED,
-                Json(json!({"error":"unauthorized"})),
+                Json(json!({"error":"unauthenticated"})),
             )
                 .into_response(),
         );

@@ -41,6 +41,7 @@ jobs:
       - run: cargo clippy --workspace -- -D warnings
       - run: node scripts/check-migrations-sync.mjs
       - run: cargo test --workspace
+      - run: bash scripts/study-simulate-rust.sh
         env:
           SREP_DATABASE_URL: ${{ matrix.database == 'postgres' && 'postgres://srep:srep@127.0.0.1:5432/srep' || 'sqlite:/tmp/srep-rust-ci.db' }}
       - run: |

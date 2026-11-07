@@ -14,6 +14,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
+cookie.workspace = true
 axum.workspace = true
 mime_guess = "2"
 rust-embed = { version = "8", features = ["mime-guess"] }
@@ -23,6 +24,7 @@ srep-config = { path = "../srep-config" }
 srep-db = { path = "../srep-db" }
 srep-domain = { path = "../srep-domain" }
 srep-import = { path = "../srep-import" }
+srep-settings = { path = "../srep-settings" }
 srep-stats = { path = "../srep-stats" }
 srep-study = { path = "../srep-study" }
 serde.workspace = true

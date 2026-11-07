@@ -5663,6 +5663,7 @@ version = "2.0.0"
 dependencies = [
  "anyhow",
  "axum",
+ "cookie",
  "mime_guess",
  "reqwest",
  "rust-embed",
@@ -5674,6 +5675,7 @@ dependencies = [
  "srep-db",
  "srep-domain",
  "srep-import",
+ "srep-settings",
  "srep-stats",
  "srep-study",
  "tempfile",
@@ -5682,6 +5684,20 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "srep-settings"
+version = "2.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "srep-auth",
+ "srep-db",
+ "tracing",
 ]
 
 [[package]]
