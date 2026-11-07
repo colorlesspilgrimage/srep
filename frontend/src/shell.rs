@@ -232,7 +232,14 @@ pub fn AppShell(children: Children) -> impl IntoView {
 #[component]
 pub fn AuthShell(children: Children) -> impl IntoView {
     Effect::new(move |_| {
-        themes::apply_body_theme(themes::DEFAULT_THEME_ID);
+        if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
+            if let Some(body) = doc.body() {
+                let _ = body.class_list().remove_1("tui-page");
+                for tid in themes::THEME_IDS {
+                    let _ = body.class_list().remove_1(&themes::theme_class(tid));
+                }
+            }
+        }
     });
     view! {
         <div class="auth-shell">

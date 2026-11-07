@@ -11,11 +11,12 @@ mod dialog_focus;
 mod screens;
 mod shell;
 mod themes;
+mod tui;
 mod webauthn_client;
 
 pub use themes::ThemeHandle;
 
-use screens::{DecksHome, LoginScreen, SettingsScreen, SetupScreen, StudyScreen};
+use screens::{DecksHome, GalleryScreen, LoginScreen, SettingsScreen, SetupScreen, StudyScreen};
 use shell::{AppShell, AuthShell};
 
 #[component]
@@ -33,15 +34,6 @@ fn StatsScreen() -> impl IntoView {
         <section class="screen-placeholder">
             <h1 class="screen-title">"Stats"</h1>
         </section>
-    }
-}
-
-#[component]
-fn GalleryScreen() -> impl IntoView {
-    view! {
-        <main class="app-screen">
-            <h1>"Gallery"</h1>
-        </main>
     }
 }
 
@@ -83,11 +75,7 @@ fn StatsPage() -> impl IntoView {
 
 #[component]
 fn GalleryPage() -> impl IntoView {
-    view! {
-        <AppShell>
-            <GalleryScreen />
-        </AppShell>
-    }
+    view! { <GalleryScreen /> }
 }
 
 #[component]

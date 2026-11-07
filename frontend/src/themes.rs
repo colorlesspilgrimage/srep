@@ -26,6 +26,29 @@ pub fn normalize_theme_id(id: &str) -> &str {
     }
 }
 
+const LEGACY_LIGHT: &[&str] = &["solarized-light", "github-light"];
+const LEGACY_DARK: &[&str] = &["solarized-dark", "github-dark"];
+
+pub fn migrate_theme_id(id: &str) -> Option<String> {
+    if THEME_IDS.contains(&id) {
+        return Some(id.to_string());
+    }
+    if LEGACY_LIGHT.contains(&id) {
+        return Some("xai-light".to_string());
+    }
+    if LEGACY_DARK.contains(&id) {
+        return Some(DEFAULT_THEME_ID.to_string());
+    }
+    None
+}
+
+pub fn theme_from_query(value: &str) -> String {
+    if value.is_empty() || value.len() > 64 || !value.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+        return DEFAULT_THEME_ID.to_string();
+    }
+    migrate_theme_id(value).unwrap_or_else(|| normalize_theme_id(value).to_string())
+}
+
 pub fn theme_from_storage() -> String {
     web_sys::window()
         .and_then(|w| w.local_storage().ok().flatten())
