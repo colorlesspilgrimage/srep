@@ -51,7 +51,7 @@ pub async fn auth_layer(
     if let Some(raw) = cookie_token {
         if let Ok(Some(row)) = resolve_session(&state, &raw).await {
             auth.session_token = Some(raw);
-            auth.csrf_token = Some(csrf_token_for(&auth.session_token.as_ref().unwrap()));
+            auth.csrf_token = Some(csrf_token_for(auth.session_token.as_ref().unwrap()));
             auth.session_id = Some(row.id);
         }
     }

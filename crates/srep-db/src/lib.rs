@@ -156,7 +156,8 @@ fn sqlite_to_postgres(sql: &str) -> String {
     }
 }
 
-pub(crate) fn migrations_folder_for_tests(dialect: &str) -> PathBuf {
+#[cfg(test)]
+fn migrations_folder_for_tests(dialect: &str) -> PathBuf {
     default_migrations_dir(dialect)
 }
 

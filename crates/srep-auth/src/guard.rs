@@ -15,10 +15,7 @@ const PUBLIC_API_ROUTES: &[(&str, &str)] = &[
 const ORIGIN_EXEMPT: &[(&str, &str)] = &[("POST", "/api/auth/pairing/exchange")];
 
 pub fn decode_route_path(pathname: &str) -> Option<String> {
-    let parts: Result<Vec<_>, _> = pathname
-        .split("%25")
-        .map(|s| urlencoding::decode(s))
-        .collect();
+    let parts: Result<Vec<_>, _> = pathname.split("%25").map(urlencoding::decode).collect();
     match parts {
         Ok(v) => Some(v.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join("%25")),
         Err(_) => None,

@@ -298,7 +298,7 @@ pub async fn reset_auth(state: &AppState) -> anyhow::Result<String> {
         }
     }
     let _ = store.delete_all_sessions().await;
-    let _ = store.delete_setting("auth.setup_complete").await?;
+    store.delete_setting("auth.setup_complete").await?;
     let token = crate::tokens::random_token(32);
     let hash = sha256_hex(token.as_bytes());
     store.arm_setup(&hash).await?;
