@@ -75,6 +75,17 @@ describe('srep reset-auth', { timeout: 30_000 }, () => {
     const result = runSrep(['--help'], 'sqlite::memory:');
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('reset-auth');
+    expect(result.stdout).toContain('backup');
+  });
+
+  it('writes a backup archive for sqlite', () => {
+    const dir = makeTempDir(dirs);
+    const dbFile = path.join(dir, 'cli.db');
+    const out = path.join(dir, 'backup.zip');
+    runSrep(['reset-auth', '--yes'], `sqlite:${dbFile}`);
+    const result = runSrep(['backup', '--out', out], `sqlite:${dbFile}`);
+    expect(result.status).toBe(0);
+    expect(fs.statSync(out).size).toBeGreaterThan(100);
   });
 
   it('keeps the database file private', () => {

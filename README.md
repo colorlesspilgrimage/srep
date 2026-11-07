@@ -7,12 +7,13 @@ srep is an open-source, self-hosted spaced-repetition web app (an Anki alternati
 ## Status
 
 The app is pre-1.0.
-Milestones M0 to M5 are done.
+Milestones M0 to M6 are done.
 M1 adds passkey and security-key login.
 M2 adds decks, presets, note types, notes, card generation and media, through a JSON API.
 M3 adds the FSRS study engine (next card, answer, undo, suspend, bury, daily limits and a log replay check), through a JSON API.
 M4 adds the UI shell, themes, keyboard layer, and responsive tab bar.
 M5 adds the core screens (decks, study, notes, browse, settings) and a desktop + mobile full-loop UI E2E.
+M6 adds import and export (native archive, Anki `.apkg`, CSV/TSV), plus `srep backup` and `srep restore` for SQLite.
 The Chromium end-to-end tests cover the flows.
 The Firefox and Safari checks are manual (see "Browser matrix").
 See [ROADMAP.md](ROADMAP.md).
@@ -99,6 +100,7 @@ Do not commit `.env`.
 | `SREP_RP_NAME`          | `srep`                  | Name that the authenticator shows. 1 to 64 characters.                                     |
 | `SREP_MEDIA_DIR`        | see rule                | Media folder. Default is `<database folder>/media` for a SQLite file, else `./data/media`. |
 | `SREP_MEDIA_MAX_BYTES`  | `10485760`              | Maximum size of one media file in bytes. Integer from 1 to 104857600.                      |
+| `SREP_IMPORT_MAX_BYTES` | `209715200`             | Maximum import upload size in bytes. Integer from 1 to 524288000.                          |
 
 `PORT`, `HOST`, and `ORIGIN` keep their adapter names.
 `PORT` default is 3000 in the production image.
@@ -279,7 +281,19 @@ npm run db:generate
 Commit the files under `drizzle/`.
 Every schema change needs both dialects.
 
-Back up `SREP_MEDIA_DIR` together with the database.
+Back up `SREP_MEDIA_DIR` together with the database, or run:
+
+```bash
+npm run srep -- backup --out /path/to/srep-backup.zip
+```
+
+Restore collection data while keeping credentials (stop the server first):
+
+```bash
+npm run srep -- restore --from /path/to/srep-backup.zip --yes
+```
+
+For Postgres, use `pg_dump` and copy the media folder; the CLI backup command is SQLite-only today.
 The Docker image keeps media in `/data/media`, in the same volume as the SQLite file.
 
 ## Testing
