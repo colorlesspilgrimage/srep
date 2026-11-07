@@ -30,11 +30,15 @@ function hold() {
 async function search(q: string): Promise<void> {
   const field = page.getByLabel('Search');
   await field.fill(q);
-  await field.press('Enter');
-  await page.waitForResponse((response) => {
+  const pending = page.waitForResponse((response) => {
+    if (response.request().method() !== 'GET') {
+      return false;
+    }
     const url = new URL(response.url());
     return url.pathname === '/api/browse' && (url.searchParams.get('q') ?? '') === q;
   });
+  await field.press('Enter');
+  await pending;
 }
 
 async function postFront(deckId: string, front: string): Promise<void> {
