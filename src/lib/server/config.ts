@@ -18,10 +18,13 @@ export type Config = {
   migrateOnStart: boolean;
   auth: AuthConfig;
   media: { dir: string; maxBytes: number };
+  importMaxBytes: number;
 };
 
 export const DEFAULT_MEDIA_MAX_BYTES = 10 * 1024 * 1024;
 const MEDIA_MAX_BYTES_LIMIT = 100 * 1024 * 1024;
+export const DEFAULT_IMPORT_MAX_BYTES = 200 * 1024 * 1024;
+const IMPORT_MAX_BYTES_LIMIT = 500 * 1024 * 1024;
 
 export class ConfigError extends Error {
   constructor(message: string) {
@@ -85,6 +88,17 @@ function mediaDirOf(raw: string | undefined, errors: string[]): string | undefin
   return path.resolve(raw);
 }
 
+function importMaxBytesOf(raw: string | undefined, errors: string[]): number {
+  if (raw === undefined) {
+    return DEFAULT_IMPORT_MAX_BYTES;
+  }
+  const value = /^[0-9]+$/.test(raw) ? Number(raw) : Number.NaN;
+  if (!(value >= 1 && value <= IMPORT_MAX_BYTES_LIMIT)) {
+    errors.push(`SREP_IMPORT_MAX_BYTES: must be an integer from 1 to ${IMPORT_MAX_BYTES_LIMIT}`);
+  }
+  return value;
+}
+
 function mediaMaxBytesOf(raw: string | undefined, errors: string[]): number {
   if (raw === undefined) {
     return DEFAULT_MEDIA_MAX_BYTES;
@@ -137,6 +151,7 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
 
   const mediaDir = mediaDirOf(blankToUnset(env.SREP_MEDIA_DIR), errors);
   const mediaMaxBytes = mediaMaxBytesOf(blankToUnset(env.SREP_MEDIA_MAX_BYTES), errors);
+  const importMaxBytes = importMaxBytesOf(blankToUnset(env.SREP_IMPORT_MAX_BYTES), errors);
 
   const authResult = parseRpConfig(env);
   if ('errors' in authResult) {
@@ -170,6 +185,7 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
     migrateOnStart: migrateParsed.data === 'true',
     auth: authResult.value,
     media: { dir: mediaDir ?? defaultMediaDir(database), maxBytes: mediaMaxBytes },
+    importMaxBytes,
   };
 }
 

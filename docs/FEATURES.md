@@ -388,13 +388,13 @@ A signed-in Settings page lists scheduling presets and can create, edit, or dele
 
 ## Settings security and data (M5 slice 18)
 
-A signed-in Settings page manages credentials (list/add/rename/revoke), logout, logout-all, and shows the unused recovery-code count. `/security` redirects to `/settings?section=security`. Data lists trashed notes and restores them; import/export is stub copy for M6. Security and Data panels load via dynamic `import()` so they stay out of the initial settings chunk.
+A signed-in Settings page manages credentials (list/add/rename/revoke), logout, logout-all, and shows the unused recovery-code count. `/security` redirects to `/settings?section=security`. Data lists trashed notes and restores them, and runs import dry-run/apply plus export downloads. Security and Data panels load via dynamic `import()` so they stay out of the initial settings chunk.
 
 - Entry point: `/settings?section=security` or `/settings` → Security / Data. APIs `GET /api/auth/recovery`, `GET /api/notes/trash`, `POST /api/notes/<id>/restore`, existing credentials and logout routes.
 - Use:
   1. Sign in (see "Authentication (M1)").
   2. Open `/security` or Settings → Security. Rename or revoke a credential, or add another. Confirm the unused recovery-code count.
-  3. Open Data. Restore a trashed note. Import/export text points at M6.
+  3. Open Data. Restore a trashed note. Import a file or export native / apkg / CSV.
 - Check:
   - `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/api/notes/trash` prints `401`.
   - `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/api/auth/recovery` prints `401`.
@@ -404,6 +404,23 @@ A signed-in Settings page manages credentials (list/add/rename/revoke), logout, 
 - Code and tests:
   - Code: `src/lib/client/app/SecurityPanel.svelte`, `src/lib/client/app/DataPanel.svelte`, `src/lib/client/app/trash-client.ts`, `src/lib/client/app/settings-section.ts`, `src/lib/client/app/SettingsScreen.svelte`, `src/routes/security/+page.ts`, `src/routes/api/notes/trash/+server.ts`, `src/routes/api/auth/recovery/+server.ts`, `src/lib/server/domain/notes.ts`, note store `listTrashedNotes`.
   - Tests: `src/routes/api/notes/trash/{server,authz}.test.ts`, `src/routes/api/auth/recovery/{server,authz}.test.ts`, `src/lib/client/app/trash-client.test.ts`, `src/lib/client/app/settings-section.test.ts`, `e2e/settings-screen.test.ts`.
+
+## Import, export, and backup (M6)
+
+Signed-in import and export APIs support native lossless `.zip` archives, Anki `.apkg` (dry-run warnings for unsupported template features), and CSV/TSV. Settings → Data exposes file import with preview, plus export buttons. The `srep backup` and `srep restore` CLI commands snapshot or replace collection data on SQLite while keeping auth rows.
+
+- Entry point: Settings → Data; APIs `POST /api/import/dry-run`, `POST /api/import/apply`, `GET /api/export?format=…`; CLI `npm run srep -- backup|restore`.
+- Use:
+  1. Sign in (see "Authentication (M1)").
+  2. `GET /api/export?format=native` downloads a zip. POST the same bytes to `/api/import/dry-run`, then `POST /api/import/apply` with `{ "importToken": "…" }`.
+  3. On SQLite, `npm run srep -- backup --out ./backup.zip` and `npm run srep -- restore --from ./backup.zip --yes` with the server stopped.
+- Check:
+  - `npx vitest run src/lib/server/import-export` exits 0.
+  - `npx vitest run src/routes/api/import` exits 0.
+  - `npx playwright test e2e/settings-screen.test.ts` exits 0.
+- Code and tests:
+  - Code: `src/lib/server/import-export/**`, `src/routes/api/import/**`, `src/routes/api/export/+server.ts`, `src/lib/client/app/DataPanel.svelte`, `scripts/srep.ts`.
+  - Tests: `src/lib/server/import-export/native.test.ts`, `src/routes/api/import/dry-run/server.test.ts`, `scripts/srep.test.ts`.
 
 ## Full-loop E2E (M5 slice 19)
 

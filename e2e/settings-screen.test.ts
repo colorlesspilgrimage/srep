@@ -306,7 +306,7 @@ test.describe.serial('settings screen', () => {
     await expect(page.getByRole('status', { name: 'Data status' })).toHaveText('Restored.');
     // Other e2e files may leave trashed notes in the shared DB; assert this note left trash.
     await expect(page.getByRole('button', { name: `Restore ${preview}` })).toHaveCount(0);
-    await expect(page.getByText('Anki import and export ship in M6.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Export native (.zip)' })).toBeVisible();
     const live = await page.request.get(`/api/notes/${noteId}`);
     expect(live.status()).toBe(200);
     expect(
