@@ -45,7 +45,7 @@ pub async fn auth_layer(
         session_token: None,
         csrf_token: None,
         session_id: None,
-        bearer,
+        bearer: bearer.clone(),
     };
 
     if let Some(raw) = cookie_token {
@@ -56,8 +56,22 @@ pub async fn auth_layer(
         }
     }
 
+    let api_token_ok = if auth.session_token.is_none() {
+        if let Some(ref raw) = bearer {
+            crate::pairing::resolve_api_token(&state.auth_store(), raw)
+                .await
+                .ok()
+                .flatten()
+                .is_some()
+        } else {
+            false
+        }
+    } else {
+        false
+    };
+
     let public = is_public_api_route(&method, &decoded);
-    let authenticated = auth.session_token.is_some() || auth.bearer.is_some();
+    let authenticated = auth.session_token.is_some() || api_token_ok;
 
     if !public && !authenticated {
         return (

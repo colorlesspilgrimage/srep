@@ -12,6 +12,7 @@ data/
 .env.*
 !.env.example
 playwright-report/
+site/pkg/
 test-results/
 coverage/
 .DS_Store

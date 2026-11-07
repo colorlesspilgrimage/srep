@@ -3,7 +3,7 @@ import {
   visualGalleryPath,
   visualShotPlan,
   type VisualShot,
-} from '../src/lib/client/tui/visual-shots.ts';
+} from '../legacy/v1-sveltekit/src/lib/client/tui/visual-shots.ts';
 import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 

@@ -3,6 +3,8 @@ use clap::{Parser, Subcommand};
 use srep_auth::{routes::reset_auth, state::AppState, webauthn::WebAuthnState};
 use srep_config::from_env;
 use srep_db::{connect, run_migrations};
+use srep_import::backup::{backup_sqlite, restore_sqlite};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 #[derive(Parser)]
@@ -19,6 +21,18 @@ enum Commands {
         #[arg(long)]
         yes: bool,
     },
+    /// Write a SQLite backup archive.
+    Backup {
+        #[arg(long)]
+        out: PathBuf,
+    },
+    /// Restore collection tables from a backup archive (SQLite only).
+    Restore {
+        #[arg(long)]
+        from: PathBuf,
+        #[arg(long)]
+        yes: bool,
+    },
 }
 
 #[tokio::main]
@@ -32,10 +46,11 @@ async fn main() -> Result<()> {
     }
     let webauthn = Arc::new(WebAuthnState::new(&config.auth)?);
     let state = AppState {
-        config,
+        config: config.clone(),
         db: pool,
         webauthn,
         setup_token: Default::default(),
+        limiters: Arc::new(srep_auth::limiters::AuthLimiters::new()),
     };
 
     match cli.command {
@@ -47,6 +62,18 @@ async fn main() -> Result<()> {
             let token = reset_auth(&state).await?;
             println!("Setup token: {token}");
             println!("Open the setup page to enroll a new credential.");
+        }
+        Commands::Backup { out } => {
+            backup_sqlite(&config, &out).await?;
+            println!("Wrote {}", out.display());
+        }
+        Commands::Restore { from, yes } => {
+            if !yes {
+                eprintln!("Refusing without --yes");
+                std::process::exit(2);
+            }
+            restore_sqlite(&config, &from).await?;
+            println!("Restored from {}", from.display());
         }
     }
     Ok(())

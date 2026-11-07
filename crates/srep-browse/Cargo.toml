@@ -6,8 +6,14 @@ license.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+chrono.workspace = true
 axum.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+regex.workspace = true
 srep-auth = { path = "../srep-auth" }
 srep-db = { path = "../srep-db" }
+srep-domain = { path = "../srep-domain" }
+srep-study = { path = "../srep-study" }
+sqlx.workspace = true
+uuid.workspace = true

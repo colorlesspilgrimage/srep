@@ -11,7 +11,7 @@ srep is an open-source, self-hosted spaced-repetition web app (an Anki alternati
 | Bootstrap | First run shows a one-time setup page, gated by a setup token printed to server logs. It enrolls the first credential. After that, setup is permanently locked. | Stops a stranger on the internet from claiming a fresh instance. |
 | Recovery | Enrollment of at least 2 credentials is encouraged. 10 one-time recovery codes are shown once at setup (stored hashed). A CLI command `srep reset-auth` works with host access. | A lost key must not mean a lost deck. |
 | Scheduler | FSRS (open-source, same as modern Anki). Per-deck-preset parameters, plus an optimizer later. | FSRS beats SM-2 on retention per review. |
-| Stack | TypeScript. SvelteKit (adapter-node) for UI and API, Drizzle ORM, `@simplewebauthn/server`, `ts-fsrs`. | One language and one deployable. Mature WebAuthn and FSRS libraries exist. |
+| Stack | Rust (Axum, sqlx, Leptos WASM). TypeScript retained for Playwright E2E only. v1 SvelteKit archived under `legacy/v1-sveltekit/`. | Single native binary, shared FSRS and WebAuthn crates, WASM UI. |
 | Database | SQLite (WAL) by default, one file, easy backup. Postgres supported through the same Drizzle schema, with CI running both. | Single-user self-hosting suits SQLite. Postgres is the escape hatch. |
 | Deploy | One Docker image plus a compose file. A reverse proxy with TLS is required because WebAuthn needs HTTPS (localhost is exempt). | |
 | UI | xAI-inspired sparse UI: near-black canvas, Inter + Geist Mono, outline pills, keyboard-first. Themes are CSS variables (xAI Dark, xAI Light, High Contrast). Touch targets and layout adapt on mobile. | |

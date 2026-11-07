@@ -1,6 +1,4 @@
-import { sql } from 'drizzle-orm';
-import { parseConfig } from '#lib/server/config.js';
-import { createDb, type DbHandle } from '#lib/server/db/client.js';
+import Database from 'better-sqlite3';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_LAPSES = 1_000_000;
@@ -14,34 +12,29 @@ function readArgs(): { cardId: string; lapses: number } {
   return { cardId, lapses };
 }
 
-async function updatedRowCount(handle: DbHandle, cardId: string, lapses: number): Promise<number> {
-  const query = sql`update card set lapses = ${lapses} where id = ${cardId} returning id`;
-  if (handle.dialect === 'sqlite') {
-    return handle.db.all<{ id: string }>(query).length;
+function sqlitePath(url: string): string {
+  if (!url.startsWith('sqlite:')) {
+    throw new Error('lapse update missed: only sqlite E2E URLs supported');
   }
-  const rows = await handle.db.execute<{ id: string }>(query);
-  return rows.length;
+  const rest = url.slice('sqlite:'.length);
+  return rest.startsWith('/') || rest.startsWith('./') ? rest : `./${rest}`;
 }
 
-async function main(): Promise<void> {
+function main(): void {
   const url = process.env.SREP_DATABASE_URL;
   if (url === undefined || url.length === 0) {
     throw new Error('lapse update missed');
   }
   const { cardId, lapses } = readArgs();
-  const handle = createDb(parseConfig({ SREP_DATABASE_URL: url }));
+  const db = new Database(sqlitePath(url));
   try {
-    const count = await updatedRowCount(handle, cardId, lapses);
-    if (count !== 1) {
+    const info = db.prepare('UPDATE card SET lapses = ? WHERE id = ?').run(lapses, cardId);
+    if (info.changes !== 1) {
       throw new Error('lapse update missed');
     }
   } finally {
-    await handle.close();
+    db.close();
   }
 }
 
-main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : 'lapse update missed';
-  console.error(message.replace(/postgres(?:ql)?:\/\/[^@\s]+@/gi, 'postgres://'));
-  process.exitCode = 1;
-});
+main();
