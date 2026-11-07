@@ -1,7 +1,7 @@
 mod display;
-mod keybinds;
-mod store;
-mod theme;
+pub mod keybinds;
+pub mod store;
+pub mod theme;
 
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -15,6 +15,7 @@ use srep_auth::AppState;
 
 pub use display::DisplayPrefs;
 pub use keybinds::KeybindMap;
+pub use store::SettingsStore;
 pub use theme::ThemeSettings;
 
 pub fn router() -> Router<AppState> {

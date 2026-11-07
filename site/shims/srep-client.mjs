@@ -436,6 +436,7 @@ __export(ui_client_entry_exports, {
   acceptDisplay: () => acceptDisplay,
   acceptPreset: () => acceptPreset,
   acceptStudyDay: () => acceptStudyDay,
+  appMessageFor: () => appMessageFor,
   captureKeyEffect: () => captureKeyEffect,
   chordFromEvent: () => chordFromEvent,
   closeHint: () => closeHint,
@@ -1337,9 +1338,22 @@ function acceptPreset(d) {
   };
 }
 
+// legacy/v1-sveltekit/src/lib/client/app/app-messages.ts
+var MESSAGES = /* @__PURE__ */ new Map([
+  ["deck_name_taken", "That deck name is already used."],
+  ["bad_request", "The deck name is not valid."],
+  ["not_found", "That deck was not found."],
+  ["deck_cycle", "That move would make a cycle."],
+  ["network_error", "The server did not answer."],
+  ["unauthenticated", "Sign in and try again."]
+]);
+function appMessageFor(code) {
+  return MESSAGES.get(code) ?? "The request failed.";
+}
+
 // scripts/client-entry.mjs
 var csrfToken = null;
-var MESSAGES = {
+var MESSAGES2 = {
   setup_token_invalid: "The setup token is not correct.",
   setup_locked: "Setup is already done.",
   rate_limited: "Too many attempts. Wait a few minutes and try again.",
@@ -1355,7 +1369,7 @@ var MESSAGES = {
   network_error: "The server did not answer."
 };
 function messageFor(code) {
-  return MESSAGES[code] ?? "Something went wrong. Try again.";
+  return MESSAGES2[code] ?? "Something went wrong. Try again.";
 }
 function errorCodeOf(body) {
   if (body && typeof body === "object" && typeof body.error === "string") {

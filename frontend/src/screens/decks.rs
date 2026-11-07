@@ -2,12 +2,13 @@ use std::collections::HashSet;
 
 use leptos::html::Div;
 use leptos::prelude::*;
+use leptos_router::components::A;
 use serde::Deserialize;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 
-use crate::api::{self, error_code_from_body, message_for, ApiError};
+use crate::api::{self, app_message_for, error_code_from_body, ApiError};
 use crate::dialog_focus::{
     activates_control, active_focus_index, dialog_key_action, focusable_items, next_trap_index,
     DialogKeyAction,
@@ -161,7 +162,7 @@ pub fn DecksHome() -> impl IntoView {
                     );
                 }
                 Err(ApiError { body, .. }) => {
-                    message.set(message_for(&error_code_from_body(&body)));
+                    message.set(app_message_for(&error_code_from_body(&body)));
                 }
             }
             busy.set(false);
@@ -195,7 +196,7 @@ pub fn DecksHome() -> impl IntoView {
                     );
                 }
                 Err(ApiError { body, .. }) => {
-                    message.set(message_for(&error_code_from_body(&body)));
+                    message.set(app_message_for(&error_code_from_body(&body)));
                 }
             }
             busy.set(false);
@@ -390,6 +391,22 @@ pub fn DecksHome() -> impl IntoView {
                             }
                         />
                     </div>
+                    {move || {
+                        selected_id.get().map(|id| {
+                            let study_href = format!("/study?deck={id}");
+                            let add_href = format!("/notes/new?deck={id}");
+                            view! {
+                                <div class="app-detail-primary">
+                                    <A href=study_href attr:class="app-action app-action-strong">
+                                        <span>"Study"</span>
+                                    </A>
+                                    <A href=add_href attr:class="app-action">
+                                        <span>"Add note"</span>
+                                    </A>
+                                </div>
+                            }
+                        })
+                    }}
                     <div class="app-detail-secondary" role="group" aria-label="Deck edits">
                         <button
                             type="button"
@@ -676,7 +693,7 @@ fn DeleteDeckDialog(
                 match api::get_json::<ImpactResponse>(&format!("/api/decks/{id}/impact")).await {
                     Ok(body) => impact.set(Some((body.decks, body.cards, body.notes))),
                     Err(ApiError { body, .. }) => {
-                        message.set(message_for(&error_code_from_body(&body)))
+                        message.set(app_message_for(&error_code_from_body(&body)))
                     }
                 }
         });
@@ -717,7 +734,7 @@ fn DeleteDeckDialog(
                     match result {
                         Ok(()) => done.run(()),
                         Err(ApiError { body, .. }) => {
-                            message.set(message_for(&error_code_from_body(&body)));
+                            message.set(app_message_for(&error_code_from_body(&body)));
                         }
                     }
                 });
@@ -754,7 +771,7 @@ fn DeleteDeckDialog(
                         match result {
                             Ok(()) => done.run(()),
                             Err(ApiError { body, .. }) => {
-                                message.set(message_for(&error_code_from_body(&body)));
+                                message.set(app_message_for(&error_code_from_body(&body)));
                             }
                         }
                     });

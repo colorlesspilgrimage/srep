@@ -12,15 +12,9 @@ const FRONT_LIMIT: usize = 80;
 
 fn front_text_of(fields: &[String]) -> String {
     let raw = fields.first().map(String::as_str).unwrap_or("");
-    let stripped: String = raw
-        .replace("<br>", " ")
-        .replace("<hr>", " ")
-        .chars()
-        .filter(|c| *c != '<' && *c != '>')
-        .collect();
-    let chars: Vec<char> = stripped.chars().collect();
+    let chars: Vec<char> = raw.chars().collect();
     if chars.len() <= FRONT_LIMIT {
-        stripped
+        raw.to_string()
     } else {
         chars[..FRONT_LIMIT].iter().collect()
     }

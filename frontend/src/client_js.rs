@@ -121,19 +121,34 @@ pub fn palette_action_js(
         &JsValue::from_str("targetIsField"),
         &JsValue::from(target_is_field),
     );
-    let evt = js_sys::Object::new();
-    let _ = Reflect::set(&evt, &JsValue::from_str("key"), &JsValue::from_str(&ev.key()));
-    let _ = Reflect::set(&evt, &JsValue::from_str("ctrlKey"), &JsValue::from(ev.ctrl_key()));
-    let _ = Reflect::set(&evt, &JsValue::from_str("altKey"), &JsValue::from(ev.alt_key()));
-    let _ = Reflect::set(&evt, &JsValue::from_str("shiftKey"), &JsValue::from(ev.shift_key()));
-    let _ = Reflect::set(&evt, &JsValue::from_str("metaKey"), &JsValue::from(ev.meta_key()));
-    call2("paletteKeyAction", &evt, &state)
+    call2("paletteKeyAction", ev, &state)
         .as_string()
         .unwrap_or_else(|| "none".to_string())
 }
 
+fn keybind_chord(binds: &JsValue, action: &str) -> String {
+    Reflect::get(binds, &JsValue::from_str(action))
+        .ok()
+        .and_then(|v| v.as_string())
+        .unwrap_or_else(|| match action {
+            "palette.close" => "Escape".to_string(),
+            "palette.open-colon" => ":".to_string(),
+            _ => "Ctrl+K".to_string(),
+        })
+}
+
+pub fn close_hint_for_chord(chord: &str) -> String {
+    if chord == "Escape" {
+        "Esc close".to_string()
+    } else {
+        call1("closeHint", &JsValue::from_str(chord))
+            .as_string()
+            .unwrap_or_else(|| format!("{chord} close"))
+    }
+}
+
 pub fn open_hint(binds: &JsValue) -> String {
-    call1("openHint", binds)
+    call1("openHint", &JsValue::from_str(&keybind_chord(binds, "palette.open")))
         .as_string()
         .unwrap_or_else(|| "Ctrl+K palette".to_string())
 }
@@ -145,6 +160,15 @@ pub fn default_keybinds() -> JsValue {
 
 pub fn copy_keybind_map(map: &JsValue) -> JsValue {
     call1("copyKeybindMap", map)
+}
+
+pub fn keybinds_json_from_js(map: &JsValue) -> serde_json::Value {
+    let flat = copy_keybind_map(map);
+    serde_json::json!({
+        "palette.open": keybind_chord(&flat, "palette.open"),
+        "palette.open-colon": keybind_chord(&flat, "palette.open-colon"),
+        "palette.close": keybind_chord(&flat, "palette.close"),
+    })
 }
 
 pub fn remap_keybind(map: &JsValue, action: &str, chord: &str) -> Result<JsValue, String> {
@@ -168,9 +192,7 @@ pub fn capture_key_effect(key: &str) -> String {
 }
 
 pub fn close_hint(binds: &JsValue) -> String {
-    call1("closeHint", binds)
-        .as_string()
-        .unwrap_or_else(|| "Esc close".to_string())
+    close_hint_for_chord(&keybind_chord(binds, "palette.close"))
 }
 
 pub fn filter_command_names(commands: &[&str], filter: &str) -> Vec<String> {

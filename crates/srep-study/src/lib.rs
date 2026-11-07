@@ -46,7 +46,7 @@ pub fn router() -> Router<AppState> {
         .route("/api/study/answer", post(study_answer))
         .route("/api/study/undo", post(study_undo))
         .route("/api/study/rebuild", post(study_rebuild))
-        .route("/api/study/verify", post(study_verify))
+        .route("/api/study/verify", get(study_verify).post(study_verify))
         .route(
             "/api/settings/study",
             get(settings_study_get).put(settings_study_put),
@@ -73,6 +73,7 @@ async fn deck_counts_get(
 
 #[derive(Deserialize)]
 struct NextQuery {
+    #[serde(rename = "deckId")]
     deck_id: Option<String>,
 }
 
@@ -186,7 +187,7 @@ async fn study_verify(
         return resp;
     }
     match service::study_verify(&state).await {
-        Ok(report) => Json(json!({ "report": report })).into_response(),
+        Ok(report) => Json(report).into_response(),
         Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({"error":"bad_request"})),

@@ -8,7 +8,7 @@ use axum::{
 use serde::Deserialize;
 use serde_json::json;
 
-use srep_auth::middleware::RequestAuth;
+use srep_auth::middleware::{private_json, RequestAuth};
 use srep_auth::AppState;
 
 pub mod browse_where;
@@ -133,22 +133,16 @@ async fn require_auth(
     req_auth: Option<axum::Extension<RequestAuth>>,
 ) -> Option<axum::response::Response> {
     let Some(axum::Extension(auth)) = req_auth else {
-        return Some(
-            (
-                StatusCode::UNAUTHORIZED,
-                Json(json!({"error":"unauthenticated"})),
-            )
-                .into_response(),
-        );
+        return Some(private_json(
+            StatusCode::UNAUTHORIZED,
+            json!({"error":"unauthenticated"}),
+        ));
     };
     if auth.session_token.is_none() && auth.bearer.is_none() {
-        return Some(
-            (
-                StatusCode::UNAUTHORIZED,
-                Json(json!({"error":"unauthenticated"})),
-            )
-                .into_response(),
-        );
+        return Some(private_json(
+            StatusCode::UNAUTHORIZED,
+            json!({"error":"unauthenticated"}),
+        ));
     }
     None
 }

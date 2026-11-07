@@ -24,11 +24,12 @@ srep-config = { path = "../srep-config" }
 srep-db = { path = "../srep-db" }
 srep-domain = { path = "../srep-domain" }
 srep-import = { path = "../srep-import" }
-srep-settings = { path = "../srep-settings" }
 srep-stats = { path = "../srep-stats" }
 srep-study = { path = "../srep-study" }
 serde.workspace = true
 serde_json.workspace = true
+srep-settings = { path = "../srep-settings", features = [] }
+uuid.workspace = true
 tokio.workspace = true
 tower.workspace = true
 tower-http.workspace = true

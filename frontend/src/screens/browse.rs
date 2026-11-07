@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use serde::Deserialize;
 use wasm_bindgen_futures::spawn_local;
 
-use crate::api::{self, error_code_from_body, message_for, ApiError};
+use crate::api::{self, app_message_for, error_code_from_body, ApiError};
 
 const BAD_QUERY: &str = "The search is not valid.";
 
@@ -51,8 +51,8 @@ fn row_index_move(len: usize, active: usize, key: &str) -> Option<usize> {
         return None;
     }
     match key {
-        "ArrowDown" | "j" => Some((active + 1).min(len - 1)),
-        "ArrowUp" | "k" => Some(active.saturating_sub(1)),
+        "ArrowDown" | "j" | "J" => Some((active + 1).min(len - 1)),
+        "ArrowUp" | "k" | "K" => Some(active.saturating_sub(1)),
         "Home" => Some(0),
         "End" => Some(len - 1),
         _ => None,
@@ -125,7 +125,7 @@ pub fn BrowseScreen() -> impl IntoView {
                             loaded.set(true);
                             message.set(String::new());
                         } else {
-                            message.set(message_for(&error_code_from_body(&body)));
+                            message.set(app_message_for(&error_code_from_body(&body)));
                             loaded.set(true);
                         }
                     }
@@ -151,6 +151,15 @@ pub fn BrowseScreen() -> impl IntoView {
             ready.set(true);
             run_search(String::new());
         });
+    });
+
+    Effect::new(move |_| {
+        if !loaded.get() || rows.get().is_empty() {
+            return;
+        }
+        if let Some(grid) = grid_ref.get_untracked() {
+            let _ = grid.focus();
+        }
     });
 
     let toggle_card = move |card_id: String| {
@@ -203,7 +212,7 @@ pub fn BrowseScreen() -> impl IntoView {
             busy.set(false);
             match result {
                 Ok(_) => run_search(query.get_untracked()),
-                Err(ApiError { body, .. }) => message.set(message_for(&error_code_from_body(&body))),
+                Err(ApiError { body, .. }) => message.set(app_message_for(&error_code_from_body(&body))),
             }
         });
     };
@@ -219,8 +228,17 @@ pub fn BrowseScreen() -> impl IntoView {
             let result = api::post_json::<serde_json::Value, _>("/api/cards/suspend", &body).await;
             busy.set(false);
             match result {
-                Ok(_) => run_search(query.get_untracked()),
-                Err(ApiError { body, .. }) => message.set(message_for(&error_code_from_body(&body))),
+                Ok(_) => {
+                    let ids = card_ids.clone();
+                    rows.update(|list| {
+                        for row in list.iter_mut() {
+                            if ids.contains(&row.row.card_id) {
+                                row.row.state = "suspended".to_string();
+                            }
+                        }
+                    });
+                }
+                Err(ApiError { body, .. }) => message.set(app_message_for(&error_code_from_body(&body))),
             }
         });
     };
@@ -247,7 +265,7 @@ pub fn BrowseScreen() -> impl IntoView {
             busy.set(false);
             match result {
                 Ok(_) => run_search(query.get_untracked()),
-                Err(ApiError { body, .. }) => message.set(message_for(&error_code_from_body(&body))),
+                Err(ApiError { body, .. }) => message.set(app_message_for(&error_code_from_body(&body))),
             }
         });
     };
@@ -275,7 +293,7 @@ pub fn BrowseScreen() -> impl IntoView {
             pending_notes.set(Vec::new());
             match result {
                 Ok(_) => run_search(query.get_untracked()),
-                Err(ApiError { body, .. }) => message.set(message_for(&error_code_from_body(&body))),
+                Err(ApiError { body, .. }) => message.set(app_message_for(&error_code_from_body(&body))),
             }
         });
     };
@@ -412,7 +430,12 @@ pub fn BrowseScreen() -> impl IntoView {
                                 id=format!("browse-row-{}", row_id)
                                 tabindex="-1"
                                 aria-selected=move || if is_active() { "true" } else { "false" }
-                                on:click=move |_| active.set(index)
+                                on:click=move |_| {
+                                    active.set(index);
+                                    if let Some(grid) = grid_ref.get() {
+                                        let _ = grid.focus();
+                                    }
+                                }
                                 on:keydown=move |ev: web_sys::KeyboardEvent| {
                                     if ev.key() == " " || ev.key() == "Enter" {
                                         ev.stop_propagation();

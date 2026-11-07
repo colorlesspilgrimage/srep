@@ -169,8 +169,7 @@ pub fn KeymapForm(map: RwSignal<JsValue>, on_saved: Callback<JsValue>) -> impl I
                     let status = status;
                     let on_saved = on_saved.clone();
                     spawn_local(async move {
-                        let v: serde_json::Value =
-                            serde_wasm_bindgen::from_value(current.clone()).unwrap_or_default();
+                        let v = client_js::keybinds_json_from_js(&current);
                         let ok = crate::api::put_json::<serde_json::Value, serde_json::Value>(
                             "/api/settings/keybinds",
                             &v,
@@ -178,7 +177,7 @@ pub fn KeymapForm(map: RwSignal<JsValue>, on_saved: Callback<JsValue>) -> impl I
                         .await
                         .is_ok();
                         if ok {
-                            on_saved.run(current);
+                            on_saved.run(client_js::copy_keybind_map(&current));
                         }
                         status.set(if ok {
                             "Saved.".to_string()

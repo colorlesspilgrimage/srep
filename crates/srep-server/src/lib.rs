@@ -1,4 +1,5 @@
 pub mod app;
+pub mod spa_shell;
 pub mod static_files;
 
 pub use app::build_app;

@@ -5,6 +5,7 @@ use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 
 use crate::api;
+use crate::client_js;
 use crate::command_palette::{palette_key_action_js, CommandPalette};
 use crate::deck::tree_keys::target_is_text_field;
 use crate::prefs::{KeybindHandle, KeyCaptureHandle};
@@ -265,7 +266,7 @@ pub fn GalleryScreen() -> impl IntoView {
                 .target()
                 .map(|t| target_is_text_field(&t))
                 .unwrap_or(false);
-            let binds = keybinds.binds.get_untracked();
+            let binds = client_js::copy_keybind_map(&keybinds.binds.get_untracked());
             if let Some(action) = palette_key_action_js(
                 &ev,
                 palette_open.get(),
@@ -292,7 +293,7 @@ pub fn GalleryScreen() -> impl IntoView {
             }
         }) as Box<dyn FnMut(_)>);
         let cb = closure.as_ref().unchecked_ref();
-        let _ = window.add_event_listener_with_callback("keydown", cb);
+        let _ = window.add_event_listener_with_callback_and_bool("keydown", cb, true);
         closure.forget();
     });
 

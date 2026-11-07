@@ -1,5 +1,5 @@
 use axum::extract::{Path, State};
-use axum::http::{header, HeaderMap, StatusCode};
+use axum::http::{header, HeaderMap, HeaderName, HeaderValue, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -79,7 +79,21 @@ async fn serve_media(
     let ctx = DomainCtx::new(&state);
     match media::read_media(&ctx, &sha).await {
         Ok((row, bytes)) => {
-            (StatusCode::OK, [(header::CONTENT_TYPE, row.mime)], bytes).into_response()
+            let mut response = (
+                StatusCode::OK,
+                [(header::CONTENT_TYPE, row.mime)],
+                bytes,
+            )
+                .into_response();
+            response.headers_mut().insert(
+                HeaderName::from_static("x-content-type-options"),
+                HeaderValue::from_static("nosniff"),
+            );
+            response.headers_mut().insert(
+                HeaderName::from_static("content-security-policy"),
+                HeaderValue::from_static("sandbox; default-src 'none'"),
+            );
+            response
         }
         Err(e) => error_response(e),
     }

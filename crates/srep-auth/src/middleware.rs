@@ -2,7 +2,7 @@ use axum::Json;
 use axum::{
     body::Body,
     extract::State,
-    http::{Request, StatusCode},
+    http::{header, Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -17,6 +17,15 @@ use crate::state::AppState;
 use crate::tokens::{csrf_token_for, sha256_hex};
 
 const SESSION_COOKIE: &str = "srep_session";
+
+pub fn private_json(status: StatusCode, body: serde_json::Value) -> Response {
+    (
+        status,
+        [(header::CACHE_CONTROL, "no-store")],
+        Json(body),
+    )
+        .into_response()
+}
 
 #[derive(Clone, Debug, Default)]
 pub struct RequestAuth {
@@ -74,11 +83,10 @@ pub async fn auth_layer(
     let authenticated = auth.session_token.is_some() || api_token_ok;
 
     if !public && !authenticated {
-        return (
+        return private_json(
             StatusCode::UNAUTHORIZED,
-            Json(json!({"error":"unauthenticated"})),
-        )
-            .into_response();
+            json!({"error":"unauthenticated"}),
+        );
     }
 
     if is_mutating(&method) && !is_origin_exempt(&method, &decoded) {
@@ -86,7 +94,7 @@ pub async fn auth_layer(
             req.headers().get("origin").and_then(|v| v.to_str().ok()),
             &state.config.auth.origin,
         ) {
-            return (StatusCode::FORBIDDEN, Json(json!({"error":"bad_origin"}))).into_response();
+            return private_json(StatusCode::FORBIDDEN, json!({"error":"bad_origin"}));
         }
     }
 
@@ -97,7 +105,7 @@ pub async fn auth_layer(
                 .get("x-srep-csrf")
                 .and_then(|v| v.to_str().ok());
             if !check_csrf(csrf_hdr, raw) {
-                return (StatusCode::FORBIDDEN, Json(json!({"error":"bad_csrf"}))).into_response();
+                return private_json(StatusCode::FORBIDDEN, json!({"error":"bad_csrf"}));
             }
         }
     }

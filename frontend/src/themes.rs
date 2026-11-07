@@ -82,7 +82,7 @@ impl ThemeHandle {
 }
 
 pub fn apply_body_theme(id: &str) {
-    let class = theme_class(id);
+    let _ = id;
     if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
         if let Some(body) = doc.body() {
             let _ = body.class_list().remove_1("tui-page");
@@ -90,7 +90,6 @@ pub fn apply_body_theme(id: &str) {
             for tid in THEME_IDS {
                 let _ = body.class_list().remove_1(&theme_class(tid));
             }
-            let _ = body.class_list().add_1(&class);
         }
     }
 }

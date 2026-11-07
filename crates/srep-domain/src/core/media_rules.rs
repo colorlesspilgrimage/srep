@@ -21,9 +21,6 @@ pub fn sniff_mime(bytes: &[u8]) -> Option<&'static str> {
     if bytes.len() >= 8 && bytes.starts_with(&[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) {
         return Some("image/png");
     }
-    if bytes.starts_with(b"<svg") || bytes.starts_with(b"<?xml") {
-        return Some("image/svg+xml");
-    }
     None
 }
 

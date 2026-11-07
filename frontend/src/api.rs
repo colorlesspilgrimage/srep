@@ -60,15 +60,34 @@ pub fn clear_csrf() {
     let _ = set.call1(&client, &JsValue::NULL);
 }
 
-pub fn message_for(code: &str) -> String {
+fn client_fn(name: &str) -> Function {
     let window = web_sys::window().expect("window");
     let client = Reflect::get(&window, &JsValue::from_str("srepClient")).expect("srepClient");
-    let f = Reflect::get(&client, &JsValue::from_str("messageFor")).expect("messageFor");
-    let f: Function = f.dyn_into().expect("fn");
+    let f = Reflect::get(&client, &JsValue::from_str(name)).expect(name);
+    f.dyn_into().expect("fn")
+}
+
+pub fn message_for(code: &str) -> String {
+    let f = client_fn("messageFor");
+    let client = web_sys::window()
+        .and_then(|w| Reflect::get(&w, &JsValue::from_str("srepClient")).ok())
+        .expect("srepClient");
     let out = f
         .call1(&client, &JsValue::from_str(code))
         .unwrap_or(JsValue::UNDEFINED);
     out.as_string().unwrap_or_else(|| code.to_string())
+}
+
+pub fn app_message_for(code: &str) -> String {
+    let f = client_fn("appMessageFor");
+    let client = web_sys::window()
+        .and_then(|w| Reflect::get(&w, &JsValue::from_str("srepClient")).ok())
+        .expect("srepClient");
+    let out = f
+        .call1(&client, &JsValue::from_str(code))
+        .unwrap_or(JsValue::UNDEFINED);
+    out.as_string()
+        .unwrap_or_else(|| "The request failed.".to_string())
 }
 
 pub async fn get_json<T: DeserializeOwned>(path: &str) -> Result<T, ApiError> {

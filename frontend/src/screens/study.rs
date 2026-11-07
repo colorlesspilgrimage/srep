@@ -6,7 +6,7 @@ use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 
-use crate::api::{self, error_code_from_body, message_for, ApiError};
+use crate::api::{self, app_message_for, error_code_from_body, ApiError};
 use crate::card_html::CardHtml;
 use crate::client_js;
 use crate::deck::tree_keys::target_is_text_field;
@@ -107,7 +107,7 @@ pub fn StudyScreen() -> impl IntoView {
                             let Ok(card) =
                                 serde_json::from_value::<StudyCard>(v.get("card").cloned().unwrap_or_default())
                             else {
-                                phase.set(Phase::Error(message_for("bad_request")));
+                                phase.set(Phase::Error(app_message_for("bad_request")));
                                 return;
                             };
                             let mut labels = [
@@ -157,10 +157,10 @@ pub fn StudyScreen() -> impl IntoView {
                                 counts: parsed_counts,
                             });
                         }
-                        _ => phase.set(Phase::Error(message_for("bad_request"))),
+                        _ => phase.set(Phase::Error(app_message_for("bad_request"))),
                     }
                 }
-                Err(ApiError { body, .. }) => phase.set(Phase::Error(message_for(&error_code_from_body(&body)))),
+                Err(ApiError { body, .. }) => phase.set(Phase::Error(app_message_for(&error_code_from_body(&body)))),
             }
         });
     };

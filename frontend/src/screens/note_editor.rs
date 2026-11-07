@@ -5,7 +5,7 @@ use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 
-use crate::api::{self, error_code_from_body, message_for, ApiError};
+use crate::api::{self, app_message_for, error_code_from_body, message_for, ApiError};
 use crate::card_html::CardHtml;
 use crate::client_js;
 use crate::id_util::is_uuid;
@@ -222,6 +222,17 @@ pub fn NoteEditorScreen(
     };
 
     Effect::new(move |_| {
+        query.track();
+        if let Some(deck_id) = query
+            .with(|q| q.get("deck").map(|s| s.to_string()))
+            .filter(|s| is_uuid(s))
+        {
+            let idx = deck_index(&decks.get_untracked(), Some(&deck_id));
+            deck_index_sig.set(idx);
+        }
+    });
+
+    Effect::new(move |_| {
         let mode = mode_store.with_value(|m| m.clone());
         let note_id = note_id_store.with_value(|m| m.clone());
         spawn_local(async move {
@@ -307,7 +318,7 @@ pub fn NoteEditorScreen(
                 .get(deck_index_sig.get_untracked())
                 .map(|d| d.id.clone());
             let Some(deck_id) = deck else {
-                message.set(message_for("bad_request"));
+                message.set(app_message_for("bad_request"));
                 return;
             };
             let tags = split_tags(&tag_text.get_untracked());
@@ -352,7 +363,7 @@ pub fn NoteEditorScreen(
                                 .and_then(|n| n.get("id"))
                                 .and_then(|v| v.as_str())
                             else {
-                                message.set(message_for("bad_request"));
+                                message.set(app_message_for("bad_request"));
                                 return;
                             };
                             navigate(&format!("/notes/{id}"), Default::default());
@@ -361,7 +372,7 @@ pub fn NoteEditorScreen(
                         let Ok(note) = serde_json::from_value::<NoteBody>(
                             body.get("note").cloned().unwrap_or_default(),
                         ) else {
-                            message.set(message_for("bad_request"));
+                            message.set(app_message_for("bad_request"));
                             return;
                         };
                         fields.set(note.fields);
@@ -374,7 +385,7 @@ pub fn NoteEditorScreen(
                         schedule_preview();
                     }
                     Err(ApiError { body, .. }) => {
-                        message.set(message_for(&error_code_from_body(&body)));
+                        message.set(app_message_for(&error_code_from_body(&body)));
                     }
                 }
             });
@@ -651,7 +662,7 @@ pub fn NoteEditorScreen(
                         match api::upload_media_file(&file).await {
                             Ok(sha) => {
                                 let Some(token) = media_token(&sha) else {
-                                    message.set(message_for("bad_request"));
+                                    message.set(app_message_for("bad_request"));
                                     busy.set(false);
                                     return;
                                 };
@@ -668,7 +679,7 @@ pub fn NoteEditorScreen(
                                 schedule_preview();
                             }
                             Err(ApiError { body, .. }) => {
-                                message.set(message_for(&error_code_from_body(&body)));
+                                message.set(app_message_for(&error_code_from_body(&body)));
                             }
                         }
                         busy.set(false);

@@ -16,6 +16,6 @@ pub mod types;
 pub mod webauthn;
 pub mod webauthn_ops;
 
-pub use middleware::{auth_layer, RequestAuth};
+pub use middleware::{auth_layer, private_json, RequestAuth};
 pub use state::AppState;
 pub use store::AuthStore;

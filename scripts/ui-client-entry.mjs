@@ -33,6 +33,7 @@ import {
   presetMessageFor,
 } from '../legacy/v1-sveltekit/src/lib/client/app/preset-form.ts';
 import { commandsFor } from '../legacy/v1-sveltekit/src/lib/client/tui/keymap.ts';
+import { appMessageFor } from '../legacy/v1-sveltekit/src/lib/client/app/app-messages.ts';
 
 export {
   sanitizeCardHtml,
@@ -65,4 +66,5 @@ export {
   draftFromPreset,
   presetMessageFor,
   commandsFor,
+  appMessageFor,
 };

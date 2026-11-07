@@ -7,6 +7,72 @@ use crate::api;
 use crate::client_js;
 use crate::themes::{self, ThemeHandle};
 
+#[derive(Deserialize)]
+pub struct ShellPrefsJson {
+    pub theme_id: String,
+    pub keybinds: serde_json::Value,
+}
+
+pub fn take_shell_prefs_from_document() -> Option<ShellPrefsJson> {
+    let Some(body) = web_sys::window().and_then(|w| w.document()).and_then(|d| d.body()) else {
+        return None;
+    };
+    let nodes = body.child_nodes();
+    for i in 0..nodes.length() {
+        let Some(node) = nodes.item(i) else {
+            continue;
+        };
+        if node.node_type() != 8 {
+            continue;
+        }
+        let Some(text) = node.text_content() else {
+            continue;
+        };
+        let Some(json) = text
+            .strip_prefix("srep-prefs:")
+            .or_else(|| text.trim_start().strip_prefix("srep-prefs:"))
+        else {
+            continue;
+        };
+        if let Ok(body) = serde_json::from_str::<ShellPrefsJson>(json.trim()) {
+            return Some(body);
+        }
+    }
+    None
+}
+
+pub fn apply_shell_prefs_from_document(theme: ThemeHandle, keybinds: KeybindHandle) {
+    let Some(body) = web_sys::window().and_then(|w| w.document()).and_then(|d| d.body()) else {
+        return;
+    };
+    let nodes = body.child_nodes();
+    for i in 0..nodes.length() {
+        let Some(node) = nodes.item(i) else {
+            continue;
+        };
+        if node.node_type() != 8 {
+            continue;
+        }
+        let Some(text) = node.text_content() else {
+            continue;
+        };
+        let Some(json) = text
+            .strip_prefix("srep-prefs:")
+            .or_else(|| text.trim_start().strip_prefix("srep-prefs:"))
+        else {
+            continue;
+        };
+        if let Ok(body) = serde_json::from_str::<ShellPrefsJson>(json.trim()) {
+            let id = themes::normalize_theme_id(&body.theme_id).to_string();
+            theme.id.set(id);
+            keybinds.binds.set(client_js::copy_keybind_map(&client_js::to_js(
+                &body.keybinds,
+            )));
+            return;
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct KeybindHandle {
     pub binds: RwSignal<JsValue>,
@@ -20,11 +86,13 @@ impl KeybindHandle {
     }
 
     pub fn open_hint(&self) -> String {
-        client_js::open_hint(&self.binds.get_untracked())
+        let binds = self.binds.get();
+        client_js::open_hint(&binds)
     }
 
     pub fn close_hint(&self) -> String {
-        client_js::close_hint(&self.binds.get_untracked())
+        let binds = self.binds.get();
+        client_js::close_hint(&binds)
     }
 }
 
@@ -89,7 +157,9 @@ pub fn load_signed_in_prefs(theme: ThemeHandle, keybinds: KeybindHandle, display
             themes::persist_theme(&id);
         }
         if let Ok(body) = api::get_json::<KeybindsBody>("/api/settings/keybinds").await {
-            keybinds.binds.set(client_js::to_js(&body.keybinds));
+            keybinds.binds.set(client_js::copy_keybind_map(&client_js::to_js(
+                &body.keybinds,
+            )));
         }
         if let Ok(body) = api::get_json::<DisplayBody>("/api/settings/display").await {
             display.apply_js(body.display.font_size, body.display.reduced_motion);
