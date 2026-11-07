@@ -3,9 +3,11 @@ use crate::store::convert::{to_answer_preset, to_study_card};
 use crate::store::AnswerCardResult;
 use crate::types::ReviewLogRow;
 use anyhow::Result;
-use srep_db::DbPool;
-use srep_domain::store::rows::{row_to_card_pg, row_to_card_sqlite, row_to_preset, row_to_preset_pg};
 use sqlx::Row;
+use srep_db::DbPool;
+use srep_domain::store::rows::{
+    row_to_card_pg, row_to_card_sqlite, row_to_preset, row_to_preset_pg,
+};
 
 pub struct AnswerContext {
     pub card: CardRow,
@@ -179,11 +181,12 @@ async fn read_answer_ctx_sqlite(
         return Ok(None);
     };
     let preset = row_to_preset(&preset_row)?;
-    let siblings_rows = sqlx::query("SELECT * FROM card WHERE note_id = ? AND id != ? ORDER BY position")
-        .bind(&card_db.note_id)
-        .bind(card_id)
-        .fetch_all(&mut **tx)
-        .await?;
+    let siblings_rows =
+        sqlx::query("SELECT * FROM card WHERE note_id = ? AND id != ? ORDER BY position")
+            .bind(&card_db.note_id)
+            .bind(card_id)
+            .fetch_all(&mut **tx)
+            .await?;
     let siblings: Vec<_> = siblings_rows
         .iter()
         .map(|r| to_study_card(&row_to_card_sqlite(r).unwrap()))
@@ -232,11 +235,12 @@ async fn read_answer_ctx_pg(
         return Ok(None);
     };
     let preset = row_to_preset_pg(&preset_row)?;
-    let siblings_rows = sqlx::query("SELECT * FROM card WHERE note_id = $1 AND id != $2 ORDER BY position")
-        .bind(&card_db.note_id)
-        .bind(card_id)
-        .fetch_all(&mut **tx)
-        .await?;
+    let siblings_rows =
+        sqlx::query("SELECT * FROM card WHERE note_id = $1 AND id != $2 ORDER BY position")
+            .bind(&card_db.note_id)
+            .bind(card_id)
+            .fetch_all(&mut **tx)
+            .await?;
     let siblings: Vec<_> = siblings_rows
         .iter()
         .map(|r| to_study_card(&row_to_card_pg(r).unwrap()))
@@ -387,11 +391,10 @@ async fn undo_sqlite<F>(
 where
     F: FnOnce(UndoContext) -> UndoPlan,
 {
-    let log_row = sqlx::query(
-        "SELECT * FROM review_log ORDER BY reviewed_at DESC, id DESC LIMIT 1",
-    )
-    .fetch_optional(&mut **tx)
-    .await?;
+    let log_row =
+        sqlx::query("SELECT * FROM review_log ORDER BY reviewed_at DESC, id DESC LIMIT 1")
+            .fetch_optional(&mut **tx)
+            .await?;
     let Some(log_row) = log_row else {
         return Ok(UndoResult::NothingToUndo);
     };
@@ -415,15 +418,17 @@ where
     Ok(UndoResult::Ok(log))
 }
 
-async fn undo_pg<F>(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, compute: F) -> Result<UndoResult>
+async fn undo_pg<F>(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    compute: F,
+) -> Result<UndoResult>
 where
     F: FnOnce(UndoContext) -> UndoPlan,
 {
-    let log_row = sqlx::query(
-        "SELECT * FROM review_log ORDER BY reviewed_at DESC, id DESC LIMIT 1",
-    )
-    .fetch_optional(&mut **tx)
-    .await?;
+    let log_row =
+        sqlx::query("SELECT * FROM review_log ORDER BY reviewed_at DESC, id DESC LIMIT 1")
+            .fetch_optional(&mut **tx)
+            .await?;
     let Some(log_row) = log_row else {
         return Ok(UndoResult::NothingToUndo);
     };
@@ -473,8 +478,7 @@ pub(crate) fn row_to_review_log(row: &sqlx::sqlite::SqliteRow) -> Result<ReviewL
 pub(crate) fn row_to_review_log_pg(row: &sqlx::postgres::PgRow) -> Result<ReviewLogRow> {
     use crate::store::convert::sched_state_from_str;
     let buried: serde_json::Value = row.try_get("buried_sibling_ids")?;
-    let buried_sibling_ids: Vec<String> =
-        serde_json::from_value(buried).unwrap_or_default();
+    let buried_sibling_ids: Vec<String> = serde_json::from_value(buried).unwrap_or_default();
     Ok(ReviewLogRow {
         id: row.try_get("id")?,
         card_id: row.try_get("card_id")?,
@@ -501,7 +505,10 @@ async fn read_buried_sqlite(
     if ids.is_empty() {
         return Ok(vec![]);
     }
-    let placeholders = std::iter::repeat("?").take(ids.len()).collect::<Vec<_>>().join(",");
+    let placeholders = std::iter::repeat("?")
+        .take(ids.len())
+        .collect::<Vec<_>>()
+        .join(",");
     let sql = format!("SELECT * FROM card WHERE id IN ({placeholders}) ORDER BY id");
     let mut q = sqlx::query(&sql);
     for id in ids {

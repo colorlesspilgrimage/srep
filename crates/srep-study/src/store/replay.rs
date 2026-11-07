@@ -3,9 +3,9 @@ use crate::store::CardRebuildUpdate;
 use crate::store::ReplayBatchItem;
 use crate::types::ReviewLogRow;
 use anyhow::Result;
+use sqlx::Row;
 use srep_db::DbPool;
 use srep_domain::store::rows::{row_to_card_pg, row_to_card_sqlite};
-use sqlx::Row;
 
 pub const REPLAY_PAGE_SIZE: i64 = 500;
 
@@ -65,7 +65,10 @@ async fn fetch_batch_sqlite(
         .iter()
         .map(|r| r.try_get::<String, _>("id"))
         .collect::<Result<_, _>>()?;
-    let placeholders = std::iter::repeat("?").take(ids.len()).collect::<Vec<_>>().join(",");
+    let placeholders = std::iter::repeat("?")
+        .take(ids.len())
+        .collect::<Vec<_>>()
+        .join(",");
     let sql = format!(
         "SELECT * FROM review_log WHERE card_id IN ({placeholders}) ORDER BY reviewed_at, id"
     );
@@ -78,7 +81,10 @@ async fn fetch_batch_sqlite(
         std::collections::HashMap::new();
     for row in log_rows {
         let log = super::review::row_to_review_log(&row)?;
-        logs_by_card.entry(log.card_id.clone()).or_default().push(log);
+        logs_by_card
+            .entry(log.card_id.clone())
+            .or_default()
+            .push(log);
     }
     Ok(cards_rows
         .iter()
@@ -127,17 +133,19 @@ async fn fetch_batch_pg(
         .iter()
         .map(|r| r.try_get::<String, _>("id"))
         .collect::<Result<_, _>>()?;
-    let log_rows = sqlx::query(
-        "SELECT * FROM review_log WHERE card_id = ANY($1) ORDER BY reviewed_at, id",
-    )
-    .bind(&ids)
-    .fetch_all(&mut **tx)
-    .await?;
+    let log_rows =
+        sqlx::query("SELECT * FROM review_log WHERE card_id = ANY($1) ORDER BY reviewed_at, id")
+            .bind(&ids)
+            .fetch_all(&mut **tx)
+            .await?;
     let mut logs_by_card: std::collections::HashMap<String, Vec<ReviewLogRow>> =
         std::collections::HashMap::new();
     for row in log_rows {
         let log = super::review::row_to_review_log_pg(&row)?;
-        logs_by_card.entry(log.card_id.clone()).or_default().push(log);
+        logs_by_card
+            .entry(log.card_id.clone())
+            .or_default()
+            .push(log);
     }
     Ok(cards_rows
         .iter()

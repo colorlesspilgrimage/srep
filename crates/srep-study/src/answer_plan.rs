@@ -86,8 +86,8 @@ pub fn plan_answer(
         max_interval: preset.max_interval,
         fsrs_params: preset.fsrs_params.clone(),
     };
-    let result = answer_card(&scheduler, &before, rating, reviewed_at)
-        .ok_or(PlanFailure::BadPreset)?;
+    let result =
+        answer_card(&scheduler, &before, rating, reviewed_at).ok_or(PlanFailure::BadPreset)?;
     let bury_ids = if preset.bury_siblings {
         siblings
             .iter()
@@ -141,11 +141,7 @@ pub struct CardRestore {
     pub state: CardState,
 }
 
-pub fn plan_undo(
-    log: &ReviewLogRow,
-    card: &CardRow,
-    buried: &[CardRow],
-) -> UndoPlan {
+pub fn plan_undo(log: &ReviewLogRow, card: &CardRow, buried: &[CardRow]) -> UndoPlan {
     let keep_state = is_parked_state(card.state);
     let listed: std::collections::HashSet<_> = log.buried_sibling_ids.iter().cloned().collect();
     UndoPlan {
@@ -158,7 +154,11 @@ pub fn plan_undo(
             reps: log.reps_before,
             lapses: log.lapses_before,
             learning_step: log.step_before,
-            state: if keep_state { card.state } else { sched_to_parked(log.state_before) },
+            state: if keep_state {
+                card.state
+            } else {
+                sched_to_parked(log.state_before)
+            },
         },
         unbury_ids: buried
             .iter()
@@ -176,4 +176,3 @@ fn sched_to_parked(s: SchedState) -> CardState {
         SchedState::Relearning => CardState::Relearning,
     }
 }
-

@@ -1,11 +1,11 @@
 use crate::query::parse_query;
 use anyhow::Result;
+use serde::Serialize;
+use sqlx::Row;
 use srep_db::DbPool;
 use srep_study::day_clock::study_window;
 use srep_study::store::StudyStore;
 use srep_study::study_settings::get_settings_default;
-use serde::Serialize;
-use sqlx::Row;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -89,7 +89,11 @@ async fn fetch_sqlite(
            ORDER BY card.id LIMIT ?"#
     };
     let rows = if let Some(c) = cursor {
-        sqlx::query(sql).bind(c).bind(limit as i64).fetch_all(p).await?
+        sqlx::query(sql)
+            .bind(c)
+            .bind(limit as i64)
+            .fetch_all(p)
+            .await?
     } else {
         sqlx::query(sql).bind(limit as i64).fetch_all(p).await?
     };

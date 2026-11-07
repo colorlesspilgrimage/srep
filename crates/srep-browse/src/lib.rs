@@ -50,7 +50,9 @@ async fn browse_get(
     )
     .await
     {
-        Ok(Ok(page)) => Json(json!({ "rows": page.rows, "nextCursor": page.next_cursor })).into_response(),
+        Ok(Ok(page)) => {
+            Json(json!({ "rows": page.rows, "nextCursor": page.next_cursor })).into_response()
+        }
         Ok(Err(_)) => (StatusCode::BAD_REQUEST, Json(json!({"error":"bad_query"}))).into_response(),
         Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -84,7 +86,11 @@ async fn notes_trash(
                 (status, Json(json!({"error": code}))).into_response()
             }
         }
-        Err(_) => (StatusCode::BAD_REQUEST, Json(json!({"error":"bad_request"}))).into_response(),
+        Err(_) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error":"bad_request"})),
+        )
+            .into_response(),
     }
 }
 
@@ -114,7 +120,11 @@ async fn notes_tags(
                 (status, Json(json!({"error": code}))).into_response()
             }
         }
-        Err(_) => (StatusCode::BAD_REQUEST, Json(json!({"error":"bad_request"}))).into_response(),
+        Err(_) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error":"bad_request"})),
+        )
+            .into_response(),
     }
 }
 

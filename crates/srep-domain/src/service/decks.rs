@@ -1,7 +1,9 @@
 use crate::builtin::DEFAULT_PRESET_ID;
 use crate::core::deck_paths::{plan_deck_create, plan_deck_update, DeckPatch};
 use crate::core::ids::new_id;
-use crate::core::validation::{validate_deck_name, DeckCreateInput, DeckDeleteInput, DeckPatchInput};
+use crate::core::validation::{
+    validate_deck_name, DeckCreateInput, DeckDeleteInput, DeckPatchInput,
+};
 use crate::deps::DomainCtx;
 use crate::error::{fail, ApiResult};
 use crate::types::{DeckDeleteAction, DeckRow};
@@ -106,10 +108,7 @@ pub async fn update_deck(
     Ok(updates)
 }
 
-pub async fn deck_impact(
-    ctx: &DomainCtx<'_>,
-    id: &str,
-) -> ApiResult<crate::types::DeckImpact> {
+pub async fn deck_impact(ctx: &DomainCtx<'_>, id: &str) -> ApiResult<crate::types::DeckImpact> {
     let store = ctx.store();
     store
         .deck_impact(id)

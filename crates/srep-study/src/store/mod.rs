@@ -5,8 +5,8 @@ pub mod review;
 mod settings;
 mod snapshot;
 
-pub use settings::STUDY_SETTINGS_KEY;
 pub use replay::REPLAY_PAGE_SIZE;
+pub use settings::STUDY_SETTINGS_KEY;
 
 use crate::answer_plan::{AnswerPlan, CardRow, PlanFailure, UndoPlan};
 use crate::card_state_plan::CardStateFailure;
@@ -56,7 +56,10 @@ impl<'a> StudyStore<'a> {
         Self { pool }
     }
 
-    pub async fn read_study_snapshots(&self, input: StudySnapshotInput) -> Result<Vec<DeckSnapshot>> {
+    pub async fn read_study_snapshots(
+        &self,
+        input: StudySnapshotInput,
+    ) -> Result<Vec<DeckSnapshot>> {
         snapshot::read_snapshots(self.pool, &input).await
     }
 
@@ -67,11 +70,7 @@ impl<'a> StudyStore<'a> {
         review::read_card(self.pool, card_id).await
     }
 
-    pub async fn answer_card<F>(
-        &self,
-        card_id: &str,
-        compute: F,
-    ) -> Result<AnswerCardResult>
+    pub async fn answer_card<F>(&self, card_id: &str, compute: F) -> Result<AnswerCardResult>
     where
         F: FnOnce(review::AnswerContext) -> Result<AnswerPlan, PlanFailure>,
     {
@@ -108,10 +107,7 @@ impl<'a> StudyStore<'a> {
         replay::read_replay_batch(self.pool, after_card_id, limit).await
     }
 
-    pub async fn rebuild_cards<F>(
-        &self,
-        compute_batch: F,
-    ) -> Result<(u64, u64)>
+    pub async fn rebuild_cards<F>(&self, compute_batch: F) -> Result<(u64, u64)>
     where
         F: Fn(&[ReplayBatchItem]) -> Vec<CardRebuildUpdate>,
     {

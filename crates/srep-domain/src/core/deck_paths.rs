@@ -87,8 +87,7 @@ fn resolve_move(decks: &[DeckRow], id: &str, patch: &DeckPatch) -> Result<MovePl
             .ok_or_else(|| fail(axum::http::StatusCode::BAD_REQUEST, "bad_request"))?,
     };
     let ids: std::collections::HashSet<_> = subtree_ids(decks, id).into_iter().collect();
-    let parent_id = patch.parent_id.clone()
-        .unwrap_or(target.parent_id.clone());
+    let parent_id = patch.parent_id.clone().unwrap_or(target.parent_id.clone());
     let parent: Option<DeckRow> = match &parent_id {
         None => None,
         Some(pid) => Some(
@@ -104,7 +103,11 @@ fn resolve_move(decks: &[DeckRow], id: &str, patch: &DeckPatch) -> Result<MovePl
             return Err(fail(axum::http::StatusCode::CONFLICT, "deck_cycle"));
         }
     }
-    let subtree: Vec<_> = decks.iter().filter(|d| ids.contains(&d.id)).cloned().collect();
+    let subtree: Vec<_> = decks
+        .iter()
+        .filter(|d| ids.contains(&d.id))
+        .cloned()
+        .collect();
     Ok(MovePlan {
         target,
         parent,

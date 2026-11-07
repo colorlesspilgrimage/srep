@@ -1,8 +1,6 @@
 //! FSRS scheduling wrapper (parity: `core/fsrs-adapter.ts`).
 
-use crate::sched::{
-    check_parameters, generator_parameters, FsrsCard, FsrsEngine, Rating, State,
-};
+use crate::sched::{check_parameters, generator_parameters, FsrsCard, FsrsEngine, Rating, State};
 use crate::types::{Rating as AppRating, SchedFields, SchedState};
 
 const DAY_MS: i64 = 86_400_000;

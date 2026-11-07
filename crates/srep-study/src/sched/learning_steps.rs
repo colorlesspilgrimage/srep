@@ -100,14 +100,12 @@ pub fn apply_learning_steps(
         next.learning_steps = info.next_step;
         next.scheduled_days = 0;
         next.state = to_state;
-        next.due_ms =
-            super::help::date_scheduler(review_ms, scheduled_minutes as i32, false);
+        next.due_ms = super::help::date_scheduler(review_ms, scheduled_minutes as i32, false);
     } else {
         next.state = State::Review;
         if scheduled_minutes >= 1440 {
             next.learning_steps = info.next_step;
-            next.due_ms =
-                super::help::date_scheduler(review_ms, scheduled_minutes as i32, false);
+            next.due_ms = super::help::date_scheduler(review_ms, scheduled_minutes as i32, false);
             next.scheduled_days = (scheduled_minutes / 1440) as i32;
         } else {
             next.learning_steps = 0;

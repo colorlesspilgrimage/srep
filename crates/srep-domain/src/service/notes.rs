@@ -1,6 +1,6 @@
 use crate::core::card_plan::{desired_cards, field_checksum};
 use crate::core::ids::{new_id, random_token};
-use crate::core::validation::{NoteCreateInput, CardsMoveInput};
+use crate::core::validation::{CardsMoveInput, NoteCreateInput};
 use crate::deps::DomainCtx;
 use crate::error::{fail, ApiResult};
 use crate::types::{CardDraft, NoteRow};
@@ -21,7 +21,10 @@ pub async fn create_note(ctx: &DomainCtx<'_>, input: NoteCreateInput) -> ApiResu
         return Err(fail(axum::http::StatusCode::NOT_FOUND, "not_found"));
     }
     if input.fields.len() != note_type.fields.len() {
-        return Err(fail(axum::http::StatusCode::BAD_REQUEST, "field_count_mismatch"));
+        return Err(fail(
+            axum::http::StatusCode::BAD_REQUEST,
+            "field_count_mismatch",
+        ));
     }
     let now = ctx.now_ms();
     let checksum = field_checksum(

@@ -1,7 +1,5 @@
 pub fn is_short_text(value: &str) -> bool {
-    !value.is_empty()
-        && value.len() <= 64
-        && !value.chars().any(|c| c.is_control())
+    !value.is_empty() && value.len() <= 64 && !value.chars().any(|c| c.is_control())
 }
 
 pub fn normalize_nickname(input: &str) -> Option<String> {

@@ -13,10 +13,27 @@ pub const W17_W18_CEILING: f64 = 2.0;
 pub const DEFAULT_W: [f64; 21] = {
     let p = fsrs::DEFAULT_PARAMETERS;
     [
-        p[0] as f64, p[1] as f64, p[2] as f64, p[3] as f64, p[4] as f64, p[5] as f64, p[6] as f64,
-        p[7] as f64, p[8] as f64, p[9] as f64, p[10] as f64, p[11] as f64, p[12] as f64,
-        p[13] as f64, p[14] as f64, p[15] as f64, p[16] as f64, p[17] as f64, p[18] as f64,
-        p[19] as f64, p[20] as f64,
+        p[0] as f64,
+        p[1] as f64,
+        p[2] as f64,
+        p[3] as f64,
+        p[4] as f64,
+        p[5] as f64,
+        p[6] as f64,
+        p[7] as f64,
+        p[8] as f64,
+        p[9] as f64,
+        p[10] as f64,
+        p[11] as f64,
+        p[12] as f64,
+        p[13] as f64,
+        p[14] as f64,
+        p[15] as f64,
+        p[16] as f64,
+        p[17] as f64,
+        p[18] as f64,
+        p[19] as f64,
+        p[20] as f64,
     ]
 };
 
@@ -52,10 +69,7 @@ fn clamp_parameters_bounds(enable_short_term: bool) -> Vec<(f64, f64)> {
         (1.0, 6.0),
         (0.0, W17_W18_CEILING),
         (0.0, W17_W18_CEILING),
-        (
-            if enable_short_term { 0.01 } else { 0.0 },
-            0.8,
-        ),
+        (if enable_short_term { 0.01 } else { 0.0 }, 0.8),
         (0.1, 0.8),
     ]
 }
@@ -82,8 +96,8 @@ pub fn clip_parameters(
         let w11 = clamp_val(params[11], clip[11].0, clip[11].1);
         let w13 = clamp_val(params[13], clip[13].0, clip[13].1);
         let w14 = clamp_val(params[14], clip[14].0, clip[14].1);
-        let value = -(w11.ln() + (2.0_f64.powf(w13) - 1.0).ln() + w14 * 0.3)
-            / num_relearning_steps as f64;
+        let value =
+            -(w11.ln() + (2.0_f64.powf(w13) - 1.0).ln() + w14 * 0.3) / num_relearning_steps as f64;
         let w17_w18_ceiling = clamp_val(value.sqrt().max(0.0), 0.01, W17_W18_CEILING);
         if params.len() > 17 {
             params[17] = params[17].clamp(clip[17].0, w17_w18_ceiling);
@@ -159,7 +173,10 @@ pub fn generator_parameters(
     let learning_steps: Vec<_> = if learning_minutes.is_empty() {
         vec![StepUnit("1m".into()), StepUnit("10m".into())]
     } else {
-        learning_minutes.iter().map(|&m| minutes_to_step(m)).collect()
+        learning_minutes
+            .iter()
+            .map(|&m| minutes_to_step(m))
+            .collect()
     };
     let relearning_steps: Vec<_> = if relearning_minutes.is_empty() {
         vec![StepUnit("10m".into())]
@@ -169,11 +186,7 @@ pub fn generator_parameters(
             .map(|&m| minutes_to_step(m))
             .collect()
     };
-    let w = migrate_parameters(
-        fsrs_params,
-        relearning_steps.len(),
-        enable_short_term,
-    );
+    let w = migrate_parameters(fsrs_params, relearning_steps.len(), enable_short_term);
     FsrsParameters {
         request_retention: desired_retention,
         maximum_interval: max_interval,

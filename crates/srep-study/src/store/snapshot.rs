@@ -1,8 +1,8 @@
 use crate::queue_choice::{DeckSnapshot, HeadCard, SHUFFLE_MODULUS, SHUFFLE_MULTIPLIER};
 use crate::store::StudySnapshotInput;
 use anyhow::Result;
-use srep_db::DbPool;
 use sqlx::Row;
+use srep_db::DbPool;
 
 fn in_list(ids: &[String]) -> String {
     ids.iter()
@@ -11,7 +11,10 @@ fn in_list(ids: &[String]) -> String {
         .join(", ")
 }
 
-pub async fn read_snapshots(pool: &DbPool, input: &StudySnapshotInput) -> Result<Vec<DeckSnapshot>> {
+pub async fn read_snapshots(
+    pool: &DbPool,
+    input: &StudySnapshotInput,
+) -> Result<Vec<DeckSnapshot>> {
     if input.deck_ids.is_empty() {
         return Ok(vec![]);
     }
@@ -21,14 +24,20 @@ pub async fn read_snapshots(pool: &DbPool, input: &StudySnapshotInput) -> Result
     }
 }
 
-async fn read_sqlite(p: &sqlx::Pool<sqlx::Sqlite>, input: &StudySnapshotInput) -> Result<Vec<DeckSnapshot>> {
+async fn read_sqlite(
+    p: &sqlx::Pool<sqlx::Sqlite>,
+    input: &StudySnapshotInput,
+) -> Result<Vec<DeckSnapshot>> {
     let mut tx = p.begin().await?;
     let parts = fetch_parts_sqlite(&mut tx, input).await?;
     tx.commit().await?;
     Ok(assemble(&input.deck_ids, parts))
 }
 
-async fn read_postgres(p: &sqlx::Pool<sqlx::Postgres>, input: &StudySnapshotInput) -> Result<Vec<DeckSnapshot>> {
+async fn read_postgres(
+    p: &sqlx::Pool<sqlx::Postgres>,
+    input: &StudySnapshotInput,
+) -> Result<Vec<DeckSnapshot>> {
     let mut tx = p.begin().await?;
     let parts = fetch_parts_pg(&mut tx, input).await?;
     tx.commit().await?;
@@ -83,10 +92,7 @@ async fn fetch_parts_sqlite(
         now = input.now_ms,
         end = win.end_ms
     );
-    let review_filter = format!(
-        "card.state = 'review' AND card.due < {}",
-        win.end_ms
-    );
+    let review_filter = format!("card.state = 'review' AND card.due < {}", win.end_ms);
     let fresh_filter = "card.state = 'new'";
     let learning_filter = format!(
         "card.state IN ('learning', 'relearning') AND card.due <= {}",
@@ -146,16 +152,9 @@ async fn fetch_parts_pg(
          GROUP BY card.deck_id";
     let done = fetch_done_pg(tx, done_sql, &ids, win.start_ms, win.end_ms).await?;
     let learning = fetch_learning_pg(tx, learning_sql, &ids, input.now_ms, win.end_ms).await?;
-    let review_counts = fetch_counts_pg(
-        tx,
-        &ids,
-        "card.state = 'review'",
-        win.end_ms,
-    )
-    .await?;
+    let review_counts = fetch_counts_pg(tx, &ids, "card.state = 'review'", win.end_ms).await?;
     let new_counts = fetch_counts_pg(tx, &ids, "card.state = 'new'", win.end_ms).await?;
-    let learning_heads =
-        fetch_heads_pg(tx, &ids, "learning", input.now_ms, win.end_ms).await?;
+    let learning_heads = fetch_heads_pg(tx, &ids, "learning", input.now_ms, win.end_ms).await?;
     let review_heads = fetch_heads_pg(tx, &ids, "review", input.now_ms, win.end_ms).await?;
     let new_heads = fetch_heads_pg(tx, &ids, "new", input.now_ms, win.end_ms).await?;
     Ok(BatchParts {
@@ -364,10 +363,7 @@ async fn fetch_heads_pg(
             "card.state = 'review' AND card.due < $4",
             "card.due ASC, card.position ASC, card.id ASC",
         ),
-        _ => (
-            "card.state = 'new'",
-            "card.position ASC, card.id ASC",
-        ),
+        _ => ("card.state = 'new'", "card.position ASC, card.id ASC"),
     };
     let sql = format!(
         "SELECT DISTINCT ON (card.deck_id) card.deck_id, card.id AS card_id, card.due, card.position
@@ -392,7 +388,11 @@ async fn fetch_heads_pg(
             .fetch_all(&mut **tx)
             .await?
     } else {
-        sqlx::query(&sql).bind(ids).bind(now).fetch_all(&mut **tx).await?
+        sqlx::query(&sql)
+            .bind(ids)
+            .bind(now)
+            .fetch_all(&mut **tx)
+            .await?
     };
     Ok(rows
         .iter()
@@ -419,10 +419,7 @@ fn assemble(deck_ids: &[String], parts: BatchParts) -> Vec<DeckSnapshot> {
     }
     let mut learn = std::collections::HashMap::new();
     for (deck, due_now, today, next) in parts.learning {
-        learn.insert(
-            deck,
-            (due_now as u32, today as u32, next),
-        );
+        learn.insert(deck, (due_now as u32, today as u32, next));
     }
     let mut review_counts = std::collections::HashMap::new();
     for (d, n) in parts.review_counts {

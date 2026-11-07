@@ -69,21 +69,17 @@ pub async fn create_pairing_code(
     store: &AuthStore<'_>,
     origin: &str,
     name: Option<&str>,
-) -> Result<
-    (
-        String,
-        i64,
-        serde_json::Value,
-    ),
-    &'static str,
-> {
+) -> Result<(String, i64, serde_json::Value), &'static str> {
     let device_name = match name.map(str::trim).filter(|s| !s.is_empty()) {
         Some(n) if is_short_text(n) => n.to_string(),
         Some(_) => return Err("invalid_nickname"),
         None => default_device_name(now_ms()),
     };
     let now = now_ms();
-    store.prune_pairing_codes(now).await.map_err(|_| "pairing_failed")?;
+    store
+        .prune_pairing_codes(now)
+        .await
+        .map_err(|_| "pairing_failed")?;
     store
         .invalidate_open_pairing_codes(now)
         .await
@@ -117,7 +113,10 @@ pub async fn exchange_pairing_code(
     name: Option<&str>,
 ) -> Result<(String, Uuid, String), &'static str> {
     let now = now_ms();
-    store.prune_pairing_codes(now).await.map_err(|_| "pairing_failed")?;
+    store
+        .prune_pairing_codes(now)
+        .await
+        .map_err(|_| "pairing_failed")?;
     let code_hash = hash_pairing_code(code).ok_or("pairing_failed")?;
     let open = store
         .get_open_pairing_code_by_hash(&code_hash, now)
@@ -132,7 +131,11 @@ pub async fn exchange_pairing_code(
         Some(_) => return Err("invalid_nickname"),
         None => open.name.clone(),
     };
-    if !store.consume_pairing_code(open.id, now).await.unwrap_or(false) {
+    if !store
+        .consume_pairing_code(open.id, now)
+        .await
+        .unwrap_or(false)
+    {
         return Err("pairing_failed");
     }
     let raw = build_bearer_token();

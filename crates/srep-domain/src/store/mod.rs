@@ -5,8 +5,8 @@ use crate::core::card_state::CardStateUpdate;
 use crate::error::{fail, ApiFailure};
 use crate::types::*;
 use anyhow::Result;
-use srep_db::DbPool;
 use sqlx::{Pool, Postgres, Row, Sqlite};
+use srep_db::DbPool;
 use std::collections::HashSet;
 
 pub struct DomainStore<'a> {
@@ -22,12 +22,16 @@ impl<'a> DomainStore<'a> {
 
     pub async fn ensure_seeded(&self) -> Result<()> {
         let n: i64 = match self.pool {
-            DbPool::Sqlite(p) => sqlx::query_scalar("SELECT COUNT(*) FROM deck_preset")
-                .fetch_one(p)
-                .await?,
-            DbPool::Postgres(p) => sqlx::query_scalar("SELECT COUNT(*) FROM deck_preset")
-                .fetch_one(p)
-                .await?,
+            DbPool::Sqlite(p) => {
+                sqlx::query_scalar("SELECT COUNT(*) FROM deck_preset")
+                    .fetch_one(p)
+                    .await?
+            }
+            DbPool::Postgres(p) => {
+                sqlx::query_scalar("SELECT COUNT(*) FROM deck_preset")
+                    .fetch_one(p)
+                    .await?
+            }
         };
         if n == 0 {
             self.seed_defaults(&builtin_seed()).await?;
@@ -195,13 +199,12 @@ impl<'a> DomainStore<'a> {
         let json = rows::preset_to_db(row)?;
         match self.pool {
             DbPool::Sqlite(p) => {
-                let clash: Option<String> = sqlx::query_scalar(
-                    "SELECT id FROM deck_preset WHERE name = ? AND id != ?",
-                )
-                .bind(&row.name)
-                .bind(&row.id)
-                .fetch_optional(p)
-                .await?;
+                let clash: Option<String> =
+                    sqlx::query_scalar("SELECT id FROM deck_preset WHERE name = ? AND id != ?")
+                        .bind(&row.name)
+                        .bind(&row.id)
+                        .fetch_optional(p)
+                        .await?;
                 if clash.is_some() {
                     return Ok("name_taken");
                 }
@@ -225,13 +228,12 @@ impl<'a> DomainStore<'a> {
                 .await?;
             }
             DbPool::Postgres(p) => {
-                let clash: Option<String> = sqlx::query_scalar(
-                    "SELECT id FROM deck_preset WHERE name = $1 AND id != $2",
-                )
-                .bind(&row.name)
-                .bind(&row.id)
-                .fetch_optional(p)
-                .await?;
+                let clash: Option<String> =
+                    sqlx::query_scalar("SELECT id FROM deck_preset WHERE name = $1 AND id != $2")
+                        .bind(&row.name)
+                        .bind(&row.id)
+                        .fetch_optional(p)
+                        .await?;
                 if clash.is_some() {
                     return Ok("name_taken");
                 }
@@ -484,7 +486,8 @@ impl<'a> DomainStore<'a> {
                     match self.pool {
                         DbPool::Sqlite(p) => {
                             let ph = chunk.iter().map(|_| "?").collect::<Vec<_>>().join(",");
-                            let sql = format!("UPDATE card SET deck_id = ? WHERE deck_id IN ({ph})");
+                            let sql =
+                                format!("UPDATE card SET deck_id = ? WHERE deck_id IN ({ph})");
                             let mut q = sqlx::query(&sql).bind(&target_deck_id);
                             for id in &chunk {
                                 q = q.bind(id);
@@ -496,7 +499,8 @@ impl<'a> DomainStore<'a> {
                                 .map(|i| format!("${i}"))
                                 .collect::<Vec<_>>()
                                 .join(",");
-                            let sql = format!("UPDATE card SET deck_id = $1 WHERE deck_id IN ({ph})");
+                            let sql =
+                                format!("UPDATE card SET deck_id = $1 WHERE deck_id IN ({ph})");
                             let mut q = sqlx::query(&sql).bind(&target_deck_id);
                             for id in &chunk {
                                 q = q.bind(id);
@@ -512,8 +516,9 @@ impl<'a> DomainStore<'a> {
                     match self.pool {
                         DbPool::Sqlite(p) => {
                             let ph = chunk.iter().map(|_| "?").collect::<Vec<_>>().join(",");
-                            let sql =
-                                format!("SELECT DISTINCT note_id FROM card WHERE deck_id IN ({ph})");
+                            let sql = format!(
+                                "SELECT DISTINCT note_id FROM card WHERE deck_id IN ({ph})"
+                            );
                             let mut q = sqlx::query(&sql);
                             for id in &chunk {
                                 q = q.bind(id);
@@ -527,8 +532,9 @@ impl<'a> DomainStore<'a> {
                                 .map(|i| format!("${i}"))
                                 .collect::<Vec<_>>()
                                 .join(",");
-                            let sql =
-                                format!("SELECT DISTINCT note_id FROM card WHERE deck_id IN ({ph})");
+                            let sql = format!(
+                                "SELECT DISTINCT note_id FROM card WHERE deck_id IN ({ph})"
+                            );
                             let mut q = sqlx::query(&sql);
                             for id in &chunk {
                                 q = q.bind(id);
@@ -617,7 +623,9 @@ impl<'a> DomainStore<'a> {
                 let types = sqlx::query("SELECT * FROM note_type ORDER BY name")
                     .fetch_all(p)
                     .await?;
-                let templates = sqlx::query("SELECT * FROM card_template").fetch_all(p).await?;
+                let templates = sqlx::query("SELECT * FROM card_template")
+                    .fetch_all(p)
+                    .await?;
                 let mut out = Vec::new();
                 for t in &types {
                     let nt = rows::row_to_note_type_sqlite(t)?;
@@ -637,7 +645,9 @@ impl<'a> DomainStore<'a> {
                 let types = sqlx::query("SELECT * FROM note_type ORDER BY name")
                     .fetch_all(p)
                     .await?;
-                let templates = sqlx::query("SELECT * FROM card_template").fetch_all(p).await?;
+                let templates = sqlx::query("SELECT * FROM card_template")
+                    .fetch_all(p)
+                    .await?;
                 let mut out = Vec::new();
                 for t in &types {
                     let nt = rows::row_to_note_type_pg(t)?;
@@ -771,9 +781,10 @@ impl<'a> DomainStore<'a> {
                         .execute(&mut *tx)
                         .await?;
                 }
-                let position: i32 = sqlx::query_scalar("SELECT COALESCE(MAX(position), -1) + 1 FROM card")
-                    .fetch_one(&mut *tx)
-                    .await?;
+                let position: i32 =
+                    sqlx::query_scalar("SELECT COALESCE(MAX(position), -1) + 1 FROM card")
+                        .fetch_one(&mut *tx)
+                        .await?;
                 let mut pos = position;
                 for draft in cards {
                     sqlx::query(
@@ -817,9 +828,10 @@ impl<'a> DomainStore<'a> {
                         .execute(&mut *tx)
                         .await?;
                 }
-                let position: i32 = sqlx::query_scalar("SELECT COALESCE(MAX(position), -1) + 1 FROM card")
-                    .fetch_one(&mut *tx)
-                    .await?;
+                let position: i32 =
+                    sqlx::query_scalar("SELECT COALESCE(MAX(position), -1) + 1 FROM card")
+                        .fetch_one(&mut *tx)
+                        .await?;
                 let mut pos = position;
                 for draft in cards {
                     sqlx::query(
@@ -1033,11 +1045,12 @@ async fn sqlite_preset_insert(
     row: &PresetRow,
     json: &rows::PresetDbJson,
 ) -> Result<&'static str> {
-    let clash: Option<String> = sqlx::query_scalar("SELECT id FROM deck_preset WHERE name = ? AND id != ?")
-        .bind(&row.name)
-        .bind(&row.id)
-        .fetch_optional(p)
-        .await?;
+    let clash: Option<String> =
+        sqlx::query_scalar("SELECT id FROM deck_preset WHERE name = ? AND id != ?")
+            .bind(&row.name)
+            .bind(&row.id)
+            .fetch_optional(p)
+            .await?;
     if clash.is_some() {
         return Ok("name_taken");
     }
@@ -1071,11 +1084,12 @@ async fn postgres_preset_insert(
     row: &PresetRow,
     json: &rows::PresetDbJson,
 ) -> Result<&'static str> {
-    let clash: Option<String> = sqlx::query_scalar("SELECT id FROM deck_preset WHERE name = $1 AND id != $2")
-        .bind(&row.name)
-        .bind(&row.id)
-        .fetch_optional(p)
-        .await?;
+    let clash: Option<String> =
+        sqlx::query_scalar("SELECT id FROM deck_preset WHERE name = $1 AND id != $2")
+            .bind(&row.name)
+            .bind(&row.id)
+            .fetch_optional(p)
+            .await?;
     if clash.is_some() {
         return Ok("name_taken");
     }

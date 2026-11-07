@@ -18,12 +18,10 @@ use crate::pairing::{create_pairing_code, exchange_pairing_code};
 use crate::recovery_codes::{generate_recovery_codes, hash_recovery_code, verify_recovery_code};
 use crate::session::{build_session, now_ms};
 use crate::state::AppState;
-use crate::types::RecoveryRow;
 use crate::text::normalize_nickname;
-use crate::tokens::{csrf_token_for, sha256_hex, safe_equal};
-use crate::types::{
-    ApiTokenView, ChallengePurpose, DeleteCredentialResult, PublicCredential,
-};
+use crate::tokens::{csrf_token_for, safe_equal, sha256_hex};
+use crate::types::RecoveryRow;
+use crate::types::{ApiTokenView, ChallengePurpose, DeleteCredentialResult, PublicCredential};
 use crate::webauthn_ops::{
     challenge_string_from_creation, challenge_string_from_request, check_sign_count,
     credential_id_from_string, credential_id_to_string, finish_login, finish_registration,
@@ -45,11 +43,17 @@ pub fn router() -> Router<AppState> {
         .route("/api/auth/credentials", get(list_credentials))
         .route("/api/auth/credentials/options", post(credentials_options))
         .route("/api/auth/credentials/verify", post(credentials_verify))
-        .route("/api/auth/credentials/:id", patch(rename_credential).delete(delete_credential))
+        .route(
+            "/api/auth/credentials/:id",
+            patch(rename_credential).delete(delete_credential),
+        )
         .route("/api/auth/pairing/code", post(pairing_code))
         .route("/api/auth/pairing/exchange", post(pairing_exchange))
         .route("/api/auth/tokens", get(list_tokens))
-        .route("/api/auth/tokens/:id", patch(rename_token).delete(revoke_token))
+        .route(
+            "/api/auth/tokens/:id",
+            patch(rename_token).delete(revoke_token),
+        )
 }
 
 async fn auth_status(
@@ -102,12 +106,7 @@ async fn auth_logout_all(
     }
     let _ = state.auth_store().delete_all_sessions().await;
     let headers = [(header::SET_COOKIE, clear_session_cookie())];
-    (
-        StatusCode::OK,
-        headers,
-        Json(json!({"ok": true})),
-    )
-        .into_response()
+    (StatusCode::OK, headers, Json(json!({"ok": true}))).into_response()
 }
 
 fn check_auth_attempts(state: &AppState, headers: &HeaderMap) -> Option<axum::response::Response> {
@@ -189,9 +188,15 @@ async fn setup_options(
             .await
             {
                 Ok(id) => id,
-                Err(_) => return error_response(StatusCode::INTERNAL_SERVER_ERROR, "challenge_store"),
+                Err(_) => {
+                    return error_response(StatusCode::INTERNAL_SERVER_ERROR, "challenge_store")
+                }
             };
-            (StatusCode::OK, Json(json!({ "options": ccr, "challengeId": challenge_id }))).into_response()
+            (
+                StatusCode::OK,
+                Json(json!({ "options": ccr, "challengeId": challenge_id })),
+            )
+                .into_response()
         }
         Err(e) => {
             tracing::error!(?e, "setup options");
@@ -216,17 +221,26 @@ async fn setup_verify(
     headers: HeaderMap,
     Json(body): Json<SetupVerifyBody>,
 ) -> impl IntoResponse {
-    if let Some(r) = check_failure_limited(&state, &state.limiters.setup_token_failures, SETUP_FAILURE_KEY)
-    {
+    if let Some(r) = check_failure_limited(
+        &state,
+        &state.limiters.setup_token_failures,
+        SETUP_FAILURE_KEY,
+    ) {
         return r;
     }
     if let Some(r) = check_auth_attempts(&state, &headers) {
-        state.limiters.setup_token_failures.release(SETUP_FAILURE_KEY, now_ms());
+        state
+            .limiters
+            .setup_token_failures
+            .release(SETUP_FAILURE_KEY, now_ms());
         return r;
     }
     let store = state.auth_store();
     if store.is_setup_complete().await.unwrap_or(false) {
-        state.limiters.setup_token_failures.release(SETUP_FAILURE_KEY, now_ms());
+        state
+            .limiters
+            .setup_token_failures
+            .release(SETUP_FAILURE_KEY, now_ms());
         return error_response(StatusCode::FORBIDDEN, "setup_locked");
     }
     if !setup_token_valid(&state, &body.setup_token).await {
@@ -235,18 +249,27 @@ async fn setup_verify(
     let nick = match normalize_nickname(&body.nickname) {
         Some(n) => n,
         None => {
-            state.limiters.setup_token_failures.release(SETUP_FAILURE_KEY, now_ms());
+            state
+                .limiters
+                .setup_token_failures
+                .release(SETUP_FAILURE_KEY, now_ms());
             return error_response(StatusCode::BAD_REQUEST, "invalid_nickname");
         }
     };
     let taken = match take_challenge(&store, &body.challenge_id, ChallengePurpose::Setup).await {
         Ok(t) => t,
         Err(TakeChallengeError::Expired) => {
-            state.limiters.setup_token_failures.release(SETUP_FAILURE_KEY, now_ms());
+            state
+                .limiters
+                .setup_token_failures
+                .release(SETUP_FAILURE_KEY, now_ms());
             return error_response(StatusCode::BAD_REQUEST, "challenge_expired");
         }
         Err(TakeChallengeError::Invalid) => {
-            state.limiters.setup_token_failures.release(SETUP_FAILURE_KEY, now_ms());
+            state
+                .limiters
+                .setup_token_failures
+                .release(SETUP_FAILURE_KEY, now_ms());
             return error_response(StatusCode::BAD_REQUEST, "challenge_invalid");
         }
     };
@@ -256,7 +279,10 @@ async fn setup_verify(
     let passkey = match finish_registration(&state.webauthn.webauthn, &body.response, &reg_state) {
         Ok(p) => p,
         Err(_) => {
-            state.limiters.setup_token_failures.release(SETUP_FAILURE_KEY, now_ms());
+            state
+                .limiters
+                .setup_token_failures
+                .release(SETUP_FAILURE_KEY, now_ms());
             return error_response(StatusCode::BAD_REQUEST, "verification_failed");
         }
     };
@@ -286,9 +312,7 @@ async fn setup_verify(
     let csrf = csrf_token_for(&session.raw_token);
     (
         StatusCode::OK,
-        [
-            (header::SET_COOKIE, cookie),
-        ],
+        [(header::SET_COOKIE, cookie)],
         Json(json!({
             "recoveryCodes": recovery_codes,
             "credential": PublicCredential::from(cred),
@@ -325,7 +349,10 @@ async fn login_options(
     let mut keys = vec![];
     if kind == "security_key" {
         let creds = store.list_credentials().await.unwrap_or_default();
-        let keys_list: Vec<_> = creds.into_iter().filter(|c| c.kind == "security_key").collect();
+        let keys_list: Vec<_> = creds
+            .into_iter()
+            .filter(|c| c.kind == "security_key")
+            .collect();
         if keys_list.is_empty() {
             return error_response(StatusCode::BAD_REQUEST, "no_security_key");
         }
@@ -352,7 +379,11 @@ async fn login_options(
             )
             .await
             .unwrap_or_default();
-            (StatusCode::OK, Json(json!({ "options": rcr, "challengeId": challenge_id }))).into_response()
+            (
+                StatusCode::OK,
+                Json(json!({ "options": rcr, "challengeId": challenge_id })),
+            )
+                .into_response()
         }
         Err(_) => error_response(StatusCode::INTERNAL_SERVER_ERROR, "webauthn"),
     }
@@ -444,12 +475,18 @@ async fn recovery_login(
     headers: HeaderMap,
     Json(body): Json<RecoveryLoginBody>,
 ) -> impl IntoResponse {
-    if let Some(r) = check_failure_limited(&state, &state.limiters.recovery_failures, RECOVERY_FAILURE_KEY)
-    {
+    if let Some(r) = check_failure_limited(
+        &state,
+        &state.limiters.recovery_failures,
+        RECOVERY_FAILURE_KEY,
+    ) {
         return r;
     }
     if let Some(r) = check_auth_attempts(&state, &headers) {
-        state.limiters.recovery_failures.release(RECOVERY_FAILURE_KEY, now_ms());
+        state
+            .limiters
+            .recovery_failures
+            .release(RECOVERY_FAILURE_KEY, now_ms());
         return r;
     }
     let store = state.auth_store();
@@ -496,7 +533,11 @@ async fn list_credentials(
     if !require_session(req_auth) {
         return error_response(StatusCode::UNAUTHORIZED, "unauthorized");
     }
-    let creds = state.auth_store().list_credentials().await.unwrap_or_default();
+    let creds = state
+        .auth_store()
+        .list_credentials()
+        .await
+        .unwrap_or_default();
     let public: Vec<PublicCredential> = creds.into_iter().map(PublicCredential::from).collect();
     Json(json!({ "credentials": public })).into_response()
 }
@@ -544,7 +585,11 @@ async fn credentials_options(
             )
             .await
             .unwrap_or_default();
-            (StatusCode::OK, Json(json!({ "options": ccr, "challengeId": challenge_id }))).into_response()
+            (
+                StatusCode::OK,
+                Json(json!({ "options": ccr, "challengeId": challenge_id })),
+            )
+                .into_response()
         }
         Err(_) => error_response(StatusCode::INTERNAL_SERVER_ERROR, "webauthn"),
     }
@@ -625,7 +670,12 @@ async fn rename_credential(
         Some(n) => n,
         None => return error_response(StatusCode::BAD_REQUEST, "invalid_nickname"),
     };
-    if state.auth_store().rename_credential(uid, &nick).await.unwrap_or(false) {
+    if state
+        .auth_store()
+        .rename_credential(uid, &nick)
+        .await
+        .unwrap_or(false)
+    {
         Json(json!({ "ok": true })).into_response()
     } else {
         error_response(StatusCode::NOT_FOUND, "not_found")
@@ -693,12 +743,18 @@ async fn pairing_exchange(
     headers: HeaderMap,
     Json(body): Json<PairingExchangeBody>,
 ) -> impl IntoResponse {
-    if let Some(r) = check_failure_limited(&state, &state.limiters.pairing_failures, PAIRING_FAILURE_KEY)
-    {
+    if let Some(r) = check_failure_limited(
+        &state,
+        &state.limiters.pairing_failures,
+        PAIRING_FAILURE_KEY,
+    ) {
         return r;
     }
     if let Some(r) = check_auth_attempts(&state, &headers) {
-        state.limiters.pairing_failures.release(PAIRING_FAILURE_KEY, now_ms());
+        state
+            .limiters
+            .pairing_failures
+            .release(PAIRING_FAILURE_KEY, now_ms());
         return r;
     }
     let store = state.auth_store();
@@ -809,7 +865,9 @@ pub async fn reset_auth(state: &AppState) -> anyhow::Result<String> {
                 .execute(pool)
                 .await?;
             sqlx::query("DELETE FROM api_token").execute(pool).await?;
-            sqlx::query("DELETE FROM pairing_code").execute(pool).await?;
+            sqlx::query("DELETE FROM pairing_code")
+                .execute(pool)
+                .await?;
         }
         None => {
             if let Some(pool) = store.postgres {
@@ -823,7 +881,9 @@ pub async fn reset_auth(state: &AppState) -> anyhow::Result<String> {
                     .execute(pool)
                     .await?;
                 sqlx::query("DELETE FROM api_token").execute(pool).await?;
-                sqlx::query("DELETE FROM pairing_code").execute(pool).await?;
+                sqlx::query("DELETE FROM pairing_code")
+                    .execute(pool)
+                    .await?;
             }
         }
     }

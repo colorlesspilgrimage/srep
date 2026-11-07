@@ -9,8 +9,7 @@ use std::sync::Arc;
 pub async fn test_pool() -> (DbPool, tempfile::TempDir) {
     let dir = tempfile::tempdir().unwrap();
     let db_path = dir.path().join("test.db");
-    let migrations = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../migrations/sqlite");
+    let migrations = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../migrations/sqlite");
     let config = Config {
         database: DatabaseConfig::Sqlite { path: db_path },
         log_level: LogLevel::Info,
@@ -54,14 +53,15 @@ pub fn app_state(pool: &DbPool, media: std::path::PathBuf) -> AppState {
     AppState {
         config,
         db: pool.clone(),
-        webauthn: Arc::new(WebAuthnState::new(&AuthConfig {
-            origin: "http://localhost:3000".into(),
-            rp_id: "localhost".into(),
-            rp_name: "srep".into(),
-        })
-        .unwrap()),
+        webauthn: Arc::new(
+            WebAuthnState::new(&AuthConfig {
+                origin: "http://localhost:3000".into(),
+                rp_id: "localhost".into(),
+                rp_name: "srep".into(),
+            })
+            .unwrap(),
+        ),
         setup_token: Default::default(),
         limiters: Arc::new(AuthLimiters::new()),
     }
 }
-

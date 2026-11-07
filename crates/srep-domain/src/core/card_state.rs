@@ -24,10 +24,7 @@ pub fn plan_suspend(cards: &[CardRow]) -> Vec<CardStateUpdate> {
 
 pub fn plan_unsuspend(cards: &[CardRow]) -> Result<Vec<CardStateUpdate>, ApiFailure> {
     let suspended: Vec<_> = cards.iter().filter(|c| c.state == "suspended").collect();
-    if suspended
-        .iter()
-        .any(|c| (c.flags & FLAG_ORPHANED) != 0)
-    {
+    if suspended.iter().any(|c| (c.flags & FLAG_ORPHANED) != 0) {
         return Err(fail(axum::http::StatusCode::CONFLICT, "card_orphaned"));
     }
     Ok(suspended

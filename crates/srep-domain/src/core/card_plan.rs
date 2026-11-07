@@ -19,7 +19,10 @@ fn render_simple(tpl: &str, fields: &[(String, String)]) -> String {
     out
 }
 
-pub fn desired_cards(note_type: &NoteTypeWithTemplates, field_values: &[String]) -> Vec<DesiredCard> {
+pub fn desired_cards(
+    note_type: &NoteTypeWithTemplates,
+    field_values: &[String],
+) -> Vec<DesiredCard> {
     let pairs: Vec<_> = note_type
         .fields
         .iter()

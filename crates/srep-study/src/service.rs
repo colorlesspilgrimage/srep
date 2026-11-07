@@ -13,12 +13,12 @@ use crate::study_settings::get_settings_default;
 use crate::types::{StudySettings, StudyWindow};
 use crate::validation::AnswerBody;
 use anyhow::Result;
+use serde::Serialize;
+use sqlx::Row;
 use srep_auth::AppState;
 use srep_domain::builtin::{builtin_preset, DEFAULT_PRESET_ID};
 use srep_domain::core::deck_paths::subtree_ids;
 use srep_domain::store::DomainStore;
-use serde::Serialize;
-use sqlx::Row;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -88,8 +88,14 @@ pub async fn study_next(state: &AppState, deck_id: Option<&str>) -> Result<NextR
         .unbury_expired(now)
         .await
         .map_err(|_| StudyError::Internal)?;
-    let decks = domain.list_decks().await.map_err(|_| StudyError::Internal)?;
-    let presets = domain.list_presets().await.map_err(|_| StudyError::Internal)?;
+    let decks = domain
+        .list_decks()
+        .await
+        .map_err(|_| StudyError::Internal)?;
+    let presets = domain
+        .list_presets()
+        .await
+        .map_err(|_| StudyError::Internal)?;
     if let Some(id) = deck_id {
         if !decks.iter().any(|d| d.id == id) {
             return Err(StudyError::NotFound);
@@ -173,28 +179,36 @@ async fn build_study_card(
     let note_id = card.note_id.clone();
     let (note_type_id, fields_json) = match &state.db {
         srep_db::DbPool::Sqlite(p) => {
-            let note = sqlx::query("SELECT note_type_id, fields FROM note WHERE id = ? AND deleted_at IS NULL")
-                .bind(&note_id)
-                .fetch_optional(p)
-                .await
-                .map_err(|_| StudyError::Internal)?;
+            let note = sqlx::query(
+                "SELECT note_type_id, fields FROM note WHERE id = ? AND deleted_at IS NULL",
+            )
+            .bind(&note_id)
+            .fetch_optional(p)
+            .await
+            .map_err(|_| StudyError::Internal)?;
             let Some(note) = note else {
                 return Ok(None);
             };
-            let note_type_id: String = note.try_get("note_type_id").map_err(|_| StudyError::Internal)?;
+            let note_type_id: String = note
+                .try_get("note_type_id")
+                .map_err(|_| StudyError::Internal)?;
             let fields_json: String = note.try_get("fields").map_err(|_| StudyError::Internal)?;
             (note_type_id, fields_json)
         }
         srep_db::DbPool::Postgres(p) => {
-            let note = sqlx::query("SELECT note_type_id, fields FROM note WHERE id = $1 AND deleted_at IS NULL")
-                .bind(&note_id)
-                .fetch_optional(p)
-                .await
-                .map_err(|_| StudyError::Internal)?;
+            let note = sqlx::query(
+                "SELECT note_type_id, fields FROM note WHERE id = $1 AND deleted_at IS NULL",
+            )
+            .bind(&note_id)
+            .fetch_optional(p)
+            .await
+            .map_err(|_| StudyError::Internal)?;
             let Some(note) = note else {
                 return Ok(None);
             };
-            let note_type_id: String = note.try_get("note_type_id").map_err(|_| StudyError::Internal)?;
+            let note_type_id: String = note
+                .try_get("note_type_id")
+                .map_err(|_| StudyError::Internal)?;
             let fields_json: String = note.try_get("fields").map_err(|_| StudyError::Internal)?;
             (note_type_id, fields_json)
         }
@@ -223,13 +237,15 @@ async fn build_study_card(
                 .flatten()
         }
     };
-    let template = template_id.as_deref().and_then(|tid| {
-        note_type.templates.iter().find(|t| t.id == *tid)
-    });
+    let template = template_id
+        .as_deref()
+        .and_then(|tid| note_type.templates.iter().find(|t| t.id == *tid));
     let (front, back) = template
         .map(|t| render_pair(t, &note_type.fields, &fields))
         .unwrap_or_default();
-    let preset = preset_row.as_ref().map(crate::store::convert::to_answer_preset);
+    let preset = preset_row
+        .as_ref()
+        .map(crate::store::convert::to_answer_preset);
     let previews = match preset {
         Some(p) => {
             let sched = SchedulerPreset {
@@ -285,7 +301,10 @@ fn render_pair(
     (front, back)
 }
 
-pub async fn study_answer(state: &AppState, body: AnswerBody) -> Result<serde_json::Value, StudyError> {
+pub async fn study_answer(
+    state: &AppState,
+    body: AnswerBody,
+) -> Result<serde_json::Value, StudyError> {
     let study = StudyStore::new(&state.db);
     let settings = load_settings(&study).await?;
     let now = now_ms();
@@ -384,8 +403,14 @@ pub struct ChainMismatch {
 pub async fn study_verify(state: &AppState) -> Result<VerifyReport, StudyError> {
     let study = StudyStore::new(&state.db);
     let domain = DomainStore::new(&state.db);
-    let presets = domain.list_presets().await.map_err(|_| StudyError::Internal)?;
-    let decks = domain.list_decks().await.map_err(|_| StudyError::Internal)?;
+    let presets = domain
+        .list_presets()
+        .await
+        .map_err(|_| StudyError::Internal)?;
+    let decks = domain
+        .list_decks()
+        .await
+        .map_err(|_| StudyError::Internal)?;
     let fallback = presets
         .iter()
         .find(|p| p.id == DEFAULT_PRESET_ID)
@@ -453,8 +478,14 @@ pub async fn study_verify(state: &AppState) -> Result<VerifyReport, StudyError> 
 pub async fn study_rebuild(state: &AppState) -> Result<serde_json::Value, StudyError> {
     let study = StudyStore::new(&state.db);
     let domain = DomainStore::new(&state.db);
-    let presets = domain.list_presets().await.map_err(|_| StudyError::Internal)?;
-    let decks = domain.list_decks().await.map_err(|_| StudyError::Internal)?;
+    let presets = domain
+        .list_presets()
+        .await
+        .map_err(|_| StudyError::Internal)?;
+    let decks = domain
+        .list_decks()
+        .await
+        .map_err(|_| StudyError::Internal)?;
     let fallback = presets
         .iter()
         .find(|p| p.id == DEFAULT_PRESET_ID)
@@ -532,11 +563,16 @@ pub async fn change_cards_bury(state: &AppState, ids: &[String]) -> Result<(), S
 
 async fn change_cards<F>(state: &AppState, ids: &[String], plan: F) -> Result<(), StudyError>
 where
-    F: FnOnce(&[crate::answer_plan::CardRow]) -> Result<Vec<crate::card_state_plan::CardStateUpdate>, CardStateFailure>,
+    F: FnOnce(
+        &[crate::answer_plan::CardRow],
+    ) -> Result<Vec<crate::card_state_plan::CardStateUpdate>, CardStateFailure>,
 {
     let study = StudyStore::new(&state.db);
     let ids: Vec<String> = ids.iter().map(|s| s.to_lowercase()).collect();
-    let result = study.change_card_states(&ids, plan).await.map_err(|_| StudyError::Internal)?;
+    let result = study
+        .change_card_states(&ids, plan)
+        .await
+        .map_err(|_| StudyError::Internal)?;
     match result {
         ChangeCardStatesResult::CardNotFound => Err(StudyError::NotFound),
         ChangeCardStatesResult::Failure(_) => Err(StudyError::BadRequest),
@@ -553,7 +589,10 @@ pub async fn get_study_settings(state: &AppState) -> Result<StudySettings, Study
     get_settings_default(raw.as_ref()).map_err(|_| StudyError::BadRequest)
 }
 
-pub async fn put_study_settings(state: &AppState, settings: StudySettings) -> Result<StudySettings, StudyError> {
+pub async fn put_study_settings(
+    state: &AppState,
+    settings: StudySettings,
+) -> Result<StudySettings, StudyError> {
     let study = StudyStore::new(&state.db);
     study
         .put_study_settings(&settings)

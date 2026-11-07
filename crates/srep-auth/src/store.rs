@@ -473,7 +473,12 @@ impl<'a> AuthStore<'a> {
         })
     }
 
-    pub async fn update_sign_count(&self, id: Uuid, sign_count: i64, last_used_at: i64) -> Result<bool> {
+    pub async fn update_sign_count(
+        &self,
+        id: Uuid,
+        sign_count: i64,
+        last_used_at: i64,
+    ) -> Result<bool> {
         let advances = if sign_count == 0 {
             "sign_count = 0"
         } else {
@@ -485,15 +490,15 @@ impl<'a> AuthStore<'a> {
             );
             let q = if sign_count == 0 {
                 sqlx::query(&sql)
-                .bind(sign_count)
-                .bind(last_used_at)
-                .bind(id.to_string())
+                    .bind(sign_count)
+                    .bind(last_used_at)
+                    .bind(id.to_string())
             } else {
                 sqlx::query(&sql)
-                .bind(sign_count)
-                .bind(last_used_at)
-                .bind(id.to_string())
-                .bind(sign_count)
+                    .bind(sign_count)
+                    .bind(last_used_at)
+                    .bind(id.to_string())
+                    .bind(sign_count)
             };
             let r = q.execute(pool).await?;
             return Ok(r.rows_affected() > 0);
@@ -599,7 +604,8 @@ impl<'a> AuthStore<'a> {
             return Ok(rows
                 .into_iter()
                 .map(|r| RecoveryRow {
-                    id: Uuid::parse_str(&r.get::<String, _>("id")).unwrap_or_else(|_| Uuid::new_v4()),
+                    id: Uuid::parse_str(&r.get::<String, _>("id"))
+                        .unwrap_or_else(|_| Uuid::new_v4()),
                     code_hash: r.get("code_hash"),
                 })
                 .collect());
@@ -716,23 +722,21 @@ impl<'a> AuthStore<'a> {
 
     pub async fn rename_api_token(&self, id: Uuid, name: &str) -> Result<bool> {
         if let Some(pool) = self.sqlite {
-            let r = sqlx::query(
-                "UPDATE api_token SET name = ? WHERE id = ? AND revoked_at IS NULL",
-            )
-            .bind(name)
-            .bind(id.to_string())
-            .execute(pool)
-            .await?;
+            let r =
+                sqlx::query("UPDATE api_token SET name = ? WHERE id = ? AND revoked_at IS NULL")
+                    .bind(name)
+                    .bind(id.to_string())
+                    .execute(pool)
+                    .await?;
             return Ok(r.rows_affected() > 0);
         }
         if let Some(pool) = self.postgres {
-            let r = sqlx::query(
-                "UPDATE api_token SET name = $1 WHERE id = $2 AND revoked_at IS NULL",
-            )
-            .bind(name)
-            .bind(id)
-            .execute(pool)
-            .await?;
+            let r =
+                sqlx::query("UPDATE api_token SET name = $1 WHERE id = $2 AND revoked_at IS NULL")
+                    .bind(name)
+                    .bind(id)
+                    .execute(pool)
+                    .await?;
             return Ok(r.rows_affected() > 0);
         }
         Ok(false)

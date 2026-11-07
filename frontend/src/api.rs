@@ -86,10 +86,8 @@ async fn fetch(path: &str, method: &str, body: Option<String>) -> Result<Respons
             status: 0,
             body: format!("fetch: {e:?}"),
         })?;
-    resp_value
-        .dyn_into::<Response>()
-        .map_err(|e| ApiError {
-            status: 0,
-            body: format!("response: {e:?}"),
-        })
+    resp_value.dyn_into::<Response>().map_err(|e| ApiError {
+        status: 0,
+        body: format!("response: {e:?}"),
+    })
 }

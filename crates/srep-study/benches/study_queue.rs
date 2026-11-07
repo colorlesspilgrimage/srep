@@ -29,7 +29,13 @@ fn bench_choose_next(c: &mut Criterion) {
         })
         .collect();
     c.bench_function("choose_next_20_decks", |b| {
-        b.iter(|| black_box(choose_next(black_box(&snapshots), black_box(&quotas), 1_000_000)))
+        b.iter(|| {
+            black_box(choose_next(
+                black_box(&snapshots),
+                black_box(&quotas),
+                1_000_000,
+            ))
+        })
     });
 }
 

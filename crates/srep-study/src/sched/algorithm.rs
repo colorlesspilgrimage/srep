@@ -124,8 +124,16 @@ impl FsrsAlgorithm {
         round_to(clamp(s * masked, S_MIN, 36500.0), 8)
     }
 
-    pub fn next_state(&self, memory: Option<MemoryState>, t: i32, g: Grade, r: Option<f64>) -> MemoryState {
-        let (d, s) = memory.map(|m| (m.difficulty, m.stability)).unwrap_or((0.0, 0.0));
+    pub fn next_state(
+        &self,
+        memory: Option<MemoryState>,
+        t: i32,
+        g: Grade,
+        r: Option<f64>,
+    ) -> MemoryState {
+        let (d, s) = memory
+            .map(|m| (m.difficulty, m.stability))
+            .unwrap_or((0.0, 0.0));
         if d == 0.0 && s == 0.0 {
             return MemoryState {
                 difficulty: clamp(self.init_difficulty(g), 1.0, 10.0),

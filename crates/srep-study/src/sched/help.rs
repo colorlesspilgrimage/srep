@@ -39,6 +39,10 @@ pub fn step_to_minutes(step: &str) -> Result<u32, ParamError> {
         'm' => value,
         'h' => value * 60,
         'd' => value * 1440,
-        _ => return Err(ParamError(format!("Invalid step unit: {step}, expected m/h/d"))),
+        _ => {
+            return Err(ParamError(format!(
+                "Invalid step unit: {step}, expected m/h/d"
+            )))
+        }
     })
 }

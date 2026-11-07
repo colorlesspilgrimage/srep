@@ -6,8 +6,7 @@ use uuid::Uuid;
 pub const MAX_FIELD_TEXT: usize = 50_000;
 pub const MAX_CARDS_PER_MOVE: usize = 500;
 
-static CONTROL: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\p{Cc}").expect("control regex"));
+static CONTROL: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\p{Cc}").expect("control regex"));
 
 pub fn parse_id(raw: &str) -> Option<String> {
     Uuid::parse_str(raw).ok().map(|u| u.to_string())

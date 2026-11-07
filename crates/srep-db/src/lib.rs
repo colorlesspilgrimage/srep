@@ -89,12 +89,20 @@ pub async fn connect(config: &Config) -> Result<DbPool> {
     }
 }
 
+fn migrations_folder(config: &Config, dialect: &str) -> PathBuf {
+    if let Some(ref base) = config.migrations_dir {
+        let dialect_dir = base.join(dialect);
+        if dialect_dir.is_dir() {
+            return dialect_dir;
+        }
+        return base.clone();
+    }
+    default_migrations_dir(dialect)
+}
+
 pub async fn run_migrations(pool: &DbPool, config: &Config) -> Result<()> {
     let dialect = pool.dialect();
-    let folder = config
-        .migrations_dir
-        .clone()
-        .unwrap_or_else(|| default_migrations_dir(dialect));
+    let folder = migrations_folder(config, dialect);
 
     if !folder.is_dir() {
         anyhow::bail!("migrations folder missing: {}", folder.display());
@@ -133,7 +141,8 @@ pub async fn run_migrations(pool: &DbPool, config: &Config) -> Result<()> {
 }
 
 async fn ensure_migration_journal(pool: &DbPool) -> Result<()> {
-    const SQL: &str = "CREATE TABLE IF NOT EXISTS schema_migration (name TEXT PRIMARY KEY NOT NULL)";
+    const SQL: &str =
+        "CREATE TABLE IF NOT EXISTS schema_migration (name TEXT PRIMARY KEY NOT NULL)";
     match pool {
         DbPool::Sqlite(p) => {
             sqlx::query(SQL).execute(p).await?;

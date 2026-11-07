@@ -78,12 +78,9 @@ async fn serve_media(
     }
     let ctx = DomainCtx::new(&state);
     match media::read_media(&ctx, &sha).await {
-        Ok((row, bytes)) => (
-            StatusCode::OK,
-            [(header::CONTENT_TYPE, row.mime)],
-            bytes,
-        )
-            .into_response(),
+        Ok((row, bytes)) => {
+            (StatusCode::OK, [(header::CONTENT_TYPE, row.mime)], bytes).into_response()
+        }
         Err(e) => error_response(e),
     }
 }

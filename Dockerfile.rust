@@ -19,6 +19,7 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
 ENV SREP_DATABASE_URL=sqlite:/data/srep.db
+ENV SREP_MIGRATIONS_DIR=/app/migrations
 ENV SREP_MEDIA_DIR=/data/media
 WORKDIR /app
 RUN apt-get update \

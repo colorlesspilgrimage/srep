@@ -1,10 +1,10 @@
 mod common;
 
-use srep_domain::builtin::DEFAULT_PRESET_ID;
-use srep_domain::core::validation::{DeckCreateInput, PresetInput};
 use srep_auth::limiters::AuthLimiters;
 use srep_auth::state::AppState;
 use srep_auth::webauthn::WebAuthnState;
+use srep_domain::builtin::DEFAULT_PRESET_ID;
+use srep_domain::core::validation::{DeckCreateInput, PresetInput};
 use srep_domain::deps::DomainCtx;
 use srep_domain::service::decks;
 use srep_domain::service::presets;
@@ -13,7 +13,10 @@ use std::sync::Arc;
 
 const UNKNOWN: &str = "123e4567-e89b-42d3-a456-426614174000";
 
-fn app_state(pool: &srep_db::DbPool, media: std::path::PathBuf) -> (AppState, Arc<srep_config::Config>) {
+fn app_state(
+    pool: &srep_db::DbPool,
+    media: std::path::PathBuf,
+) -> (AppState, Arc<srep_config::Config>) {
     let config = light_config(media);
     let state = AppState {
         config: config.clone(),
@@ -149,7 +152,10 @@ async fn preset_inheritance_and_unknown_parent() {
         },
     )
     .await;
-    assert_eq!(missing.err().unwrap().status, axum::http::StatusCode::NOT_FOUND);
+    assert_eq!(
+        missing.err().unwrap().status,
+        axum::http::StatusCode::NOT_FOUND
+    );
 
     let bad_preset = decks::create_deck(
         &ctx,
@@ -161,7 +167,10 @@ async fn preset_inheritance_and_unknown_parent() {
         },
     )
     .await;
-    assert_eq!(bad_preset.err().unwrap().status, axum::http::StatusCode::NOT_FOUND);
+    assert_eq!(
+        bad_preset.err().unwrap().status,
+        axum::http::StatusCode::NOT_FOUND
+    );
 
     let solo = decks::create_deck(
         &ctx,

@@ -19,7 +19,9 @@ pub fn credential_id_to_string(id: &CredentialID) -> String {
 }
 
 pub fn credential_id_from_string(s: &str) -> Option<CredentialID> {
-    let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(s).ok()?;
+    let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(s)
+        .ok()?;
     Some(CredentialID::from(bytes))
 }
 
@@ -51,7 +53,13 @@ pub fn row_from_passkey(
 
 pub fn sanitize_transports(transports: Option<Vec<String>>) -> Vec<String> {
     const ALLOWED: &[&str] = &[
-        "usb", "nfc", "ble", "internal", "hybrid", "smart-card", "cable",
+        "usb",
+        "nfc",
+        "ble",
+        "internal",
+        "hybrid",
+        "smart-card",
+        "cable",
     ];
     let Some(list) = transports else {
         return vec![];
@@ -124,7 +132,10 @@ pub fn challenge_string_from_creation(
 ) -> String {
     serde_json::to_value(ccr)
         .ok()
-        .and_then(|v| v.get("challenge").and_then(|c| c.as_str().map(String::from)))
+        .and_then(|v| {
+            v.get("challenge")
+                .and_then(|c| c.as_str().map(String::from))
+        })
         .unwrap_or_default()
 }
 
@@ -133,6 +144,9 @@ pub fn challenge_string_from_request(
 ) -> String {
     serde_json::to_value(rcr)
         .ok()
-        .and_then(|v| v.get("challenge").and_then(|c| c.as_str().map(String::from)))
+        .and_then(|v| {
+            v.get("challenge")
+                .and_then(|c| c.as_str().map(String::from))
+        })
         .unwrap_or_default()
 }

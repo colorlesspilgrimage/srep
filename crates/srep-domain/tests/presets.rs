@@ -1,10 +1,10 @@
 mod common;
 
-use srep_domain::builtin::DEFAULT_PRESET_ID;
-use srep_domain::core::validation::{DeckCreateInput, PresetInput};
 use srep_auth::limiters::AuthLimiters;
 use srep_auth::state::AppState;
 use srep_auth::webauthn::WebAuthnState;
+use srep_domain::builtin::DEFAULT_PRESET_ID;
+use srep_domain::core::validation::{DeckCreateInput, PresetInput};
 use srep_domain::deps::DomainCtx;
 use srep_domain::service::decks;
 use srep_domain::service::presets;
@@ -63,7 +63,9 @@ async fn preset_crud() {
     };
     let ctx = DomainCtx::new(&state);
 
-    let created = presets::create_preset(&ctx, preset_input("Fast")).await.unwrap();
+    let created = presets::create_preset(&ctx, preset_input("Fast"))
+        .await
+        .unwrap();
     let listed = presets::list_presets(&ctx).await.unwrap();
     assert!(listed.iter().any(|p| p.name == "Default"));
     assert!(listed.iter().any(|p| p.name == "Fast"));
@@ -75,7 +77,10 @@ async fn preset_crud() {
 
     presets::delete_preset(&ctx, &created.id).await.unwrap();
     let again = presets::delete_preset(&ctx, &created.id).await;
-    assert_eq!(again.err().unwrap().status, axum::http::StatusCode::NOT_FOUND);
+    assert_eq!(
+        again.err().unwrap().status,
+        axum::http::StatusCode::NOT_FOUND
+    );
 }
 
 #[tokio::test]
@@ -95,7 +100,9 @@ async fn builtin_protected_and_in_use() {
     let protected = presets::delete_preset(&ctx, DEFAULT_PRESET_ID).await;
     assert_eq!(protected.err().unwrap().error, "builtin_protected");
 
-    let used = presets::create_preset(&ctx, preset_input("Used")).await.unwrap();
+    let used = presets::create_preset(&ctx, preset_input("Used"))
+        .await
+        .unwrap();
     decks::create_deck(
         &ctx,
         DeckCreateInput {
@@ -115,5 +122,8 @@ async fn builtin_protected_and_in_use() {
     assert_eq!(dup.err().unwrap().error, "name_taken");
 
     let missing = presets::update_preset(&ctx, UNKNOWN, preset_input("Z")).await;
-    assert_eq!(missing.err().unwrap().status, axum::http::StatusCode::NOT_FOUND);
+    assert_eq!(
+        missing.err().unwrap().status,
+        axum::http::StatusCode::NOT_FOUND
+    );
 }

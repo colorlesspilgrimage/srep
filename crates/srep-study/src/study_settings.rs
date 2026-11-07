@@ -22,7 +22,9 @@ pub fn parse_stored_settings(json: &serde_json::Value) -> Result<StudySettings, 
     }
 }
 
-pub fn get_settings_default(stored: Option<&serde_json::Value>) -> Result<StudySettings, SettingsError> {
+pub fn get_settings_default(
+    stored: Option<&serde_json::Value>,
+) -> Result<StudySettings, SettingsError> {
     match stored {
         None => Ok(default_study_settings()),
         Some(v) => parse_stored_settings(v),

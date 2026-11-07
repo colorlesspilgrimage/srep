@@ -3,6 +3,7 @@ use std::sync::Arc;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use srep_auth::limiters::AuthLimiters;
+use srep_auth::pairing::{hash_pairing_code, normalize_pairing_code, random_pairing_code};
 use srep_auth::rate_limit::RateLimiter;
 use srep_auth::recovery_codes::{
     generate_recovery_codes, hash_recovery_code, normalize_recovery_code, verify_recovery_code,
@@ -12,7 +13,6 @@ use srep_auth::state::AppState;
 use srep_auth::text::{is_short_text, normalize_nickname};
 use srep_auth::tokens::sha256_hex;
 use srep_auth::webauthn::WebAuthnState;
-use srep_auth::pairing::{hash_pairing_code, normalize_pairing_code, random_pairing_code};
 use srep_config::{AuthConfig, Config, DatabaseConfig, LogLevel};
 use srep_db::{connect, run_migrations};
 use tower::ServiceExt;
@@ -24,8 +24,7 @@ fn test_config(dir: &tempfile::TempDir) -> Config {
         },
         log_level: LogLevel::Info,
         migrations_dir: Some(
-            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../../migrations/sqlite"),
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../migrations/sqlite"),
         ),
         migrate_on_start: true,
         auth: AuthConfig {
@@ -56,11 +55,7 @@ async fn test_state() -> (AppState, tempfile::TempDir) {
     };
     let token = state.ensure_setup_token().await.unwrap();
     let hash = sha256_hex(token.as_bytes());
-    state
-        .auth_store()
-        .arm_setup(&hash)
-        .await
-        .unwrap();
+    state.auth_store().arm_setup(&hash).await.unwrap();
     (state, dir)
 }
 

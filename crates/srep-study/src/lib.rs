@@ -44,7 +44,10 @@ pub fn router() -> Router<AppState> {
         .route("/api/study/undo", post(study_undo))
         .route("/api/study/rebuild", post(study_rebuild))
         .route("/api/study/verify", post(study_verify))
-        .route("/api/settings/study", get(settings_study_get).put(settings_study_put))
+        .route(
+            "/api/settings/study",
+            get(settings_study_get).put(settings_study_put),
+        )
 }
 
 #[derive(Deserialize)]
@@ -90,12 +93,9 @@ async fn study_answer(
     if let Some(resp) = require_auth(req_auth).await {
         return resp;
     }
-    let Some(parsed) = validation::parse_answer_body(
-        &body.card_id,
-        body.rating,
-        body.reps,
-        body.elapsed_ms,
-    ) else {
+    let Some(parsed) =
+        validation::parse_answer_body(&body.card_id, body.rating, body.reps, body.elapsed_ms)
+    else {
         return (
             StatusCode::BAD_REQUEST,
             Json(json!({"error":"bad_request"})),
@@ -107,11 +107,9 @@ async fn study_answer(
         Err(service::StudyError::NotFound) => {
             (StatusCode::NOT_FOUND, Json(json!({"error":"not_found"}))).into_response()
         }
-        Err(service::StudyError::StaleCard) => (
-            StatusCode::CONFLICT,
-            Json(json!({"error":"stale_card"})),
-        )
-            .into_response(),
+        Err(service::StudyError::StaleCard) => {
+            (StatusCode::CONFLICT, Json(json!({"error":"stale_card"}))).into_response()
+        }
         Err(_) => (
             StatusCode::BAD_REQUEST,
             Json(json!({"error":"bad_request"})),
@@ -129,9 +127,11 @@ async fn study_undo(
     }
     match service::study_undo(&state).await {
         Ok(v) => Json(v).into_response(),
-        Err(service::StudyError::NothingToUndo) => {
-            (StatusCode::NOT_FOUND, Json(json!({"error":"nothing_to_undo"}))).into_response()
-        }
+        Err(service::StudyError::NothingToUndo) => (
+            StatusCode::NOT_FOUND,
+            Json(json!({"error":"nothing_to_undo"})),
+        )
+            .into_response(),
         Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({"error":"bad_request"})),

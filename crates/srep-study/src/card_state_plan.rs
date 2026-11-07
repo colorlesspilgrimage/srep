@@ -32,7 +32,10 @@ pub fn plan_suspend(cards: &[crate::answer_plan::CardRow]) -> Vec<CardStateUpdat
 pub fn plan_unsuspend(
     cards: &[crate::answer_plan::CardRow],
 ) -> Result<Vec<CardStateUpdate>, CardStateFailure> {
-    let suspended: Vec<_> = cards.iter().filter(|c| c.state == CardState::Suspended).collect();
+    let suspended: Vec<_> = cards
+        .iter()
+        .filter(|c| c.state == CardState::Suspended)
+        .collect();
     if suspended.iter().any(|c| c.flags_orphaned()) {
         return Err(CardStateFailure::CardOrphaned);
     }

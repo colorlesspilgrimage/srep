@@ -41,11 +41,12 @@ export default defineConfig({
   ],
   webServer: rustE2e
     ? {
-        command:
-          'rm -rf ./data/e2e.db ./data/e2e-media && mkdir -p ./data && cargo build -p srep-server && cargo run -p srep-server --release',
+        command: process.env.CI
+          ? 'rm -rf ./data/e2e.db ./data/e2e-media && mkdir -p ./data && ./target/release/srep-server'
+          : 'rm -rf ./data/e2e.db ./data/e2e-media && mkdir -p ./data && cargo build -p srep-server --release && ./target/release/srep-server',
         url: `http://localhost:${rustPort}/healthz`,
         reuseExistingServer: !process.env.CI,
-        timeout: 180_000,
+        timeout: process.env.CI ? 120_000 : 300_000,
         env: nodeEnv,
       }
     : {

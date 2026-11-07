@@ -33,7 +33,11 @@ pub async fn unsuspend_cards(ctx: &DomainCtx<'_>, input: CardIdsInput) -> ApiRes
 pub async fn bury_cards(ctx: &DomainCtx<'_>, input: CardIdsInput) -> ApiResult<()> {
     let end_ms = ctx.now_ms() / DAY_MS * DAY_MS + DAY_MS;
     let store = ctx.store();
-    match change_card_states(&store, &input.card_ids, |cards| Ok(plan_bury(cards, end_ms))).await {
+    match change_card_states(&store, &input.card_ids, |cards| {
+        Ok(plan_bury(cards, end_ms))
+    })
+    .await
+    {
         Ok(Ok(())) => Ok(()),
         Ok(Err(e)) => Err(e),
         Err(_) => Err(fail(

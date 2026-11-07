@@ -28,5 +28,10 @@ pub fn sniff_mime(bytes: &[u8]) -> Option<&'static str> {
 }
 
 pub fn normalize_declared_mime(declared: &str) -> String {
-    declared.split(';').next().unwrap_or("").trim().to_lowercase()
+    declared
+        .split(';')
+        .next()
+        .unwrap_or("")
+        .trim()
+        .to_lowercase()
 }

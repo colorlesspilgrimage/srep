@@ -18,7 +18,10 @@ pub async fn store_media(
         return Err(fail(axum::http::StatusCode::BAD_REQUEST, "empty_file"));
     }
     if bytes.len() as u64 > ctx.config().media_max_bytes {
-        return Err(fail(axum::http::StatusCode::PAYLOAD_TOO_LARGE, "payload_too_large"));
+        return Err(fail(
+            axum::http::StatusCode::PAYLOAD_TOO_LARGE,
+            "payload_too_large",
+        ));
     }
     let mime = sniff_mime(bytes).ok_or_else(|| {
         fail(

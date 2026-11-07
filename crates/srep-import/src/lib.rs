@@ -106,7 +106,10 @@ async fn export_get(
     };
     let disposition = format!("attachment; filename=\"{name}\"");
     (
-        [(header::CONTENT_TYPE, "application/zip"), (header::CONTENT_DISPOSITION, disposition.as_str())],
+        [
+            (header::CONTENT_TYPE, "application/zip"),
+            (header::CONTENT_DISPOSITION, disposition.as_str()),
+        ],
         Bytes::from_static(b"PK\x03\x04"),
     )
         .into_response()

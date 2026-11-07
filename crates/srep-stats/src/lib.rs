@@ -9,12 +9,12 @@ use axum::{
 };
 use serde::Deserialize;
 use serde_json::json;
+use sqlx::Row;
 use srep_auth::middleware::RequestAuth;
 use srep_auth::AppState;
 use srep_study::day_clock::study_window;
 use srep_study::store::StudyStore;
 use srep_study::study_settings::get_settings_default;
-use sqlx::Row;
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -39,7 +39,13 @@ async fn stats_today(
     let raw = study.get_study_settings().await.ok().flatten();
     let settings = match get_settings_default(raw.as_ref()) {
         Ok(s) => s,
-        Err(_) => return (StatusCode::BAD_REQUEST, Json(json!({"error":"bad_request"}))).into_response(),
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error":"bad_request"})),
+            )
+                .into_response()
+        }
     };
     let now = chrono::Utc::now().timestamp_millis();
     let window = study_window(now, &settings);
@@ -159,11 +165,7 @@ async fn optimizer_preview(
     if let Some(resp) = require_auth(req_auth).await {
         return resp;
     }
-    (
-        StatusCode::NOT_FOUND,
-        Json(json!({"error":"not_found"})),
-    )
-        .into_response()
+    (StatusCode::NOT_FOUND, Json(json!({"error":"not_found"}))).into_response()
 }
 
 #[derive(Deserialize)]
@@ -182,11 +184,7 @@ async fn optimizer_apply(
     if let Some(resp) = require_auth(req_auth).await {
         return resp;
     }
-    (
-        StatusCode::NOT_FOUND,
-        Json(json!({"error":"not_found"})),
-    )
-        .into_response()
+    (StatusCode::NOT_FOUND, Json(json!({"error":"not_found"}))).into_response()
 }
 
 async fn require_auth(

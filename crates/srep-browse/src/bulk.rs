@@ -75,12 +75,11 @@ pub async fn replace_note_tags(
                 {
                     return Ok("not_found");
                 }
-                let mut tags: Vec<String> = sqlx::query_scalar(
-                    "SELECT tag FROM note_tag WHERE note_id = ? ORDER BY tag",
-                )
-                .bind(id)
-                .fetch_all(&mut *tx)
-                .await?;
+                let mut tags: Vec<String> =
+                    sqlx::query_scalar("SELECT tag FROM note_tag WHERE note_id = ? ORDER BY tag")
+                        .bind(id)
+                        .fetch_all(&mut *tx)
+                        .await?;
                 for r in remove {
                     tags.retain(|t| t != r);
                 }
@@ -122,12 +121,11 @@ pub async fn replace_note_tags(
                 {
                     return Ok("not_found");
                 }
-                let mut tags: Vec<String> = sqlx::query_scalar(
-                    "SELECT tag FROM note_tag WHERE note_id = $1 ORDER BY tag",
-                )
-                .bind(id)
-                .fetch_all(&mut *tx)
-                .await?;
+                let mut tags: Vec<String> =
+                    sqlx::query_scalar("SELECT tag FROM note_tag WHERE note_id = $1 ORDER BY tag")
+                        .bind(id)
+                        .fetch_all(&mut *tx)
+                        .await?;
                 for r in remove {
                     tags.retain(|t| t != r);
                 }

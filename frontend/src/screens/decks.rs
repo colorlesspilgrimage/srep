@@ -28,10 +28,7 @@ struct DeckView {
 }
 
 fn visible_tree(decks: &[DeckRow]) -> Vec<DeckView> {
-    let active: Vec<_> = decks
-        .iter()
-        .filter(|d| d.archived_at.is_none())
-        .collect();
+    let active: Vec<_> = decks.iter().filter(|d| d.archived_at.is_none()).collect();
     let mut roots: Vec<_> = active
         .iter()
         .filter(|d| d.parent_id.is_none())

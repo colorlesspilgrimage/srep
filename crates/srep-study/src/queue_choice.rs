@@ -137,12 +137,10 @@ fn pick_learning(snapshots: &[DeckSnapshot]) -> Option<String> {
     let candidates: Vec<_> = snapshots
         .iter()
         .filter_map(|s| {
-            s.learning_head
-                .as_ref()
-                .map(|h| RankedCandidate {
-                    keys: vec![h.due],
-                    card_id: h.card_id.clone(),
-                })
+            s.learning_head.as_ref().map(|h| RankedCandidate {
+                keys: vec![h.due],
+                card_id: h.card_id.clone(),
+            })
         })
         .collect();
     pick_min(&candidates)
@@ -227,8 +225,9 @@ pub fn choose_next(snapshots: &[DeckSnapshot], quotas: &[DeckQuota], now_ms: i64
     let new_done = sum(|d| d.snapshot.new_done);
     let rev_done = sum(|d| d.snapshot.review_done);
     let take_new = reviews_left == 0
-        || (new_left > 0 && new_done as u64 * (rev_done as u64 + reviews_left as u64)
-            <= rev_done as u64 * (new_done as u64 + new_left as u64));
+        || (new_left > 0
+            && new_done as u64 * (rev_done as u64 + reviews_left as u64)
+                <= rev_done as u64 * (new_done as u64 + new_left as u64));
     let card_id = if take_new {
         pick_new(&decks)
     } else {

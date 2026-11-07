@@ -12,7 +12,9 @@ pub async fn backup_sqlite(config: &Config, out_path: &Path) -> Result<()> {
     if let Some(parent) = out_path.parent() {
         fs::create_dir_all(parent).await?;
     }
-    let data = fs::read(path).await.with_context(|| format!("read {}", path.display()))?;
+    let data = fs::read(path)
+        .await
+        .with_context(|| format!("read {}", path.display()))?;
     let file = std::fs::File::create(out_path)?;
     let mut zip = ZipWriter::new(file);
     let opts: FileOptions<'_, ()> =
@@ -20,10 +22,7 @@ pub async fn backup_sqlite(config: &Config, out_path: &Path) -> Result<()> {
     zip.start_file("collection.db", opts)?;
     std::io::Write::write_all(&mut zip, &data)?;
     zip.start_file("manifest.json", opts)?;
-    std::io::Write::write_all(
-        &mut zip,
-        br#"{"version":1,"format":"native-lite"}"#,
-    )?;
+    std::io::Write::write_all(&mut zip, br#"{"version":1,"format":"native-lite"}"#)?;
     zip.finish()?;
     Ok(())
 }

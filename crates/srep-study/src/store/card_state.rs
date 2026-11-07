@@ -66,9 +66,8 @@ async fn apply_updates_sqlite(
                 .collect::<Vec<_>>()
                 .join(",");
             let state = card_state_to_str(group.state);
-            let sql = format!(
-                "UPDATE card SET state = ?, buried_until = ? WHERE id IN ({placeholders})"
-            );
+            let sql =
+                format!("UPDATE card SET state = ?, buried_until = ? WHERE id IN ({placeholders})");
             let mut q = sqlx::query(&sql).bind(state).bind(group.buried_until);
             for id in chunk {
                 q = q.bind(id);
