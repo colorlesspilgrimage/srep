@@ -100,6 +100,8 @@ pub async fn run_migrations(pool: &DbPool, config: &Config) -> Result<()> {
         anyhow::bail!("migrations folder missing: {}", folder.display());
     }
 
+    ensure_migration_journal(pool).await?;
+
     let mut entries: Vec<PathBuf> = std::fs::read_dir(&folder)?
         .filter_map(|e| e.ok())
         .map(|e| e.path())
@@ -107,15 +109,129 @@ pub async fn run_migrations(pool: &DbPool, config: &Config) -> Result<()> {
         .collect();
     entries.sort();
 
+    bootstrap_migration_journal(pool, &entries).await?;
+
     for path in entries {
+        let name = path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or_default()
+            .to_string();
+        if migration_applied(pool, &name).await? {
+            continue;
+        }
         let sql = std::fs::read_to_string(&path)
             .with_context(|| format!("read migration {}", path.display()))?;
         apply_migration_sql(pool, &sql)
             .await
             .with_context(|| format!("apply migration {}", path.display()))?;
+        record_migration(pool, &name).await?;
     }
 
     info!(dialect, folder = %folder.display(), "migrations applied");
+    Ok(())
+}
+
+async fn ensure_migration_journal(pool: &DbPool) -> Result<()> {
+    const SQL: &str = "CREATE TABLE IF NOT EXISTS schema_migration (name TEXT PRIMARY KEY NOT NULL)";
+    match pool {
+        DbPool::Sqlite(p) => {
+            sqlx::query(SQL).execute(p).await?;
+        }
+        DbPool::Postgres(p) => {
+            sqlx::query(SQL).execute(p).await?;
+        }
+    }
+    Ok(())
+}
+
+async fn migration_applied(pool: &DbPool, name: &str) -> Result<bool> {
+    let applied = match pool {
+        DbPool::Sqlite(p) => {
+            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM schema_migration WHERE name = ?")
+                .bind(name)
+                .fetch_one(p)
+                .await?
+        }
+        DbPool::Postgres(p) => {
+            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM schema_migration WHERE name = $1")
+                .bind(name)
+                .fetch_one(p)
+                .await?
+        }
+    };
+    Ok(applied > 0)
+}
+
+/// Pre-journal databases (v1 or early v2): mark existing SQL files applied without re-running.
+async fn bootstrap_migration_journal(pool: &DbPool, entries: &[PathBuf]) -> Result<()> {
+    if journal_count(pool).await? > 0 {
+        return Ok(());
+    }
+    if !legacy_schema_present(pool).await? {
+        return Ok(());
+    }
+    for path in entries {
+        let name = path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or_default();
+        record_migration(pool, name).await?;
+    }
+    info!("bootstrapped migration journal from existing schema");
+    Ok(())
+}
+
+async fn journal_count(pool: &DbPool) -> Result<i64> {
+    Ok(match pool {
+        DbPool::Sqlite(p) => {
+            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM schema_migration")
+                .fetch_one(p)
+                .await?
+        }
+        DbPool::Postgres(p) => {
+            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM schema_migration")
+                .fetch_one(p)
+                .await?
+        }
+    })
+}
+
+async fn legacy_schema_present(pool: &DbPool) -> Result<bool> {
+    let present = match pool {
+        DbPool::Sqlite(p) => {
+            sqlx::query_scalar::<_, i64>(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='app_settings'",
+            )
+            .fetch_one(p)
+            .await?
+        }
+        DbPool::Postgres(p) => {
+            sqlx::query_scalar::<_, i64>(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'app_settings'",
+            )
+            .fetch_one(p)
+            .await?
+        }
+    };
+    Ok(present > 0)
+}
+
+async fn record_migration(pool: &DbPool, name: &str) -> Result<()> {
+    match pool {
+        DbPool::Sqlite(p) => {
+            sqlx::query("INSERT INTO schema_migration (name) VALUES (?)")
+                .bind(name)
+                .execute(p)
+                .await?;
+        }
+        DbPool::Postgres(p) => {
+            sqlx::query("INSERT INTO schema_migration (name) VALUES ($1)")
+                .bind(name)
+                .execute(p)
+                .await?;
+        }
+    }
     Ok(())
 }
 

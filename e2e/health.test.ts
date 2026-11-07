@@ -7,15 +7,17 @@ test('GET /healthz returns ok', async ({ request }) => {
   expect(await response.json()).toEqual({ status: 'ok' });
 });
 
-test('GET / redirects when not signed in', async ({ request }) => {
-  const response = await request.get('/', { maxRedirects: 0 });
-  expect(response.status()).toBe(303);
-  expect(response.headers()['location']).toMatch(/\/(setup|login)$/);
+test('GET / serves the SPA shell when not signed in', async ({ request }) => {
+  const response = await request.get('/');
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toMatch(/text\/html/);
+  await expect(response.text()).resolves.toContain('srep');
 });
 
-test('GET /nope redirects when not signed in', async ({ request }) => {
-  const response = await request.get('/nope', { maxRedirects: 0 });
-  expect(response.status()).toBe(303);
+test('unknown paths fall back to the SPA shell', async ({ request }) => {
+  const response = await request.get('/nope');
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toMatch(/text\/html/);
 });
 
 test('HEAD /healthz returns 200', async ({ request }) => {

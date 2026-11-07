@@ -42,7 +42,7 @@ export default defineConfig({
   webServer: rustE2e
     ? {
         command:
-          'cargo build -p srep-server && cargo run -p srep-server --release',
+          'rm -rf ./data/e2e.db ./data/e2e-media && mkdir -p ./data && cargo build -p srep-server && cargo run -p srep-server --release',
         url: `http://localhost:${rustPort}/healthz`,
         reuseExistingServer: !process.env.CI,
         timeout: 180_000,
