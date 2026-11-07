@@ -27,6 +27,8 @@ async-trait = "0.1"
 axum = { version = "0.7", features = ["macros"] }
 base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
+regex = "1"
 clap = { version = "4", features = ["derive"] }
 cookie = "0.18"
 fsrs = "4"
