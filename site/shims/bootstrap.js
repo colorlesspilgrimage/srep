@@ -30,9 +30,7 @@ async function boot() {
   try {
     const wasm = await import('/pkg/srep_ui.js');
     if (typeof wasm.hydrate === 'function') {
-      const response = await fetch('/pkg/srep_ui_bg.wasm');
-      const bytes = await response.arrayBuffer();
-      await wasm.default(bytes);
+      await wasm.default({ module_or_path: '/pkg/srep_ui_bg.wasm' });
       wasm.hydrate();
       return;
     }

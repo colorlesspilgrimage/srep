@@ -1,12 +1,9 @@
 use leptos::prelude::*;
 use leptos_router::components::A;
 use leptos_router::hooks::{use_location, use_navigate};
-use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 
-use crate::client_js;
-use crate::command_palette::{palette_key_action_js, tab_key_index, CommandPalette};
-use crate::deck::tree_keys::target_is_text_field;
+use crate::command_palette::{tab_key_index, CommandPalette};
 use crate::prefs::{DisplayHandle, KeybindHandle, KeyCaptureHandle};
 use crate::themes::{self, ThemeHandle};
 
@@ -23,12 +20,11 @@ pub fn AppShell(children: Children) -> impl IntoView {
     let theme = expect_context::<ThemeHandle>();
     let keybinds = expect_context::<KeybindHandle>();
     let display = expect_context::<DisplayHandle>();
-    let _key_capture = expect_context::<KeyCaptureHandle>();
     let location = use_location();
     let navigate = use_navigate();
     let go = navigate.clone();
-    let palette_open = expect_context::<RwSignal<bool>>();
-    let modal_open = expect_context::<RwSignal<bool>>();
+    let palette_open = crate::palette_open_signal()
+        .expect("palette signal");
     let return_focus = expect_context::<RwSignal<Option<web_sys::HtmlElement>>>();
 
     let close_palette = Callback::new(move |_| {
@@ -86,56 +82,6 @@ pub fn AppShell(children: Children) -> impl IntoView {
             if let Some(body) = doc.body() {
                 let _ = body.class_list().add_1("tui-page");
             }
-        }
-    });
-
-    Effect::new({
-        let close_palette = close_palette.clone();
-        move |_| {
-            let window = web_sys::window().expect("window");
-            let palette_open = palette_open;
-            let modal_open = modal_open;
-            let return_focus = return_focus;
-            let keybinds = keybinds;
-            let key_capture = _key_capture;
-            let close_palette = close_palette.clone();
-            let closure = Closure::wrap(Box::new(move |ev: web_sys::KeyboardEvent| {
-                if key_capture.active.get_untracked() {
-                    return;
-                }
-                let in_field = ev
-                    .target()
-                    .map(|t| target_is_text_field(&t))
-                    .unwrap_or(false);
-                let binds = client_js::copy_keybind_map(&keybinds.binds.get_untracked());
-                if let Some(action) = palette_key_action_js(
-                    &ev,
-                    palette_open.get_untracked(),
-                    modal_open.get_untracked(),
-                    in_field,
-                    &binds,
-                ) {
-                    ev.prevent_default();
-                    let _ = ev.stop_immediate_propagation();
-                    match action {
-                        "open" => {
-                            if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
-                                if let Some(el) = doc.active_element() {
-                                    if let Ok(html) = el.dyn_into::<web_sys::HtmlElement>() {
-                                        return_focus.set(Some(html));
-                                    }
-                                }
-                            }
-                            palette_open.set(true);
-                        }
-                        "close" => close_palette.run(()),
-                        _ => {}
-                    }
-                }
-            }) as Box<dyn FnMut(_)>);
-            let cb = closure.as_ref().unchecked_ref();
-            let _ = window.add_event_listener_with_callback_and_bool("keydown", cb, true);
-            closure.forget();
         }
     });
 

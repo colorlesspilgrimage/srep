@@ -104,7 +104,11 @@ pub fn CommandPalette(
     });
 
     view! {
-        <Show when=move || open.get()>
+        {move || {
+            if !open.get() {
+                return ().into_any();
+            }
+            view! {
             <div
                 class="tui-palette tui-modal"
                 role="dialog"
@@ -190,6 +194,14 @@ pub fn CommandPalette(
                                         picked.set(index);
                                         choose.run(index);
                                     }
+                                    on:keydown=move |ev| {
+                                        if ev.key() == "Enter" {
+                                            ev.prevent_default();
+                                            ev.stop_propagation();
+                                            picked.set(index);
+                                            choose.run(index);
+                                        }
+                                    }
                                 >
                                     {name}
                                 </button>
@@ -199,7 +211,9 @@ pub fn CommandPalette(
                 </div>
                 <button type="button" on:click=move |_| close()>"Close"</button>
             </div>
-        </Show>
+            }
+            .into_any()
+        }}
     }
 }
 
@@ -210,7 +224,7 @@ pub fn palette_key_action_js(
     target_is_field: bool,
     binds: &wasm_bindgen::JsValue,
 ) -> Option<&'static str> {
-    let action = client_js::palette_action_js(ev, palette_open, modal_open, target_is_field, binds);
+    let action = client_js::palette_key_action_local(ev, palette_open, modal_open, target_is_field, binds);
     match action.as_str() {
         "open" => Some("open"),
         "close" => Some("close"),

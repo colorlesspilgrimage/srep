@@ -106,9 +106,11 @@ pub fn BrowseScreen() -> impl IntoView {
                 match result {
                     Ok(body) => {
                         if let Ok(parsed) = parse_rows(&body) {
+                            let visible: std::collections::HashSet<_> =
+                                parsed.iter().map(|r| r.row.card_id.clone()).collect();
+                            selected.update(|s| s.retain(|id| visible.contains(id)));
                             rows.set(parsed);
                             active.set(0);
-                            selected.set(Vec::new());
                             bad_query.set(false);
                             message.set(String::new());
                             loaded.set(true);
@@ -153,12 +155,14 @@ pub fn BrowseScreen() -> impl IntoView {
         });
     });
 
+    let focus_grid_once = StoredValue::new(false);
     Effect::new(move |_| {
-        if !loaded.get() || rows.get().is_empty() {
+        if focus_grid_once.get_value() || !loaded.get() || rows.get().is_empty() {
             return;
         }
         if let Some(grid) = grid_ref.get_untracked() {
             let _ = grid.focus();
+            focus_grid_once.set_value(true);
         }
     });
 

@@ -97,6 +97,42 @@ pub fn chord_from_event(ev: &web_sys::KeyboardEvent) -> Option<String> {
     call1("chordFromEvent", &obj).as_string()
 }
 
+fn field_blocks_palette_chord(chord: &str, in_field: bool) -> bool {
+    if !in_field {
+        return false;
+    }
+  !chord.contains('+') && chord != "Escape"
+}
+
+pub fn palette_key_action_local(
+    ev: &web_sys::KeyboardEvent,
+    palette_open: bool,
+    modal_open: bool,
+    in_field: bool,
+    binds: &JsValue,
+) -> String {
+    if modal_open {
+        return "none".to_string();
+    }
+    let Some(chord) = chord_from_event(ev) else {
+        return "none".to_string();
+    };
+    let open = keybind_chord(binds, "palette.open");
+    let colon = keybind_chord(binds, "palette.open-colon");
+    let close = keybind_chord(binds, "palette.close");
+    if !palette_open {
+        if chord == open && !field_blocks_palette_chord(&open, in_field) {
+            return "open".to_string();
+        }
+        if chord == colon && !in_field {
+            return "open".to_string();
+        }
+    } else if chord == close && !field_blocks_palette_chord(&close, in_field) {
+        return "close".to_string();
+    }
+    "none".to_string()
+}
+
 pub fn palette_action_js(
     ev: &web_sys::KeyboardEvent,
     palette_open: bool,

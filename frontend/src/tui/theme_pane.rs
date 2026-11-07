@@ -25,11 +25,10 @@ pub fn ThemeSettingsPane(
         >
             "Save theme"
         </button>
-        <p
-            role="status"
-            aria-label=move || status_text.get()
-        >
-            {move || status_text.get()}
-        </p>
+        <Show when=move || !status_text.get().is_empty()>
+            <p role="status" aria-label="Saved.">
+                {move || status_text.get()}
+            </p>
+        </Show>
     }
 }

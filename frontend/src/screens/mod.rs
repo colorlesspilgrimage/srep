@@ -1,7 +1,7 @@
 mod auth;
 mod browse;
 mod decks;
-mod gallery;
+pub mod gallery;
 mod note_editor;
 mod settings;
 pub mod settings_panels;

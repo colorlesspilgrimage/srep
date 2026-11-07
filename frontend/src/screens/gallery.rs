@@ -1,7 +1,10 @@
-use leptos::html::{Button, Div, Input};
+use std::sync::OnceLock;
+
+use wasm_bindgen::closure::Closure;
+
+use leptos::html::{Button, Div};
 use leptos::prelude::*;
 use leptos_router::hooks::{use_location, use_query_map};
-use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 
 use crate::api;
@@ -15,6 +18,14 @@ use crate::tui::theme_pane::ThemeSettingsPane;
 use crate::tui::tui_list::TuiList;
 use crate::themes::{self, ThemeHandle};
 use wasm_bindgen_futures::spawn_local;
+
+static GALLERY_PALETTE: OnceLock<RwSignal<bool>> = OnceLock::new();
+
+pub fn gallery_palette_set_open(open: bool) {
+    if let Some(sig) = GALLERY_PALETTE.get() {
+        sig.set(open);
+    }
+}
 
 const SECTIONS: &[(&str, &str)] = &[
     ("panes", "Panes"),
@@ -137,6 +148,7 @@ pub fn GalleryScreen() -> impl IntoView {
     let form_value = RwSignal::new(String::new());
     let modal_open = RwSignal::new(false);
     let palette_open = RwSignal::new(false);
+    let _ = GALLERY_PALETTE.get_or_init(|| palette_open);
     let modal_open_flag = RwSignal::new(false);
     let return_focus = RwSignal::new(None::<web_sys::HtmlElement>);
     let open_modal_button = NodeRef::<Button>::new();
@@ -275,7 +287,7 @@ pub fn GalleryScreen() -> impl IntoView {
                 &binds,
             ) {
                 ev.prevent_default();
-                ev.stop_propagation();
+                let _ = ev.stop_immediate_propagation();
                 match action {
                     "open" => {
                         if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
