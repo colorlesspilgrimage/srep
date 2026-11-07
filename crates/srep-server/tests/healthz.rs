@@ -19,6 +19,7 @@ async fn healthz_ok_on_sqlite() {
         db: pool,
         webauthn,
         setup_token: Default::default(),
+        limiters: std::sync::Arc::new(srep_auth::limiters::AuthLimiters::new()),
     };
 
     let app = srep_server::build_app(state);

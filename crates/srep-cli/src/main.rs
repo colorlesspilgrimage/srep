@@ -36,6 +36,7 @@ async fn main() -> Result<()> {
         db: pool,
         webauthn,
         setup_token: Default::default(),
+        limiters: Arc::new(srep_auth::limiters::AuthLimiters::new()),
     };
 
     match cli.command {

@@ -8,9 +8,23 @@ license.workspace = true
 anyhow.workspace = true
 axum.workspace = true
 chrono.workspace = true
+hex.workspace = true
+rand.workspace = true
+regex = "1"
 serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 srep-auth = { path = "../srep-auth" }
+srep-config = { path = "../srep-config" }
 srep-db = { path = "../srep-db" }
 sqlx.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["fs", "io-util"] }
 uuid.workspace = true
+
+[dev-dependencies]
+tempfile = "3"
+tower = { workspace = true }
+hyper = { version = "1", features = ["full"] }
+http-body-util = "0.1"
+srep-server = { path = "../srep-server" }

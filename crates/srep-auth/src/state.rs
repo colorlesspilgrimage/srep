@@ -4,6 +4,7 @@ use srep_config::Config;
 use srep_db::DbPool;
 use tokio::sync::RwLock;
 
+use crate::limiters::AuthLimiters;
 use crate::store::AuthStore;
 use crate::webauthn::WebAuthnState;
 
@@ -13,6 +14,7 @@ pub struct AppState {
     pub db: DbPool,
     pub webauthn: Arc<WebAuthnState>,
     pub setup_token: Arc<RwLock<Option<String>>>,
+    pub limiters: Arc<AuthLimiters>,
 }
 
 impl AppState {
