@@ -1,0 +1,13 @@
+[package]
+name = "srep-import"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+axum.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+srep-auth = { path = "../srep-auth" }
+srep-db = { path = "../srep-db" }
