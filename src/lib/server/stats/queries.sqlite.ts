@@ -20,10 +20,7 @@ export function listReviewStats(db: BetterSQLite3Database): ReviewStatRow[] {
     .all();
 }
 
-export function listReviewStatsSince(
-  db: BetterSQLite3Database,
-  sinceMs: number,
-): ReviewStatRow[] {
+export function listReviewStatsSince(db: BetterSQLite3Database, sinceMs: number): ReviewStatRow[] {
   return db
     .select({
       reviewedAt: reviewLog.reviewedAt,
@@ -65,10 +62,7 @@ export function countReviewsForPreset(db: BetterSQLite3Database, presetId: strin
   return rows.length;
 }
 
-export function listPresetReviews(
-  db: BetterSQLite3Database,
-  presetId: string,
-): ReviewStatRow[] {
+export function listPresetReviews(db: BetterSQLite3Database, presetId: string): ReviewStatRow[] {
   return db
     .select({
       reviewedAt: reviewLog.reviewedAt,

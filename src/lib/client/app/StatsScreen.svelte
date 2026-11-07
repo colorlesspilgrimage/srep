@@ -140,10 +140,7 @@
       <h2>Activity (120 days)</h2>
       <div class="stats-heatmap" role="img" aria-label="Review heatmap">
         {#each heatmap as cell (cell.dayNumber)}
-          <span
-            class="stats-heat"
-            data-level={Math.min(4, cell.count)}
-            title="{cell.count} reviews"
+          <span class="stats-heat" data-level={Math.min(4, cell.count)} title="{cell.count} reviews"
           ></span>
         {/each}
       </div>

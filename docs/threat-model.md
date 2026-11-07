@@ -9,13 +9,13 @@ srep is a single-user, self-hosted flashcard server. The main assets are study d
 
 ## Primary risks
 
-| Risk | Mitigation |
-|------|------------|
-| XSS via card HTML | Allowlisted sanitizer, CSP without `unsafe-inline` for scripts |
-| Session hijack | HttpOnly cookies, `SameSite=Strict`, CSRF on mutating API |
-| Passkey theft | WebAuthn with origin binding |
-| SQL injection | Parameterized queries (Drizzle) |
-| Unauthorized API use | Auth hook on all non-public `/api/*` routes |
+| Risk                 | Mitigation                                                     |
+| -------------------- | -------------------------------------------------------------- |
+| XSS via card HTML    | Allowlisted sanitizer, CSP without `unsafe-inline` for scripts |
+| Session hijack       | HttpOnly cookies, `SameSite=Strict`, CSRF on mutating API      |
+| Passkey theft        | WebAuthn with origin binding                                   |
+| SQL injection        | Parameterized queries (Drizzle)                                |
+| Unauthorized API use | Auth hook on all non-public `/api/*` routes                    |
 
 ## Out of scope for 1.0
 
