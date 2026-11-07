@@ -24,7 +24,7 @@ describe.skipIf(!url)('postgres database', () => {
     }
     if (handle.dialect === 'postgres') {
       await handle.db.execute(
-        sql`drop table if exists app_settings, auth_credential, auth_recovery, session, auth_challenge, deck_preset, deck, note_type, card_template, note, note_tag, card, review_log, media cascade`,
+        sql`drop table if exists app_settings, auth_credential, auth_recovery, session, auth_challenge, api_token, pairing_code, deck_preset, deck, note_type, card_template, note, note_tag, card, review_log, media cascade`,
       );
       await handle.db.execute(sql`drop schema if exists drizzle cascade`);
     }
