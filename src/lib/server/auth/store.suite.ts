@@ -238,6 +238,22 @@ export function defineStoreSuite(make: () => Promise<Harness>): void {
       await s.getOrCreateUserId('uid');
       await s.completeSetup(setupInput('a'));
       await s.insertChallenge({ id: 'c', challenge: 'x', purpose: 'login', expiresAt: 50 });
+      await s.insertApiToken({
+        id: 'tok',
+        tokenHash: 'th',
+        name: 'Phone',
+        createdAt: 1,
+        lastUsedAt: null,
+        revokedAt: null,
+      });
+      await s.insertPairingCode({
+        id: 'pc',
+        codeHash: 'ch',
+        name: 'Phone',
+        createdAt: 1,
+        expiresAt: 9_999,
+        consumedAt: null,
+      });
       await s.resetAuth({ tokenHash: 'new-hash' });
       expect(await s.isSetupComplete()).toBe(false);
       expect(await s.getSetupTokenHash()).toBe('new-hash');
@@ -245,7 +261,55 @@ export function defineStoreSuite(make: () => Promise<Harness>): void {
       expect(await s.listUnusedRecovery()).toHaveLength(0);
       expect(await s.getSessionByTokenHash('hash-a')).toBeUndefined();
       expect(await s.consumeChallenge('c')).toBeUndefined();
+      expect(await s.listApiTokens()).toHaveLength(0);
+      expect(await s.getOpenPairingCodeByHash('ch', 1)).toBeUndefined();
       expect(await s.getOrCreateUserId('fresh')).toBe('fresh');
+    });
+  });
+
+  describe('api tokens and pairing codes', () => {
+    it('stores, touches, renames, and revokes api tokens', async () => {
+      const s = await store();
+      await s.insertApiToken({
+        id: 'a',
+        tokenHash: 'hash-a',
+        name: 'One',
+        createdAt: 1,
+        lastUsedAt: null,
+        revokedAt: null,
+      });
+      expect(await s.countActiveApiTokens()).toBe(1);
+      await s.touchApiToken('a', 10);
+      expect((await s.getApiTokenByTokenHash('hash-a'))?.lastUsedAt).toBe(10);
+      expect(await s.renameApiToken('a', 'Two')).toBe(true);
+      expect(await s.revokeApiToken('a', 20)).toBe(true);
+      expect(await s.countActiveApiTokens()).toBe(0);
+      expect(await s.renameApiToken('a', 'Three')).toBe(false);
+    });
+
+    it('consumes pairing codes once and invalidates open ones', async () => {
+      const s = await store();
+      await s.insertPairingCode({
+        id: 'p1',
+        codeHash: 'c1',
+        name: 'A',
+        createdAt: 1,
+        expiresAt: 100,
+        consumedAt: null,
+      });
+      await s.invalidateOpenPairingCodes(50);
+      expect(await s.getOpenPairingCodeByHash('c1', 50)).toBeUndefined();
+      await s.insertPairingCode({
+        id: 'p2',
+        codeHash: 'c2',
+        name: 'B',
+        createdAt: 50,
+        expiresAt: 200,
+        consumedAt: null,
+      });
+      expect((await s.getOpenPairingCodeByHash('c2', 60))?.id).toBe('p2');
+      expect(await s.consumePairingCode('p2', 60)).toBe(true);
+      expect(await s.consumePairingCode('p2', 61)).toBe(false);
     });
   });
 }

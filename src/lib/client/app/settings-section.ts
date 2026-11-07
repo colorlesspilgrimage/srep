@@ -2,7 +2,7 @@
 // Own keys only (CWE-1321). No I/O.
 
 export type SettingsSectionId =
-  'appearance' | 'display' | 'study-day' | 'presets' | 'security' | 'data';
+  'appearance' | 'display' | 'study-day' | 'presets' | 'security' | 'pair-app' | 'data';
 
 const SECTIONS: ReadonlyMap<string, SettingsSectionId> = new Map([
   ['appearance', 'appearance'],
@@ -10,6 +10,7 @@ const SECTIONS: ReadonlyMap<string, SettingsSectionId> = new Map([
   ['study-day', 'study-day'],
   ['presets', 'presets'],
   ['security', 'security'],
+  ['pair-app', 'pair-app'],
   ['data', 'data'],
 ]);
 

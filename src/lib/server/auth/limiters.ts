@@ -7,10 +7,13 @@ export type AuthLimiters = {
   setupTokenFailures: RateLimiter;
   /** Bad recovery codes. One global key. */
   recoveryFailures: RateLimiter;
+  /** Bad pairing-code claims. One global key. */
+  pairingFailures: RateLimiter;
 };
 
 export const SETUP_FAILURE_KEY = 'setup';
 export const RECOVERY_FAILURE_KEY = 'recovery';
+export const PAIRING_FAILURE_KEY = 'pairing';
 
 const MINUTE_MS = 60 * 1000;
 
@@ -19,5 +22,6 @@ export function createLimiters(now: () => number): AuthLimiters {
     authAttempts: createRateLimiter({ limit: 20, windowMs: 5 * MINUTE_MS, now }),
     setupTokenFailures: createRateLimiter({ limit: 5, windowMs: 15 * MINUTE_MS, now }),
     recoveryFailures: createRateLimiter({ limit: 5, windowMs: 15 * MINUTE_MS, now }),
+    pairingFailures: createRateLimiter({ limit: 10, windowMs: 15 * MINUTE_MS, now }),
   };
 }

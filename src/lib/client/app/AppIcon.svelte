@@ -17,6 +17,7 @@
   import Search from 'lucide-svelte/icons/search';
   import Settings from 'lucide-svelte/icons/settings';
   import Shield from 'lucide-svelte/icons/shield';
+  import Smartphone from 'lucide-svelte/icons/smartphone';
   import Sparkles from 'lucide-svelte/icons/sparkles';
   import SquarePen from 'lucide-svelte/icons/square-pen';
   import Tag from 'lucide-svelte/icons/tag';
@@ -49,7 +50,8 @@
     | 'tag'
     | 'move'
     | 'check'
-    | 'search';
+    | 'search'
+    | 'phone';
 
   type Props = {
     name: AppIconName;
@@ -83,6 +85,7 @@
     move: FolderInput,
     check: Check,
     search: Search,
+    phone: Smartphone,
   };
 
   let { name, size = 16 }: Props = $props();

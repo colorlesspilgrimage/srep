@@ -22,7 +22,7 @@
   // Contract: Appearance through Data panes against APIs.
   // Theme list does not save. Only Save theme writes. KeymapForm, display form,
   // study form, and PresetsPanel own their network saves.
-  // Security and Data load via dynamic import to keep the settings chunk lean.
+  // Security, Pair app, and Data load via dynamic import to keep the settings chunk lean.
 
   const SECTIONS = [
     { id: 'appearance', label: 'Appearance' },
@@ -30,6 +30,7 @@
     { id: 'study-day', label: 'Study day' },
     { id: 'presets', label: 'Presets' },
     { id: 'security', label: 'Security' },
+    { id: 'pair-app', label: 'Pair app' },
     { id: 'data', label: 'Data' },
   ] as const;
 
@@ -387,6 +388,18 @@
         {#if section === 'security'}
           {#await import('./SecurityPanel.svelte') then { default: SecurityPanel }}
             <SecurityPanel />
+          {/await}
+        {/if}
+      </div>
+      <div
+        id="settings-panel-pair-app"
+        role="tabpanel"
+        aria-label="Pair app"
+        hidden={section !== 'pair-app'}
+      >
+        {#if section === 'pair-app'}
+          {#await import('./PairAppPanel.svelte') then { default: PairAppPanel }}
+            <PairAppPanel />
           {/await}
         {/if}
       </div>

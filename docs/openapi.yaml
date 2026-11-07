@@ -1,0 +1,295 @@
+openapi: 3.1.0
+info:
+  title: srep companion API
+  version: 1.0.0
+  description: |
+    JSON API for a native companion (iOS) paired with a self-hosted srep instance.
+    Authenticate with `Authorization: Bearer <token>` after pairing.
+    Cookie + CSRF auth used by the first-party web UI is omitted here.
+servers:
+  - url: '{origin}'
+    variables:
+      origin:
+        default: https://srep.example.com
+security:
+  - bearerAuth: []
+tags:
+  - name: pairing
+  - name: tokens
+  - name: study
+  - name: decks
+paths:
+  /api/auth/pairing/exchange:
+    post:
+      tags: [pairing]
+      security: []
+      summary: Exchange a pairing code for a Bearer token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  description: XXXX-XXXX Crockford code from the web UI
+                name:
+                  type: string
+                  maxLength: 64
+                  description: Optional device nickname override
+      responses:
+        '200':
+          description: Token issued (shown once)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, tokenId, name]
+                properties:
+                  token:
+                    type: string
+                    description: Opaque Bearer secret; store in the Keychain
+                  tokenId:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+        '401':
+          description: Invalid or expired code
+        '409':
+          description: Active token limit reached
+        '429':
+          description: Rate limited
+
+  /api/auth/pairing/code:
+    post:
+      tags: [pairing]
+      summary: Mint a pairing code (web UI; cookie session)
+      description: Requires the first-party browser session, not a Bearer token.
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 64
+      responses:
+        '200':
+          description: Short-lived code and QR payload
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [code, expiresAt, qrPayload]
+                properties:
+                  code:
+                    type: string
+                  expiresAt:
+                    type: integer
+                    description: Unix epoch milliseconds
+                  qrPayload:
+                    type: object
+                    required: [v, origin, code]
+                    properties:
+                      v:
+                        type: integer
+                        enum: [1]
+                      origin:
+                        type: string
+                      code:
+                        type: string
+
+  /api/auth/tokens:
+    get:
+      tags: [tokens]
+      summary: List paired devices
+      responses:
+        '200':
+          description: All tokens including revoked ones
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tokens]
+                properties:
+                  tokens:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApiToken'
+
+  /api/auth/tokens/{id}:
+    parameters:
+      - $ref: '#/components/parameters/TokenId'
+    patch:
+      tags: [tokens]
+      summary: Rename a paired device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  maxLength: 64
+      responses:
+        '200':
+          description: Renamed
+        '404':
+          description: Missing or already revoked
+    delete:
+      tags: [tokens]
+      summary: Revoke a paired device
+      responses:
+        '200':
+          description: Revoked
+        '404':
+          description: Missing or already revoked
+
+  /api/decks:
+    get:
+      tags: [decks]
+      summary: List decks
+      responses:
+        '200':
+          description: Deck tree
+    post:
+      tags: [decks]
+      summary: Create a deck
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                parentId:
+                  type: string
+                  format: uuid
+                  nullable: true
+      responses:
+        '200':
+          description: Created deck
+
+  /api/decks/{id}:
+    parameters:
+      - $ref: '#/components/parameters/DeckId'
+    get:
+      tags: [decks]
+      summary: Get one deck
+      responses:
+        '200':
+          description: Deck
+    patch:
+      tags: [decks]
+      summary: Rename or move a deck
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags: [decks]
+      summary: Delete a deck
+      responses:
+        '200':
+          description: Deleted
+
+  /api/study/next:
+    get:
+      tags: [study]
+      summary: Next due card
+      parameters:
+        - name: deckId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Card payload or empty queue
+
+  /api/study/answer:
+    post:
+      tags: [study]
+      summary: Grade the current card
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Scheduling result
+
+  /api/study/undo:
+    post:
+      tags: [study]
+      summary: Undo the last answer
+      responses:
+        '200':
+          description: Restored prior state
+
+  /api/settings/study:
+    get:
+      tags: [study]
+      summary: Study-day settings
+      responses:
+        '200':
+          description: Settings object
+    put:
+      tags: [study]
+      summary: Update study-day settings
+      responses:
+        '200':
+          description: Updated
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: srep_token
+      description: Token from POST /api/auth/pairing/exchange
+  parameters:
+    TokenId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    DeckId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    ApiToken:
+      type: object
+      required: [id, name, createdAt, lastUsedAt, revokedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        createdAt:
+          type: integer
+        lastUsedAt:
+          type: integer
+          nullable: true
+        revokedAt:
+          type: integer
+          nullable: true

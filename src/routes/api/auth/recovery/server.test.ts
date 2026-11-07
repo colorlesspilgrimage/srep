@@ -17,7 +17,7 @@ afterEach(async () => {
   await h.handle.close();
 });
 
-const session = { id: 's', csrfToken: 't' };
+const session = { id: 's', csrfToken: 't', kind: 'cookie' as const };
 
 describe('GET /api/auth/recovery', () => {
   it('returns the unused recovery-code count', async () => {

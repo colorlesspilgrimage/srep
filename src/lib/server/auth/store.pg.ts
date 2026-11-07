@@ -8,10 +8,12 @@ import {
   type DeleteCredentialResult,
 } from '#lib/server/auth/store-types.js';
 import {
+  apiToken,
   appSettings,
   authChallenge,
   authCredential,
   authRecovery,
+  pairingCode,
   session,
 } from '#lib/server/db/schema/pg.js';
 import type { JsonValue } from '#lib/server/db/schema/sqlite.js';
@@ -88,6 +90,8 @@ export function createPgStore(db: PostgresJsDatabase): AuthStore {
         await tx.delete(authRecovery);
         await tx.delete(session);
         await tx.delete(authChallenge);
+        await tx.delete(apiToken);
+        await tx.delete(pairingCode);
         await deleteSetting(tx, SETTING_SETUP_COMPLETE);
         await deleteSetting(tx, SETTING_USER_ID);
         await writeSetting(tx, SETTING_SETUP_TOKEN_HASH, tokenHash);
@@ -204,6 +208,89 @@ export function createPgStore(db: PostgresJsDatabase): AuthStore {
       await db
         .delete(session)
         .where(or(lte(session.expiresAt, now), lte(sql`${session.lastSeenAt} + ${idleMs}`, now)));
+    },
+
+    async insertApiToken(row) {
+      await db.insert(apiToken).values(row);
+    },
+
+    async getApiTokenByTokenHash(tokenHash) {
+      const rows = await db.select().from(apiToken).where(eq(apiToken.tokenHash, tokenHash));
+      return rows[0];
+    },
+
+    async listApiTokens() {
+      return db.select().from(apiToken).orderBy(apiToken.createdAt);
+    },
+
+    async renameApiToken(id, name) {
+      const rows = await db
+        .update(apiToken)
+        .set({ name })
+        .where(and(eq(apiToken.id, id), isNull(apiToken.revokedAt)))
+        .returning({ id: apiToken.id });
+      return rows.length > 0;
+    },
+
+    async revokeApiToken(id, now) {
+      const rows = await db
+        .update(apiToken)
+        .set({ revokedAt: now })
+        .where(and(eq(apiToken.id, id), isNull(apiToken.revokedAt)))
+        .returning({ id: apiToken.id });
+      return rows.length > 0;
+    },
+
+    async touchApiToken(id, now) {
+      await db.update(apiToken).set({ lastUsedAt: now }).where(eq(apiToken.id, id));
+    },
+
+    async countActiveApiTokens() {
+      const rows = await db
+        .select({ n: sql<number>`count(*)` })
+        .from(apiToken)
+        .where(isNull(apiToken.revokedAt));
+      return Number(rows[0]?.n ?? 0);
+    },
+
+    async insertPairingCode(row) {
+      await db.insert(pairingCode).values(row);
+    },
+
+    async invalidateOpenPairingCodes(now) {
+      await db
+        .update(pairingCode)
+        .set({ consumedAt: now })
+        .where(and(isNull(pairingCode.consumedAt), sql`${pairingCode.expiresAt} > ${now}`));
+    },
+
+    async getOpenPairingCodeByHash(codeHash, now) {
+      const rows = await db
+        .select()
+        .from(pairingCode)
+        .where(
+          and(
+            eq(pairingCode.codeHash, codeHash),
+            isNull(pairingCode.consumedAt),
+            sql`${pairingCode.expiresAt} > ${now}`,
+          ),
+        );
+      return rows[0];
+    },
+
+    async consumePairingCode(id, now) {
+      const rows = await db
+        .update(pairingCode)
+        .set({ consumedAt: now })
+        .where(and(eq(pairingCode.id, id), isNull(pairingCode.consumedAt)))
+        .returning({ id: pairingCode.id });
+      return rows.length > 0;
+    },
+
+    async prunePairingCodes(now) {
+      await db
+        .delete(pairingCode)
+        .where(or(lte(pairingCode.expiresAt, now), sql`${pairingCode.consumedAt} is not null`));
     },
   };
 }

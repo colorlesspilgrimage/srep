@@ -15,7 +15,7 @@ M4 adds the UI shell, themes, keyboard layer, and responsive tab bar.
 M5 adds the core screens (decks, study, notes, browse, settings) and a desktop + mobile full-loop UI E2E.
 M6 adds import and export (native archive, Anki `.apkg`, CSV/TSV), plus `srep backup` and `srep restore` for SQLite.
 
-M7 adds **Stats** (`/stats`) and FSRS optimizer preview/apply. M8 adds PWA install (manifest + static service worker). M9 adds hardening docs and release CI. See [docs/install.md](docs/install.md) and [CHANGELOG.md](CHANGELOG.md).
+M7 adds **Stats** (`/stats`) and FSRS optimizer preview/apply. M8 adds PWA install (manifest + static service worker). M9 adds hardening docs and release CI. Companion apps pair via Settings → Pair app (Bearer tokens); see [docs/ios-pairing.md](docs/ios-pairing.md). See [docs/install.md](docs/install.md) and [CHANGELOG.md](CHANGELOG.md).
 The Chromium end-to-end tests cover the flows.
 The Firefox and Safari checks are manual (see "Browser matrix").
 See [ROADMAP.md](ROADMAP.md).

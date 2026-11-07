@@ -16,6 +16,7 @@ const PUBLIC: [string, string][] = [
   ['POST', '/api/auth/login/options'],
   ['POST', '/api/auth/login/verify'],
   ['POST', '/api/auth/recovery/login'],
+  ['POST', '/api/auth/pairing/exchange'],
 ];
 
 describe('public API routes', () => {

@@ -9,10 +9,12 @@ import {
   type DeleteCredentialResult,
 } from '#lib/server/auth/store-types.js';
 import {
+  apiToken,
   appSettings,
   authChallenge,
   authCredential,
   authRecovery,
+  pairingCode,
   session,
   type JsonValue,
 } from '#lib/server/db/schema/sqlite.js';
@@ -89,6 +91,8 @@ export function createSqliteStore(db: BetterSQLite3Database): AuthStore {
         tx.delete(authRecovery).run();
         tx.delete(session).run();
         tx.delete(authChallenge).run();
+        tx.delete(apiToken).run();
+        tx.delete(pairingCode).run();
         deleteSetting(tx, SETTING_SETUP_COMPLETE);
         deleteSetting(tx, SETTING_USER_ID);
         writeSetting(tx, SETTING_SETUP_TOKEN_HASH, tokenHash);
@@ -202,6 +206,89 @@ export function createSqliteStore(db: BetterSQLite3Database): AuthStore {
     async deleteExpiredSessions(now, idleMs) {
       db.delete(session)
         .where(or(lte(session.expiresAt, now), lte(sql`${session.lastSeenAt} + ${idleMs}`, now)))
+        .run();
+    },
+
+    async insertApiToken(row) {
+      db.insert(apiToken).values(row).run();
+    },
+
+    async getApiTokenByTokenHash(tokenHash) {
+      return db.select().from(apiToken).where(eq(apiToken.tokenHash, tokenHash)).get();
+    },
+
+    async listApiTokens() {
+      return db.select().from(apiToken).orderBy(apiToken.createdAt).all();
+    },
+
+    async renameApiToken(id, name) {
+      const result = db
+        .update(apiToken)
+        .set({ name })
+        .where(and(eq(apiToken.id, id), isNull(apiToken.revokedAt)))
+        .run();
+      return result.changes > 0;
+    },
+
+    async revokeApiToken(id, now) {
+      const result = db
+        .update(apiToken)
+        .set({ revokedAt: now })
+        .where(and(eq(apiToken.id, id), isNull(apiToken.revokedAt)))
+        .run();
+      return result.changes > 0;
+    },
+
+    async touchApiToken(id, now) {
+      db.update(apiToken).set({ lastUsedAt: now }).where(eq(apiToken.id, id)).run();
+    },
+
+    async countActiveApiTokens() {
+      const row = db
+        .select({ n: sql<number>`count(*)` })
+        .from(apiToken)
+        .where(isNull(apiToken.revokedAt))
+        .get();
+      return Number(row?.n ?? 0);
+    },
+
+    async insertPairingCode(row) {
+      db.insert(pairingCode).values(row).run();
+    },
+
+    async invalidateOpenPairingCodes(now) {
+      db.update(pairingCode)
+        .set({ consumedAt: now })
+        .where(and(isNull(pairingCode.consumedAt), sql`${pairingCode.expiresAt} > ${now}`))
+        .run();
+    },
+
+    async getOpenPairingCodeByHash(codeHash, now) {
+      return db
+        .select()
+        .from(pairingCode)
+        .where(
+          and(
+            eq(pairingCode.codeHash, codeHash),
+            isNull(pairingCode.consumedAt),
+            sql`${pairingCode.expiresAt} > ${now}`,
+          ),
+        )
+        .get();
+    },
+
+    async consumePairingCode(id, now) {
+      const result = db
+        .update(pairingCode)
+        .set({ consumedAt: now })
+        .where(and(eq(pairingCode.id, id), isNull(pairingCode.consumedAt)))
+        .run();
+      return result.changes > 0;
+    },
+
+    async prunePairingCodes(now) {
+      db.delete(pairingCode)
+        .where(or(lte(pairingCode.expiresAt, now), sql`${pairingCode.consumedAt} is not null`))
         .run();
     },
   };

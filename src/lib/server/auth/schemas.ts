@@ -38,7 +38,20 @@ export const loginVerifySchema = z
 
 export const recoveryLoginSchema = z.object({ code: z.string().max(64) }).strict();
 
+export const pairingCodeSchema = z.object({ name: z.string().max(64).optional() }).strict();
+
+export const pairingExchangeSchema = z
+  .object({
+    code: z.string().max(32),
+    name: z.string().max(64).optional(),
+  })
+  .strict();
+
 export const renameSchema = z.object({ nickname }).strict();
+
+export const tokenRenameSchema = z.object({ name: z.string().min(1).max(64) }).strict();
+
+export const tokenIdSchema = z.uuid();
 
 export const registerOptionsSchema = z.object({ kind, nickname }).strict();
 

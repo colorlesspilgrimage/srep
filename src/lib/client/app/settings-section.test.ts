@@ -4,6 +4,7 @@ import { settingsSectionFromParam } from './settings-section.js';
 describe('settingsSectionFromParam', () => {
   it('maps known section ids and rejects others', () => {
     expect(settingsSectionFromParam('security')).toBe('security');
+    expect(settingsSectionFromParam('pair-app')).toBe('pair-app');
     expect(settingsSectionFromParam('data')).toBe('data');
     expect(settingsSectionFromParam('appearance')).toBe('appearance');
     expect(settingsSectionFromParam(null)).toBeNull();
