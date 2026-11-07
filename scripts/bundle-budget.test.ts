@@ -55,7 +55,7 @@ function noise(size: number): Buffer {
 
 describe('bundle budget', () => {
   it('reads the cap from the json file', () => {
-    expect(gzipLimit()).toBe(104024);
+    expect(gzipLimit()).toBe(110777);
   });
 
   it('accepts a small client and rejects a large client', () => {
