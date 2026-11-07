@@ -1,8 +1,3 @@
-// Contract: verifyReplay replays the review log of every card and compares the result with
-// the cached card columns. rebuildFromLog writes the replayed values over the cache.
-// A card uses the CURRENT preset of its deck (a card without a deck uses the default
-// preset). So a preset edit makes verify report mismatches on purpose; rebuild repairs them.
-// A card whose preset ts-fsrs refuses is skipped and counted. Pages of 500 cards (CWE-770).
 import type { Result } from '#lib/server/auth/deps.js';
 import { BUILTIN_PRESET, DEFAULT_PRESET_ID } from '#lib/server/domain/builtin.js';
 import type { CardRow, DeckRow, PresetRow } from '#lib/server/domain/store/store-types.js';
@@ -39,7 +34,6 @@ async function presetLookup(deps: StudyDeps): Promise<PresetLookup> {
   };
 }
 
-// 'state' is listed too when a card that is not suspended or buried has state != schedState.
 function checkCard(item: ReplayBatchItem, presetOf: PresetLookup): CardCheck {
   const replay = replayCard(item.logs, presetOf(item.card));
   if (replay === null) {

@@ -52,7 +52,6 @@ describe('sqlite database', () => {
         process.umask(previous);
       }
       await runMigrations(handle, config, logger);
-      // Bits 0o077 are group and other access.
       for (const target of [filePath, `${filePath}-wal`, folder, path.dirname(folder)]) {
         expect(fs.statSync(target).mode & 0o077).toBe(0);
       }

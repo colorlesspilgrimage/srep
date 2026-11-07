@@ -5,7 +5,6 @@ import { emptyBodySchema } from '#lib/server/study/core/validation.js';
 import { getStudyContext } from '#lib/server/study/context.js';
 import { undo } from '#lib/server/study/study-answer.js';
 
-// Body: {}. Reverts the most recent review.
 export const POST: RequestHandler = async ({ request }) => {
   const body = await readJson(request, emptyBodySchema);
   if (!body.ok) {

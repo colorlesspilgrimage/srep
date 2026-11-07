@@ -6,8 +6,6 @@ import {
   parseStudySettings,
 } from './study-day-form.js';
 
-// Contract: bad study-day text does not become a request body.
-
 describe('study-day-form', () => {
   it('accepts a valid timezone and hour', () => {
     expect(acceptStudyDay({ timezone: ' Europe/Berlin ', rolloverText: '4' })).toEqual({

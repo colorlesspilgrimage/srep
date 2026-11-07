@@ -24,8 +24,6 @@ import {
 } from '#lib/server/domain/test-support/harness.js';
 import { GET, PUT } from './+server';
 
-// Contract: GET and PUT /api/settings/keybinds. A bad body does not replace a good map.
-
 let h: DomainHarness;
 
 afterEach(async () => {

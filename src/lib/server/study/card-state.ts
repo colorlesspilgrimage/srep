@@ -1,7 +1,3 @@
-// Contract: bulk suspend, unsuspend and bury (at most 500 ids, checked by the route schema).
-// All or nothing: one unknown id gives 404 not_found and changes nothing.
-// unsuspend: 409 card_orphaned for an orphaned cloze card. bury: the cards come back at the
-// next rollover of the study day. 500 settings_corrupt when the stored settings are bad.
 import { fail, type Failure, type Result } from '#lib/server/auth/deps.js';
 import { planBury, planSuspend, planUnsuspend } from '#lib/server/study/core/card-state-plan.js';
 import { studyWindow } from '#lib/server/study/core/day-clock.js';

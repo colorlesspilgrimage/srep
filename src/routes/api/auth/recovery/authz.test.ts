@@ -4,8 +4,6 @@ import { handleAuth } from '#lib/server/auth/hook.js';
 import { createSession } from '#lib/server/auth/sessions.js';
 import { createHarness, type Harness } from '#lib/server/auth/test-support/harness.js';
 
-// Contract: unused recovery count needs a session. CWE-862, CWE-863.
-
 const ORIGIN = 'http://localhost:3000';
 const PATH = '/api/auth/recovery';
 

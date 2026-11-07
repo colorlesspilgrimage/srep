@@ -1,7 +1,3 @@
-// Contract: insert the bench rows with bound parameters.
-// Input: deck count, notes per deck, and the study window.
-// Output: ids and row counts. Deck names are parameters, not SQL text.
-// The default 20 by 500 shape has 8436 review_log rows.
 import { sql, type SQL } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';

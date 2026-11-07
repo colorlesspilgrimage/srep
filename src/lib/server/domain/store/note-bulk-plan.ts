@@ -1,8 +1,3 @@
-// Contract: pure checks for bulk note tag replace and bulk trash.
-// ids length is 1 to 100. Every id is a lower-case UUID. Duplicates collapse.
-// A bad id returns null and must not be sent to SQL (CWE-89).
-// planTagReplace returns null when normalizeTags rejects the result.
-
 import { z } from 'zod';
 import { compareCodeUnit, groupNoteTags } from '#lib/server/domain/core/code-unit.js';
 import { normalizeTags } from '#lib/server/domain/core/tags.js';

@@ -210,8 +210,6 @@ describe('updateNote', () => {
     expect(await getNote(h.deps, unknown)).toMatchObject({ status: 404 });
   });
 
-  // Regression (CWE-362): a tags-only patch read the fields before the transaction and
-  // wrote them back. A parallel field edit between the read and the write was lost.
   it('keeps a parallel edit of the parts that the patch does not change', async () => {
     await setup();
     const n = await note(BASIC_ID, ['a', 'b'], ['old']);

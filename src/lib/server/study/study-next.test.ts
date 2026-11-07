@@ -155,7 +155,6 @@ describe('getNext', () => {
     h.clock.now = Date.parse('2026-01-01T19:00:00Z');
     expect(await next(deck.id)).toMatchObject({ status: 'done' });
     await updateSettings(h.study, { rolloverHour: 4, timezone: 'Asia/Tokyo' });
-    // 19:00Z is 04:00 on 2026-01-02 in Tokyo: a new study day.
     expect(await next(deck.id)).toMatchObject({
       status: 'card',
       window: { startMs: Date.parse('2026-01-01T19:00:00Z') },

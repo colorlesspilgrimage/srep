@@ -1,10 +1,6 @@
 <script lang="ts">
   import { sanitizeCardHtml } from './sanitize-card.js';
 
-  // Contract: the only assignment of card text to innerHTML.
-  // sanitizeCardHtml runs once here. A second pass would escape a media img.
-  // No fetch.
-
   let { text }: { text: string } = $props();
   const safe = $derived(sanitizeCardHtml(text));
 </script>

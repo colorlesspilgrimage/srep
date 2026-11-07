@@ -1,5 +1,3 @@
-// Contract: the SQLite part of the StudyStore for replay: verify batches and rebuild.
-// The rebuild runs in one synchronous transaction, which is the study lock on SQLite.
 import { asc, eq, gt, inArray, sql } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { card, reviewLog } from '#lib/server/db/schema/sqlite.js';
@@ -38,7 +36,6 @@ function readBatch(tx: Exec, afterCardId: string | null, limit: number): ReplayB
   return cards.map((c) => ({ card: c, logs: logs.filter((l) => l.cardId === c.id) }));
 }
 
-// state follows sched_state unless the card is suspended or buried.
 function applyRebuild(tx: Exec, update: CardRebuildUpdate): void {
   const { fields } = update;
   tx.update(card)

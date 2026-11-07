@@ -31,11 +31,6 @@
   import { isDeckUuid } from './deck-id.js';
   import { studyNextPath } from './study-paths.js';
 
-  // Contract: the study screen. It reads deck from the query.
-  // A bad deck id shows an error and does not call the API.
-  // One rate, undo, or suspend runs at a time. An open edit blocks them.
-  // A reply from an older load is not applied. CardHtml is the only renderer.
-
   type Props = { paletteOpen: boolean };
 
   let { paletteOpen }: Props = $props();

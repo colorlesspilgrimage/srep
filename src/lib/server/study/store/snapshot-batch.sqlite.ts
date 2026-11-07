@@ -1,8 +1,3 @@
-// Contract: SQLite batch for every deck in the snapshot.
-// Input: a transaction with all(), plus the snapshot input.
-// Output: one DeckSnapshot per deck id, in that order.
-// Side effect: none. The caller owns the transaction.
-// An empty deck id list runs no statement.
 import type { SQL } from 'drizzle-orm';
 import type { DeckSnapshot } from '#lib/server/study/core/queue-choice.js';
 import type { StudySnapshotInput } from '#lib/server/study/store/study-store-types.js';

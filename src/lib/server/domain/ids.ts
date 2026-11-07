@@ -1,6 +1,5 @@
 import type { RandomBytes } from '#lib/server/auth/tokens.js';
 
-// A UUID v4 from 16 random bytes. A seeded source gives the same id in every run.
 export function newId(random: RandomBytes): string {
   const b = random(16);
   b[6] = ((b[6] as number) & 0x0f) | 0x40;

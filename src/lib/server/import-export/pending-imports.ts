@@ -30,7 +30,6 @@ export function takePending(token: string, now: number): PendingImport | undefin
   return entry;
 }
 
-// Tests only.
 export function clearPendingImports(): void {
   pending.clear();
 }

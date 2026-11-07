@@ -1,7 +1,3 @@
-// Contract: two SQLite connections write at the same time (CWE-362).
-// The second bulk call must wait for the first commit, then read that row.
-// A deferred transaction fails at once with "database is locked".
-
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { Worker } from 'node:worker_threads';

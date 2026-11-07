@@ -4,8 +4,6 @@
   import StudyScreen from '#lib/client/app/StudyScreen.svelte';
   import TuiPage from '#lib/client/app/TuiPage.svelte';
 
-  // Contract: the signed-in study route. Guests stay on the auth pages.
-
   let { data }: { data: PageData } = $props();
   let paletteOpen = $state(false);
 </script>

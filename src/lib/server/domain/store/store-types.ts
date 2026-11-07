@@ -123,8 +123,6 @@ export type SeedInput = {
   noteTypes: { noteType: NoteTypeRow; templates: TemplateRow[] }[];
 };
 
-// Every method is atomic. A "read, decide, write" method takes a pure synchronous
-// callback. The callback runs in the transaction after the rows are read.
 export interface DomainStore {
   /** Inserts the rows that are absent, in one transaction. It never overwrites. */
   seedDefaults(seed: SeedInput): Promise<void>;

@@ -1,8 +1,3 @@
-// Regenerates the 24 gallery screenshots in the Playwright noble image.
-// The image is Ubuntu 24.04 with the Chromium dependencies CI installs.
-// That environment uses Liberation Mono for the gallery font stack.
-// A host with Cascadia Mono writes different pixels.
-
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';

@@ -1,5 +1,3 @@
-// Contract: the SQLite part of the StudyStore for one card: read, answer and undo.
-// A synchronous better-sqlite3 transaction runs alone, so it is the study lock on SQLite.
 import { and, asc, desc, eq, getTableColumns, inArray, isNull, ne, sql } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { card, deck, deckPreset, note, reviewLog } from '#lib/server/db/schema/sqlite.js';
@@ -69,7 +67,6 @@ function unbury(tx: Exec, ids: string[]): void {
   }
 }
 
-// Runs inside the transaction. Reverts the newest review and deletes its log row.
 function undoNewestReview(
   tx: Exec,
   compute: (ctx: UndoContext) => UndoPlan,

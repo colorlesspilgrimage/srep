@@ -41,7 +41,6 @@ describe('planUnsuspend', () => {
       status: 409,
       error: 'card_orphaned',
     });
-    // The flag of a card that is not suspended does not matter.
     const active = cardRow('a', { flags: FLAG_ORPHANED });
     expect(planUnsuspend([active])).toEqual({ ok: true, updates: [] });
   });

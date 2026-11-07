@@ -2,8 +2,6 @@ import { expect, test, type Browser, type BrowserContext, type Page } from '@pla
 import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
-// Contract: Settings Appearance, Display, Study day, and Presets. Prefs persist across reload.
-
 const CLIENT_IP = '198.51.100.47';
 const DEFAULT_MAP = {
   'palette.open': 'Ctrl+K',
@@ -304,7 +302,6 @@ test.describe.serial('settings screen', () => {
     await expect(page.getByText(preview)).toBeVisible();
     await page.getByRole('button', { name: `Restore ${preview}` }).click();
     await expect(page.getByRole('status', { name: 'Data status' })).toHaveText('Restored.');
-    // Other e2e files may leave trashed notes in the shared DB; assert this note left trash.
     await expect(page.getByRole('button', { name: `Restore ${preview}` })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Export native (.zip)' })).toBeVisible();
     const live = await page.request.get(`/api/notes/${noteId}`);

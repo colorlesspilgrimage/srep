@@ -1,11 +1,3 @@
-// The study simulation: N study days with a fake clock and seeded random ratings.
-// The milestone test and scripts/study-simulate.ts both run it. No vitest import here.
-// Counters in the result:
-// - limitViolations: a deck passed its daily limit (plain SQL count), the queue offered a
-//   suspended or buried card, or a day did not end within MAX_STEPS_PER_DAY.
-// - replayMismatches: verify mismatches, chain mismatches, cards that rebuild changed,
-//   last_review not equal to the latest log time, log times that do not increase.
-// - undoMismatches: answer + undo, or suspend + unsuspend, did not restore the exact rows.
 import type { Result } from '#lib/server/auth/deps.js';
 import type { DbHandle } from '#lib/server/db/client.js';
 import { BASIC_ID, BASIC_REVERSED_ID, CLOZE_ID } from '#lib/server/domain/builtin.js';
@@ -76,7 +68,6 @@ export const SIMULATION_START = Date.parse('2026-01-01T09:00:00Z');
 const SETTINGS = DEFAULT_STUDY_SETTINGS;
 const MAX_STEPS_PER_DAY = 2000;
 const HOUR_MS = 3_600_000;
-// 12 notes give 5 Basic+Reversed, 5 Cloze (2 cards each) and 2 Basic: 22 cards.
 const NOTE_KIND_CYCLE = [BASIC_REVERSED_ID, CLOZE_ID, BASIC_ID, BASIC_REVERSED_ID, CLOZE_ID];
 
 type Sim = {
@@ -96,7 +87,6 @@ function must<T extends object>(result: Result<T>): { ok: true } & T {
   return result;
 }
 
-// Weighted: Again 10%, Hard 10%, Good 65%, Easy 15%.
 function pickRating(rng: () => number): 1 | 2 | 3 | 4 {
   const x = rng();
   return x < 0.1 ? 1 : x < 0.2 ? 2 : x < 0.85 ? 3 : 4;
@@ -152,7 +142,6 @@ async function answerReply(sim: Sim, reply: NextReply & { status: 'card' }, elap
   must(await answer(sim.setup.study, { ...input, elapsedMs }));
 }
 
-// Answer one card, then undo: every card row and log row must be as before.
 async function undoCheck(sim: Sim): Promise<void> {
   const reply = await nextReply(sim);
   if (reply.status !== 'card') {
@@ -167,7 +156,6 @@ async function undoCheck(sim: Sim): Promise<void> {
   }
 }
 
-// Suspend the next card: the queue must not offer it. Unsuspend restores the exact rows.
 async function suspendCheck(sim: Sim): Promise<void> {
   const reply = await nextReply(sim);
   if (reply.status !== 'card') {
@@ -190,7 +178,6 @@ async function suspendCheck(sim: Sim): Promise<void> {
   }
 }
 
-// next and answer until done. A wait inside the study day moves the clock to its time.
 async function studyUntilDone(sim: Sim, window: StudyWindow): Promise<void> {
   const { clock } = sim.setup;
   for (let step = 0; step < MAX_STEPS_PER_DAY; step += 1) {
@@ -235,7 +222,6 @@ async function simulateDay(sim: Sim, day: number): Promise<void> {
   if (day % 7 === 6) {
     await addNote(sim);
   }
-  // Jump to a random time in the next study day (never back in time).
   const next = studyWindow(window.endMs, SETTINGS);
   const span = next.endMs - next.startMs - 4 * HOUR_MS;
   clock.now = Math.max(clock.now, next.startMs + Math.floor(sim.rng() * span));

@@ -20,8 +20,6 @@ import {
   type KeybindMap,
 } from './keymap.js';
 
-// Contract: chord parse, match, hints, and remap. No clock and no network.
-
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const DIGITS = '0123456789'.split('');
 const KEYS = [

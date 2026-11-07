@@ -1,6 +1,3 @@
-// Contract: SQLite card search for browse. The caller passes db.
-// User text is bound. LIKE uses ESCAPE '\' (CWE-89).
-
 import { asc, eq, inArray } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { tagsByNote, toBrowsePage } from '#lib/server/browse/browse-page.js';

@@ -9,8 +9,6 @@ import {
 import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
-// Contract: gallery settings checks. A saved theme is in the first HTML.
-
 const CLIENT_IP = '198.51.100.30';
 
 let context: BrowserContext;

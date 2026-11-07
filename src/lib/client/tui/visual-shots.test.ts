@@ -11,9 +11,6 @@ import {
   visualShotPlan,
 } from './visual-shots.js';
 
-// Contract: the 6 screenshot names. A bad id or a bad width throws.
-// A file name is one safe segment. Shots do not use the clock or the network.
-
 const ROOT = path.resolve(import.meta.dirname, '../../../..');
 const SNAPSHOT_DIR = path.join(ROOT, 'e2e/gallery-visual.test.ts-snapshots');
 const SAFE_SHOT_FILE = /^[a-z0-9]+(?:-[a-z0-9]+)*-(?:360|1440)\.png$/;

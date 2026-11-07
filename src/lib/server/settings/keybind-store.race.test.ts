@@ -11,8 +11,6 @@ import { createSqliteKeybindStore } from '#lib/server/settings/keybind-store.sql
 import { THEME_SETTINGS_KEY } from '#lib/server/settings/theme-key.js';
 import { makeTempDir, removeTempDirs } from '#lib/server/temp-dir.js';
 
-// Contract: two key-chord writes leave one complete row. The theme row stays.
-
 const LEFT = {
   [PALETTE_OPEN]: 'Alt+K',
   [PALETTE_OPEN_COLON]: ':',

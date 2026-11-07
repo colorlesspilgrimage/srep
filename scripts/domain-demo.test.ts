@@ -8,7 +8,6 @@ const tsx = path.join(root, 'node_modules', '.bin', 'tsx');
 const script = path.join(root, 'scripts', 'domain-demo.ts');
 const dirs: string[] = [];
 
-// An argument array and no shell. The env holds only checked settings.
 function runDemo(dir: string, args: string[] = []) {
   const env = {
     ...process.env,
@@ -28,7 +27,6 @@ afterEach(() => {
   removeTempDirs(dirs);
 });
 
-// Each case starts tsx. A loaded host needs more than the default 5 s.
 describe('domain demo script', { timeout: 30_000 }, () => {
   it('creates decks and notes and prints the expected cards', () => {
     const { result, lines } = runDemo(makeTempDir(dirs));

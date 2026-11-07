@@ -1,6 +1,3 @@
-// Contract: map joined rows to a browse page. Pure. No I/O.
-// frontText is plain text. The list does not render a template.
-
 import { compareCodeUnit, groupNoteTags } from '#lib/server/domain/core/code-unit.js';
 import { stripTags } from '#lib/server/domain/core/text.js';
 import type { BrowsePage, BrowseRawRow, BrowseRow } from '#lib/server/browse/types.js';

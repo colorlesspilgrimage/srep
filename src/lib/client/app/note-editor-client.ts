@@ -1,8 +1,3 @@
-// Contract: JSON client for the note editor.
-// A deck id or a note id enters a path only after the UUID check.
-// Field text goes out through JSON.stringify inside apiFetch.
-// A failed check does not call fetch. No file bytes are logged.
-
 import { apiFetch, rejectedResult, type ApiResult } from '#lib/client/api.js';
 import { isDeckUuid } from './deck-id.js';
 import { noteResourcePath } from './study-paths.js';

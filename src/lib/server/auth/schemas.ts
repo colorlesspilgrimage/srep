@@ -4,7 +4,6 @@ import { z } from 'zod';
 const kind = z.enum(['passkey', 'security_key']);
 const nickname = z.string().max(200);
 const challengeId = z.string().min(1).max(64);
-// The WebAuthn library checks the inner fields. The body size limit bounds the rest.
 function looksLikeResponse(value: unknown): boolean {
   if (typeof value !== 'object' || value === null || Array.isArray(value) || !('id' in value)) {
     return false;

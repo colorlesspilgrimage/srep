@@ -5,7 +5,6 @@ import { studySettingsSchema } from '#lib/server/study/core/validation.js';
 import { getStudyContext } from '#lib/server/study/context.js';
 import { getSettings, updateSettings } from '#lib/server/study/study-settings.js';
 
-// The study day: { rolloverHour 0..23, timezone (IANA name) }.
 export const GET: RequestHandler = async () => {
   const result = await getSettings(getStudyContext());
   return result.ok ? json({ settings: result.settings }) : errorResponse(result);

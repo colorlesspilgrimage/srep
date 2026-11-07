@@ -16,7 +16,7 @@ vi.mock('#lib/server/db/index.js', () => ({
 }));
 
 import { load } from './+page.server.js';
-import { galleryCacheHeaders } from './cache-headers.js';
+import { privatePageHeaders } from '#lib/server/http/private-page.js';
 
 const saved = { id: 'xai-dark' };
 
@@ -48,8 +48,8 @@ async function loadGallery(
 
 describe('gallery cache headers', () => {
   it('tells caches not to store the gallery document', () => {
-    expect(galleryCacheHeaders()['cache-control']).toBe('no-store');
-    expect(galleryCacheHeaders().vary).toBe('Cookie');
+    expect(privatePageHeaders()['cache-control']).toBe('no-store');
+    expect(privatePageHeaders().vary).toBe('Cookie');
   });
 
   it('the gallery load sets that header', async () => {

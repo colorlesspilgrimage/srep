@@ -14,8 +14,6 @@ afterEach(() => {
 
 const SHA = 'ab' + '0'.repeat(62);
 
-// A failed write must not leave a temp file. Many failed writes would fill the disk (CWE-459).
-// Root ignores the folder mode, so the test needs a normal user.
 const canDenyWrite = process.platform !== 'win32' && process.getuid?.() !== 0;
 
 describe('createFsMediaFiles', () => {

@@ -1,5 +1,3 @@
-// Contract: the Postgres part of the StudyStore for one card: read, answer and undo.
-// Answer and undo take the study lock as the first statement of the transaction.
 import { and, desc, eq, getTableColumns, inArray, sql, type SQL } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { card, deck, deckPreset, note, reviewLog } from '#lib/server/db/schema/pg.js';
@@ -183,8 +181,6 @@ function answerContextSql(cardId: string): SQL {
       (select max(${reviewLog.reviewedAt}) from ${reviewLog}) as max_at`;
 }
 
-// A suspend or bury locks card rows and does not take the study lock.
-// FOR UPDATE stops this answer from writing over that lock (CWE-362).
 async function readAnswerContext(tx: Exec, cardId: string): Promise<AnswerContext | undefined> {
   const result = await tx.execute(answerContextSql(cardId));
   const row = result[0];
@@ -225,7 +221,6 @@ async function unbury(tx: Exec, ids: string[]): Promise<void> {
   }
 }
 
-// The caller holds the study lock before this function runs.
 async function undoNewestReview(
   tx: Exec,
   compute: (ctx: UndoContext) => UndoPlan,
@@ -238,7 +233,6 @@ async function undoNewestReview(
   if (log === undefined) {
     return 'nothing_to_undo';
   }
-  // FOR UPDATE: see readAnswerContext. The plan keeps a suspend that committed first.
   const [row] = await tx.select().from(card).where(eq(card.id, log.cardId)).for('update');
   if (row === undefined) {
     throw new Error('review log row without a card');

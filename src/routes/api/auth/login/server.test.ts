@@ -123,7 +123,6 @@ describe('POST /api/auth/login/verify', () => {
   });
 });
 
-// scrypt makes each recovery attempt slow. A loaded host needs more than the default 5 s.
 describe('POST /api/auth/recovery/login', { timeout: 30_000 }, () => {
   it('logs in with a code once and counts failures globally', async () => {
     ({ h } = await useRouteContext());
@@ -151,7 +150,6 @@ describe('POST /api/auth/recovery/login', { timeout: 30_000 }, () => {
     expect(last.headers.get('retry-after')).not.toBeNull();
   });
 
-  // Regression: a parallel burst must not pass the global failure limit (CWE-307, CWE-770).
   it('stops a parallel burst of bad codes at the failure limit', async () => {
     ({ h } = await useRouteContext());
     await doSetup(h);
@@ -173,8 +171,6 @@ describe('POST /api/auth/recovery/login', { timeout: 30_000 }, () => {
     expect((await recoveryPost(event)).status).toBe(400);
   });
 
-  // Parallel requests must not pass the global limit before one failure is counted (CWE-307).
-  // A code with a bad format fails before scrypt runs. This keeps the tests fast.
   it('lets at most 5 parallel bad codes reach the code check', async () => {
     ({ h } = await useRouteContext());
     await doSetup(h);

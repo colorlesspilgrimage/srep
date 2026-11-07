@@ -1,8 +1,3 @@
-// Contract: read note-editor JSON into fixed fields.
-// Unknown shapes return null. The caller shows an error and does not render them.
-// Only known keys are read. A deck id and a note id must be UUIDs.
-// No I/O.
-
 import { isDeckUuid } from './deck-id.js';
 
 export type EditorDeck = { id: string; name: string };

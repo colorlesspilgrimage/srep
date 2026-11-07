@@ -11,8 +11,6 @@ import {
 } from '#lib/server/study/core/fsrs-adapter.js';
 import type { Rating, SchedFields } from '#lib/server/study/core/types.js';
 
-// Golden values from ts-fsrs 5.4.2 with fuzz off. A change here is a schedule drift.
-// Do not edit the numbers without a decision.
 const T0 = Date.parse('2026-01-01T09:00:00Z');
 const MIN = 60_000;
 const DAY = 86_400_000;
@@ -20,7 +18,6 @@ const DEFAULT: SchedulerPreset = BUILTIN_PRESET;
 
 type Step = { fields: SchedFields; at: number; intervalMinutes: number };
 
-// Each answer happens at the due of the previous answer. The first one at T0.
 function run(preset: SchedulerPreset, ratings: Rating[]): Step[] {
   let fields = newCardFields();
   let at = T0;
@@ -162,8 +159,6 @@ describe('fsrs adapter', () => {
       answerCard(DEFAULT, newCardFields(), 3, T0),
     );
     expect(buildFsrs({ ...DEFAULT, fsrsParams: w21.slice(0, 19) })).not.toBeNull();
-    // ts-fsrs accepts 17, 19 or 21 numbers only. The preset schema allows 20, so the
-    // adapter must refuse it here (the service answers 422 bad_preset).
     expect(buildFsrs({ ...DEFAULT, fsrsParams: w21.slice(0, 20) })).toBeNull();
     expect(buildFsrs({ ...DEFAULT, fsrsParams: [1, 2, 3, 4, 5] })).toBeNull();
     expect(buildFsrs({ ...DEFAULT, fsrsParams: [...w21.slice(0, 20), Number.NaN] })).toBeNull();

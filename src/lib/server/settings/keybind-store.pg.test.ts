@@ -8,8 +8,6 @@ import { KEYBIND_SETTINGS_KEY } from '#lib/server/settings/keybind-key.js';
 import { createPgKeybindStore } from '#lib/server/settings/keybind-store.pg.js';
 import { getKeybindStore } from '#lib/server/settings/keybind-store.js';
 
-// Contract: the Postgres key-chord store with a stub database. No server is used.
-
 type Call = { name: string; arg: unknown };
 
 type StubRow = { value: unknown };

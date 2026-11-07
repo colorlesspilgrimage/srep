@@ -12,9 +12,6 @@
     type KeybindMap,
   } from './keymap.js';
 
-  // Contract: edit the three gallery chords. This file does not call the network.
-  // Hide this status when it has no text. The theme status is then the only status node.
-
   const ROWS = [
     { id: PALETTE_OPEN, label: 'Open palette', change: 'Change Open palette' },
     {

@@ -7,9 +7,6 @@ import {
   type DomainHarness,
 } from '#lib/server/domain/test-support/harness.js';
 
-// Security tests for the note services: render cost (CWE-400, CWE-405) and
-// field names that are also Object.prototype keys (CWE-1321).
-
 let h: DomainHarness;
 afterEach(async () => {
   await h.close();
@@ -36,7 +33,6 @@ async function noteType(fields: string[], front: string, back: string): Promise<
   return result.noteType.id;
 }
 
-// 100 distinct cloze indices in one field: about 1 KB.
 const manyClozes = Array.from({ length: 100 }, (_, i) => `{{c${i + 1}::a}}`).join('');
 
 describe('CWE-400 render amplification', () => {

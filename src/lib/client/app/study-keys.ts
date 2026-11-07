@@ -1,8 +1,3 @@
-// Contract: map one study key to one action.
-// inFlight, a field, a dialog, or the palette returns none.
-// Space or Enter on a button is none, so that button runs once.
-// No I/O.
-
 export type StudySide = 'front' | 'back';
 export type StudyStatus = 'card' | 'wait' | 'done';
 export type StudyRating = 1 | 2 | 3 | 4;

@@ -3,9 +3,6 @@ import { resetAuthViaCli } from './support/cli';
 import { removeRootDecks } from './support/study-screen';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
-// Contract: signed-in UI full loop — create deck, add Basic note, study, see next due.
-// Desktop uses keyboard; 360px uses the tab bar. Unique client IP for this file.
-
 const CLIENT_IP = '198.51.100.48';
 
 let context: BrowserContext;

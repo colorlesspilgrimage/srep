@@ -9,8 +9,6 @@ import { DISPLAY_SETTINGS_KEY } from '#lib/server/settings/display-key.js';
 import { createSqliteDisplayStore } from '#lib/server/settings/display-store.sqlite.js';
 import { makeTempDir, removeTempDirs } from '#lib/server/temp-dir.js';
 
-// Contract: two display writes leave one complete row. The study row stays.
-
 const STUDY_VALUE = { rolloverHour: 4, timezone: 'UTC' };
 const LEFT = {
   fontSize: 14,

@@ -3,8 +3,6 @@ import { errorResponse } from '#lib/server/auth/http.js';
 import { getDomainContext } from '#lib/server/domain/context.js';
 import { readMedia } from '#lib/server/domain/media.js';
 
-// Only the MIME type from the database goes into a header. It passed the allow list.
-// nosniff and the sandbox CSP stop a browser from running the file (CWE-79, CWE-434).
 export const GET: RequestHandler = async ({ params }) => {
   const result = await readMedia(getDomainContext(), params.sha);
   if (!result.ok) {

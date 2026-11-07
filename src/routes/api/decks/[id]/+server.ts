@@ -14,7 +14,6 @@ export const GET: RequestHandler = async ({ params }) => {
   return result.ok ? json({ deck: result.deck }) : errorResponse(result);
 };
 
-// Rename, move, preset and description change. The reply lists every changed deck.
 export const PATCH: RequestHandler = async ({ request, params }) => {
   const id = parseId(params.id);
   if (id === null) {

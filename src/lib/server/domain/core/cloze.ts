@@ -1,7 +1,3 @@
-// Cloze syntax: {{cN::text}} or {{cN::text::hint}}, with N from 1 to 999.
-// The first `}}` ends a cloze. Nesting is not supported.
-// The scanner never throws and runs in linear time (CWE-1333).
-
 export type ClozeSegment =
   | { kind: 'text'; text: string }
   | { kind: 'cloze'; index: number; text: string; hint: string | null; source: string };
@@ -18,7 +14,6 @@ function readDigits(text: string, from: number): number {
   return end;
 }
 
-// Finds the next cloze at or after `from`. Returns null when no more cloze exists.
 function nextCloze(text: string, from: number): Match | null {
   let at = from;
   for (;;) {
@@ -40,7 +35,6 @@ function nextCloze(text: string, from: number): Match | null {
     const bodyStart = digitsEnd + 2;
     const close = text.indexOf('}}', bodyStart);
     if (close === -1) {
-      // Every later candidate starts after this one, so it has no `}}` either.
       return null;
     }
     const body = text.slice(bodyStart, close);
@@ -76,7 +70,6 @@ export function segmentsToSource(segments: ClozeSegment[]): string {
   return segments.map((s) => (s.kind === 'text' ? s.text : s.source)).join('');
 }
 
-// Distinct cloze indices in ascending order.
 export function clozeIndices(text: string): number[] {
   const found = new Set<number>();
   for (const segment of parseCloze(text)) {
@@ -87,8 +80,6 @@ export function clozeIndices(text: string): number[] {
   return [...found].sort((a, b) => a - b);
 }
 
-// Shows the active cloze as a gap (front) or as an answer (back). Other clozes show
-// their text. The output is not escaped. The caller must sanitize it before display.
 export function renderCloze(text: string, activeIndex: number, side: 'front' | 'back'): string {
   let out = '';
   for (const segment of parseCloze(text)) {

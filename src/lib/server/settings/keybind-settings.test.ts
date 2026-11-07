@@ -18,8 +18,6 @@ import { getKeybindSettings, putKeybindSettings } from '#lib/server/settings/key
 import { getKeybindStore } from '#lib/server/settings/keybind-store.js';
 import { THEME_SETTINGS_KEY } from '#lib/server/settings/theme-key.js';
 
-// Contract: the saved key chords. A bad map is refused. A bad stored value is not repaired.
-
 const STUDY_VALUE = { rolloverHour: 4, timezone: 'UTC' };
 const THEME_VALUE = { id: 'nord' };
 const ALT_MAP = { ...DEFAULT_KEYBINDS, [PALETTE_OPEN]: 'Alt+K' };

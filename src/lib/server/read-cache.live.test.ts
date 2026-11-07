@@ -3,9 +3,6 @@ import postgres from 'postgres';
 import { describe, expect, it } from 'vitest';
 import { readCached } from '#lib/server/read-cache.js';
 
-// Contract: a commit from another connection drops the Postgres read cache.
-// This process's own statements do not drop it.
-
 const CANDIDATES = [
   process.env.SREP_TEST_POSTGRES_URL,
   'postgres://srep:srep@127.0.0.1:5432/srep_cache',

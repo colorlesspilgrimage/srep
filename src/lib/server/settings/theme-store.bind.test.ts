@@ -1,35 +1,19 @@
-import Database from 'better-sqlite3';
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { describe, expect, it } from 'vitest';
 import { appSettings } from '#lib/server/db/schema/sqlite.js';
 import { THEME_SETTINGS_KEY } from '#lib/server/settings/theme-key.js';
 import { getThemeSettings } from '#lib/server/settings/theme-settings.js';
 import { createSqliteThemeStore } from '#lib/server/settings/theme-store.sqlite.js';
-
-// Contract: the theme upsert binds its values. It does not join them into SQL text.
-// Extra fields do not become other app_settings keys (CWE-89, CWE-915).
+import { openTracedAppSettings } from '#lib/server/settings/test-support/traced-app-settings.js';
 
 const EVIL_ID = "x' OR 1=1; DROP TABLE app_settings;--";
 const STUDY_VALUE = { rolloverHour: 4, timezone: 'UTC' };
 const AUTH_VALUE = { done: true };
 
-function openTraced() {
-  const sqlite = new Database(':memory:');
-  const sqls: string[] = [];
-  const prepare = sqlite.prepare.bind(sqlite);
-  sqlite.prepare = ((sql: string) => {
-    sqls.push(sql);
-    return prepare(sql);
-  }) as typeof sqlite.prepare;
-  sqlite.exec('create table app_settings (key text primary key, value text not null)');
-  const db = drizzle(sqlite);
-  return { sqlite, sqls, db, store: createSqliteThemeStore(db) };
-}
-
 describe('theme store binding', () => {
   it('keeps the id out of the SQL text', async () => {
-    const { sqlite, sqls, store } = openTraced();
+    const { sqlite, sqls, db } = openTracedAppSettings();
+    const store = createSqliteThemeStore(db);
     await store.putThemeValue({ id: EVIL_ID });
     await store.putThemeValue({ id: 'xai-light' });
     const writes = sqls.filter((sql) => sql.includes('insert'));
@@ -46,7 +30,8 @@ describe('theme store binding', () => {
   });
 
   it('drops extra fields and leaves other keys in place', async () => {
-    const { sqlite, db, store } = openTraced();
+    const { sqlite, db } = openTracedAppSettings();
+    const store = createSqliteThemeStore(db);
     db.insert(appSettings).values({ key: 'study', value: STUDY_VALUE }).run();
     db.insert(appSettings).values({ key: 'auth.setup_complete', value: AUTH_VALUE }).run();
     await store.putThemeValue({ id: 'xai-light', key: 'auth.user_id' } as { id: string });

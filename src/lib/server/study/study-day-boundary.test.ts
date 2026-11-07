@@ -9,10 +9,6 @@ import {
   type StudyHarness,
 } from '#lib/server/study/test-support/harness.js';
 
-// A Good answer uses a 10-minute learning step.
-// The queue waits only when that step is due before the study-day end.
-// The default end is 04:00 UTC.
-
 let h: StudyHarness;
 
 afterEach(async () => {

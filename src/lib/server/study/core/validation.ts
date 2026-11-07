@@ -1,5 +1,3 @@
-// Contract: zod schemas for every study input. All objects are strict (CWE-20).
-// Ids are UUIDs. Numbers are integers with bounds.
 import { z } from 'zod';
 import { idSchema, MAX_CARDS_PER_MOVE } from '#lib/server/domain/core/validation.js';
 import { isValidTimezone } from '#lib/server/study/core/day-clock.js';

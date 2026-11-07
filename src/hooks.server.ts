@@ -52,7 +52,6 @@ export const init: ServerInit = async () => {
     if (config.migrateOnStart) {
       await runMigrations(db, config, logger);
     }
-    // Adds the built-in preset and note types, and empties trash older than 30 days.
     await seedDomain(getDomainContext());
     const { deps } = getAuthContext();
     await announceSetupToken(deps);

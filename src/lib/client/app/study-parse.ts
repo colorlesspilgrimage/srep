@@ -1,8 +1,3 @@
-// Contract: read study and note JSON into fixed fields.
-// Unknown shapes return null. The caller shows an error and does not render them.
-// Only known keys are read. A card id or a note id must be a UUID.
-// No I/O.
-
 import { isDeckUuid } from './deck-id.js';
 import { STUDY_RATINGS, type StudyRating } from './study-keys.js';
 

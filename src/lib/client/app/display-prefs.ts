@@ -1,6 +1,3 @@
-// Contract: display prefs for the app shell. Pure values. No I/O.
-// A bad font size or flag does not become a request body (CWE-20).
-
 export type DisplayPrefs = {
   fontSize: number;
   reducedMotion: boolean;
@@ -108,8 +105,6 @@ export function parseDisplayPrefs(value: unknown): DisplayPrefs | null {
 }
 
 export function displayRootClass(prefs: DisplayPrefs): string {
-  // Font size is a class, not a style attr, so CSP style-src-attr stays tight.
-  // Scanline and cursorBlink remain in stored prefs for API compat; they no longer paint.
   const parts = ['tui-display', `tui-font-${prefs.fontSize}`];
   if (prefs.reducedMotion) {
     parts.push('tui-display-reduced-motion');

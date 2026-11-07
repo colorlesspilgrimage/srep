@@ -6,12 +6,6 @@
   import { createStudyClient } from './study-client.js';
   import { dialogKeyAction } from './dialog-focus.js';
 
-  // Contract: edit the note fields for the open card.
-  // GET and PATCH use the note id only after the UUID check inside the client.
-  // Escape closes and does not save. Tab stays in the dialog.
-  // onSaved gets the card id from the moment Save was clicked.
-  // onSaved's text is null when that card id is gone. The parent loads the next card.
-
   type SavedText = { front: string; back: string };
 
   type Props = {

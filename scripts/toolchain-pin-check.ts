@@ -1,10 +1,3 @@
-// Contract: report pin failures for the toolchain files.
-// Inputs are file text and lock package records.
-// Outputs are failure strings. An empty list means the pin holds.
-// The check does not read the disk and does not use the network.
-// The patched esbuild release is 0.25.0.
-// GHSA-67mh-4wv8-2f99 lists versions at or below 0.24.2.
-
 export const SETUP_NODE_SHA = 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020';
 export const NODE_VERSION_VALUE = "'>=22.17.0 <23.0.0'";
 export const ESBUILD_FIX = [0, 25, 0] as const;
@@ -100,8 +93,6 @@ function numericParts(version: string): [number, number, number] | null {
   return [Number(raw[0]), Number(raw[1]), Number(raw[2])];
 }
 
-// True when the version is below the patched esbuild release 0.25.0.
-// A version that is not three plain numbers is too old.
 export function esbuildVersionBelowFix(version: string): boolean {
   const parts = numericParts(version);
   if (parts === null) {
@@ -206,8 +197,6 @@ export function forbiddenLockText(text: string): string[] {
   return failures;
 }
 
-// Fail when the root override does not follow the direct esbuild dependency.
-// A second key can select a different esbuild tarball.
 export function esbuildOverrideFailures(overrides: Record<string, string> | undefined): string[] {
   const value = overrides ?? {};
   const failures: string[] = [];

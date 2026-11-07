@@ -1,8 +1,3 @@
-// Contract: build the browse WHERE clause. Pure. No I/O.
-// User strings are bound parameters (CWE-89).
-// is:due is state review and due before the study-day end.
-// Postgres lower() folds Ä. translate() folds A to Z only, like SQLite lower().
-
 import { type AnyColumn, type SQL, type Table, sql } from 'drizzle-orm';
 import { asciiLower, escapeLike } from '#lib/server/browse/like-escape.js';
 import type { BrowseIs, BrowseProp, BrowseQuery } from '#lib/server/browse/types.js';
@@ -62,7 +57,6 @@ export function combineAnd(parts: readonly SQL[]): SQL {
   return current;
 }
 
-// A child path uses substr. '=' keeps '%' and '_' literal. LIKE would not.
 function deckClause(pathCol: AnyColumn, path: string): SQL {
   return sql`(${pathCol} = ${path} or substr(${pathCol}, 1, length(${path}) + 2) = ${path} || '::')`;
 }

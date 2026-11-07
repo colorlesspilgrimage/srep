@@ -1,11 +1,3 @@
-// Contract: pure key map for the browse screen.
-// region is query, grid, or dialog.
-// modalOpen blocks the grid. paletteOpen blocks every region.
-// Ctrl+K asks for the palette. Ctrl+A selects the field or the page.
-// Other modifier chords return none.
-// Digits do not rate. Delete and Backspace do not delete.
-// No I/O.
-
 export type BrowseRegion = 'query' | 'grid' | 'dialog';
 
 export type BrowseKeyInput = {

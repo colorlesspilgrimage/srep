@@ -1,6 +1,3 @@
-// Contract: screenshot names for the 3 themes at two widths.
-// A name is one file segment. The segment stays in the snapshot folder.
-
 import { PREMADE_THEMES, themeById } from './themes.js';
 
 export const VISUAL_WIDTHS = [360, 1440] as const;

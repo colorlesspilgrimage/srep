@@ -16,11 +16,6 @@
   import { APP_COMMANDS, commandTarget, NAV_ITEMS, tabKeyIndex, type NavPath } from './app-nav.js';
   import { DEFAULT_DISPLAY, displayRootClass, type DisplayPrefs } from './display-prefs.js';
 
-  // Contract: the signed-in app shell. The main pane is the children snippet.
-  // Palette keys use the capture phase. keyCapture true ignores those keys.
-  // A command goes only to a fixed path. Close returns focus to the prior element.
-  // Display prefs paint on the root in the first HTML (no FOUC).
-
   type Props = {
     themeId: string;
     keybinds: KeybindMap;
@@ -84,7 +79,6 @@
       return;
     }
     event.preventDefault();
-    // Later capture listeners are on the same window. stopPropagation does not skip them.
     event.stopImmediatePropagation();
     if (action === 'open') {
       rememberFocus();

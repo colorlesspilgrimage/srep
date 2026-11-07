@@ -5,7 +5,6 @@ import { getDomainContext } from '#lib/server/domain/context.js';
 import { readBytesLimited } from '#lib/server/domain/http.js';
 import { storeMedia } from '#lib/server/domain/media.js';
 
-// The body is the raw file. content-type is its type. x-filename is optional metadata.
 export const POST: RequestHandler = async ({ request }) => {
   const deps = getDomainContext();
   const bytes = await readBytesLimited(request, deps.limits.mediaMaxBytes);

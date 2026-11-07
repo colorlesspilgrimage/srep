@@ -43,7 +43,6 @@ function parseOrigin(raw: string): { url: URL } | { error: string } {
   if (isIpHost(url.hostname)) {
     return { error: 'SREP_ORIGIN: host must be a domain name, not an IP address' };
   }
-  // A trailing dot gives an origin and an RP ID that browsers do not match.
   if (url.hostname.endsWith('.')) {
     return { error: 'SREP_ORIGIN: host must not end with a dot' };
   }

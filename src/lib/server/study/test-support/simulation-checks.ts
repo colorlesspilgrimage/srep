@@ -1,5 +1,3 @@
-// Checks for the study simulation. They read the database with plain SQL, not through the
-// study store, so a store bug cannot hide itself. No vitest import: the script uses this file.
 import { sql, type SQL } from 'drizzle-orm';
 import type { DbHandle } from '#lib/server/db/client.js';
 import type { DeckRow, PresetRow } from '#lib/server/domain/store/store-types.js';

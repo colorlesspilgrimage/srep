@@ -1,8 +1,3 @@
-// Sets lapses for one card. The browse end-to-end helper starts this file with tsx.
-// Input: a UUID and a whole number. Output: exit 0, or exit 1 when the row is missing.
-// Database: SREP_DATABASE_URL. The helper sets that from E2E_DATABASE_URL.
-// The statement binds the card id. SQLite and Postgres both accept it.
-
 import { sql } from 'drizzle-orm';
 import { parseConfig } from '#lib/server/config.js';
 import { createDb, type DbHandle } from '#lib/server/db/client.js';

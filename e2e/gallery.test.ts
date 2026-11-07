@@ -2,8 +2,6 @@ import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { resetAuthViaCli } from './support/cli';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
-// Contract: gallery checks for a guest and for a signed-in user.
-
 test.describe.serial('gallery shell', () => {
   let context: BrowserContext;
   let page: Page;

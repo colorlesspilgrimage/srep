@@ -9,7 +9,6 @@ export function newSessionTimes(now: number): SessionTimes {
   return { createdAt: now, lastSeenAt: now, expiresAt: now + SESSION_ABSOLUTE_MS };
 }
 
-// A session is valid only before each limit. At exactly the limit it is expired.
 export function evaluateSession(
   row: Pick<SessionTimes, 'lastSeenAt' | 'expiresAt'>,
   now: number,

@@ -7,8 +7,6 @@ import {
   type ThemeSaveState,
 } from './theme-save-state.js';
 
-// Contract: an older save reply must not mark a new choice as saved.
-
 const saved: ThemeSaveState = { serial: 2, statusText: 'Saved.' };
 
 describe('theme save state', () => {

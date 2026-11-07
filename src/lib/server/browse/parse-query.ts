@@ -1,7 +1,3 @@
-// Contract: parseBrowseQuery maps a browse string to filters. It does not build SQL.
-// At most 500 characters and 8 tokens. An odd quote count is bad_query.
-// A quoted token is free text. A deck path is trimmed. An empty path is bad_query.
-
 import { normalizeTags } from '#lib/server/domain/core/tags.js';
 import type { BrowseIs, BrowseOp, BrowseQuery, ParsedBrowse } from '#lib/server/browse/types.js';
 

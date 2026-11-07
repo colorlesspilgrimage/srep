@@ -1,6 +1,3 @@
-// Contract: read and replace the saved key chords.
-// A bad map is 400 and does not write. A bad stored value is 500 (CWE-20).
-
 import { z } from 'zod';
 import {
   DEFAULT_KEYBINDS,

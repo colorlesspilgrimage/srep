@@ -52,7 +52,6 @@ describe('path and method helpers', () => {
     expect(isApiPath('/login')).toBe(false);
   });
 
-  // Regression: SvelteKit decodes the path before it picks a route.
   it('finds percent-encoded API paths', () => {
     const isApi = (raw: string) => isApiPath(decodeRoutePath(raw) ?? '');
     expect(isApi('/%61pi/decks')).toBe(true);

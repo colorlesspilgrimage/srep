@@ -27,7 +27,6 @@ describe('db:migrate script', () => {
 
   it('logs a JSON error and exits with code 1 when the database cannot open', () => {
     const dir = makeTempDir(dirs);
-    // The path is a directory, so SQLite cannot open it as a file.
     const result = runMigrate(`sqlite:${dir}`);
     expect(result.status).toBe(1);
     const line = result.stdout.trim().split('\n').at(-1) ?? '{}';

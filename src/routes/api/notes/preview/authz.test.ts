@@ -5,12 +5,6 @@ import { createSession } from '#lib/server/auth/sessions.js';
 import { createHarness, type Harness } from '#lib/server/auth/test-support/harness.js';
 import { csrfTokenFor } from '#lib/server/auth/tokens.js';
 
-// Contract: note preview, note writes, and media upload need a session.
-// A write also needs the matching CSRF token and the app origin.
-// A second session token does not authorize the first cookie.
-// The app has one owner. A guest cannot use a note id.
-// CWE-862, CWE-352, CWE-863.
-
 const ORIGIN = 'http://localhost:3000';
 const NOTE_ID = '123e4567-e89b-42d3-a456-426614174000';
 

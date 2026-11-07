@@ -9,7 +9,6 @@ import { dropCacheSlot, readCached } from '#lib/server/read-cache.js';
 
 type Exec = Pick<PostgresJsDatabase, 'select' | 'insert' | 'update' | 'delete'>;
 
-// Drizzle writes a JS null as SQL NULL. The column is NOT NULL and keeps JSON null.
 function presetValues(row: PresetRow) {
   return { ...row, fsrsParams: row.fsrsParams ?? sql`'null'::jsonb` };
 }
@@ -25,7 +24,6 @@ async function nameTaken(tx: Exec, name: string, exceptId: string): Promise<bool
 async function seedNoteTypes(tx: Exec, seed: Parameters<DomainStore['seedDefaults']>[0]) {
   for (const { noteType: row, templates } of seed.noteTypes) {
     await tx.insert(noteType).values(row).onConflictDoNothing();
-    // A user type with the same name blocks the seed row. Then no template is added.
     const found = await tx.select().from(noteType).where(eq(noteType.id, row.id));
     if (found.length === 0) {
       continue;
@@ -131,7 +129,6 @@ export function createPgPresetMediaStore(db: PostgresJsDatabase): PresetMediaSto
       return db.transaction(async (tx) => {
         await tx.insert(media).values(row).onConflictDoNothing({ target: media.sha256 });
         const rows = await tx.select().from(media).where(eq(media.sha256, row.sha256));
-        // The row exists now: this call or an earlier call inserted it.
         return rows[0] as MediaRow;
       });
     },

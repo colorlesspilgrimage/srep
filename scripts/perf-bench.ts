@@ -1,6 +1,3 @@
-// Contract: time study next, answer, deck list, note read, and gallery settings.
-// Input: CLI flags and SREP_DATABASE_URL. Output: median and p95 lines.
-// The clock is frozen. Warmup calls are dropped. Values are not shell text.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -125,7 +122,6 @@ function attachSqliteCounter(db: BetterSQLite3Database, counter: Counter): void 
   };
 }
 
-// A bench may delete only a database under the temp directory (CWE-73).
 export function benchSqlitePathAllowed(file: string): boolean {
   if (file === ':memory:') {
     return true;
@@ -135,7 +131,7 @@ export function benchSqlitePathAllowed(file: string): boolean {
   try {
     resolved = fs.realpathSync(resolved);
   } catch {
-    // The path is absent. The lexical path is the check.
+    void 0;
   }
   return resolved !== root && resolved.startsWith(`${root}${path.sep}`);
 }

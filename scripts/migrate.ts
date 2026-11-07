@@ -19,7 +19,6 @@ async function main(): Promise<void> {
   const logger = createSyncLogger(config.logLevel);
   let db: DbHandle | undefined;
   try {
-    // createDb can throw, for example when the SQLite file cannot open.
     db = createDb(config);
     await runMigrations(db, config, logger);
     await db.close();

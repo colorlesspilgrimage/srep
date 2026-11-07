@@ -33,7 +33,6 @@ export const DOMAIN_TABLES = [
 
 const silent = { info: () => undefined };
 
-// The store is real. The clock is fixed, the random source is seeded, media is in a temp dir.
 async function buildDomainHarness(handle: DbHandle, mediaMaxBytes: number): Promise<DomainHarness> {
   const dirs: string[] = [];
   const mediaDir = makeTempDir(dirs);
@@ -61,7 +60,6 @@ export async function createDomainHarness(mediaMaxBytes = 1024): Promise<DomainH
   return buildDomainHarness(handle, mediaMaxBytes);
 }
 
-// Every call starts with empty domain tables.
 export async function createPgDomainHarness(url: string): Promise<DomainHarness> {
   const config = parseConfig({ SREP_DATABASE_URL: url });
   const handle = createDb(config);

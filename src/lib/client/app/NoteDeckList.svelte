@@ -2,11 +2,6 @@
   import { deckListKey } from './note-deck-keys.js';
   import type { EditorDeck } from './note-editor-parse.js';
 
-  // Contract: the deck listbox for one note.
-  // Keys are handled here. ArrowDown and j move down and stop on the last row.
-  // Enter does not save. Escape blurs the list. Tab leaves the list.
-  // Space, digits, h, and l do not change the deck.
-
   type Props = {
     decks: readonly EditorDeck[];
     index: number;

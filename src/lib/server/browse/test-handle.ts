@@ -1,6 +1,3 @@
-// Contract: test slot for the database handle.
-// Route tests call setBrowseHandle. Production code does not import this file.
-
 import type { DbHandle } from '#lib/server/db/client.js';
 
 let current: DbHandle | undefined;

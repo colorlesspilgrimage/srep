@@ -1,7 +1,6 @@
 import crypto from 'node:crypto';
 import { safeEqual, type RandomBytes } from '#lib/server/auth/tokens.js';
 
-// Crockford base32 without I, L, O and U.
 const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 const CODE_LENGTH = 10;
 const SCRYPT = { N: 16384, r: 8, p: 1 } as const;
@@ -12,7 +11,6 @@ function randomCode(random: RandomBytes): string {
   const bytes = random(CODE_LENGTH);
   let out = '';
   for (let i = 0; i < CODE_LENGTH; i += 1) {
-    // 256 is a multiple of 32, so the modulo has no bias.
     out += ALPHABET[(bytes[i] ?? 0) % ALPHABET.length];
   }
   return `${out.slice(0, 5)}-${out.slice(5)}`;

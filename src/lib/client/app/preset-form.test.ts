@@ -8,8 +8,6 @@ import {
   presetMessageFor,
 } from './preset-form.js';
 
-// Contract: bad preset text does not become a request body.
-
 const valid = {
   ...BLANK_PRESET_DRAFT,
   name: 'Fast',

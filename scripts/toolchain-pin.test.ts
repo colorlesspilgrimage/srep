@@ -13,10 +13,6 @@ import {
   vulnerableEsbuildPaths,
 } from './toolchain-pin-check.js';
 
-// Contract: read the pin files from disk and assert their text.
-// Inputs are package.json, package-lock.json, ci.yml, and the drizzle files.
-// The test reads local files only.
-
 const root = path.resolve(import.meta.dirname, '..');
 
 type PackageJson = {

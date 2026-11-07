@@ -1,6 +1,3 @@
-// Contract: map ?section= to a Settings pane id. Unknown values are ignored.
-// Own keys only (CWE-1321). No I/O.
-
 export type SettingsSectionId =
   'appearance' | 'display' | 'study-day' | 'presets' | 'security' | 'pair-app' | 'data';
 

@@ -6,10 +6,6 @@
   import TuiPage from '#lib/client/app/TuiPage.svelte';
   import { isDeckUuid } from '#lib/client/app/deck-id.js';
 
-  // Contract: the add-note route. Guests stay on the auth pages.
-  // A deck query is used only when it is a UUID.
-  // A new deck id mounts a new editor. The old editor drops a late reply.
-
   let { data }: { data: PageData } = $props();
   let paletteOpen = $state(false);
 

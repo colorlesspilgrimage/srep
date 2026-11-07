@@ -1,7 +1,3 @@
-// Contract: Postgres race cases for answer and undo against a concurrent card-state change
-// (CWE-362). A second connection suspends the card and holds its row lock. The study write
-// starts, waits for that lock, and must then see the suspended row. On SQLite every
-// transaction is synchronous, so the cases are skipped there.
 import { sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { describe, expect, it } from 'vitest';
@@ -18,7 +14,6 @@ const MAX_LOCK_POLLS = 500;
 
 type HeldSuspend = { release: () => void; done: Promise<void> };
 
-// Suspends the card in an open transaction and keeps the row lock until release().
 async function holdSuspend(db: PostgresJsDatabase, cardId: string): Promise<HeldSuspend> {
   const gate = Promise.withResolvers<void>();
   const suspended = Promise.withResolvers<void>();
@@ -31,7 +26,6 @@ async function holdSuspend(db: PostgresJsDatabase, cardId: string): Promise<Held
   return { release: () => gate.resolve(), done };
 }
 
-// Polls until some session waits for a lock. The poll count has a bound.
 async function waitForBlockedSession(db: PostgresJsDatabase): Promise<void> {
   for (let poll = 0; poll < MAX_LOCK_POLLS; poll += 1) {
     const rows = await db.execute<{ n: string }>(

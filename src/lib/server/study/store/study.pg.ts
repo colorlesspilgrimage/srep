@@ -1,7 +1,3 @@
-// Contract: the Postgres StudyStore. Answer, undo and rebuild take the advisory lock
-// STUDY_LOCK_KEY as the first statement of the transaction (study-lock.pg.ts). Card state
-// changes lock the card rows with select ... for update, ordered by id.
-// Callbacks are pure and synchronous.
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { createPgStudyCardStateStore } from '#lib/server/study/store/card-state-store.pg.js';
 import { createPgStudyReplayStore } from '#lib/server/study/store/replay-store.pg.js';

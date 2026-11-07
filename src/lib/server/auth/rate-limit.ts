@@ -20,7 +20,6 @@ export function createRateLimiter(opts: {
   windowMs: number;
   now: () => number;
 }): RateLimiter {
-  // A Map keeps insertion order, so the first key is the oldest window.
   const windows = new Map<string, Window>();
 
   function prune(now: number): void {

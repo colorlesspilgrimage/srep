@@ -1,8 +1,3 @@
-// Contract: answer schedules one card with FSRS and appends a review_log row. undo reverts
-// the most recent review. Both run in one store transaction under the study lock.
-// answer errors: 404 not_found (unknown card, trashed note, no deck), 409 stale_card,
-// 409 card_not_studyable, 422 bad_preset, 500 settings_corrupt.
-// undo errors: 404 nothing_to_undo. Side effect of both: expired buried cards come back.
 import { fail, type Result } from '#lib/server/auth/deps.js';
 import { newId } from '#lib/server/domain/ids.js';
 import { planAnswer, planUndo } from '#lib/server/study/core/answer-plan.js';
@@ -40,7 +35,6 @@ export async function answer(deps: StudyDeps, input: AnswerBody): Promise<Result
       preset: ctx.deckPreset,
       siblings: ctx.siblings,
       lastReviewedAtMax: ctx.lastReviewedAtMax,
-      // The schema bounds rating to 1..4.
       rating: input.rating as Rating,
       expectedReps: input.reps,
       elapsedMs: input.elapsedMs,

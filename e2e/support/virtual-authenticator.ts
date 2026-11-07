@@ -1,6 +1,5 @@
 import type { CDPSession, Page } from '@playwright/test';
 
-// The CDP virtual authenticator exists only in Chromium.
 export type AuthenticatorKind = 'platform' | 'usb';
 
 export async function enableWebAuthn(page: Page): Promise<CDPSession> {

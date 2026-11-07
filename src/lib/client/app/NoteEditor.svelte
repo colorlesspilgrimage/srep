@@ -34,9 +34,6 @@
   } from './note-editor-parse.js';
   import { fieldKeyEffect } from './note-field-keys.js';
 
-  // Contract: add and edit note fields. Preview waits 200 ms and drops a stale reply.
-  // A failed preview shows an alert. Save and upload set busy until they finish.
-  // A second action while busy does not send another request.
   let { mode, noteId, initialDeckId }: NoteEditorProps = $props();
   const client = createNoteEditorClient();
 

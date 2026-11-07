@@ -1,10 +1,3 @@
-// Contract: process cache for deck, preset, and settings rows.
-// The key is the Drizzle database object. Two handles do not share rows.
-// A stored row is a clone. A caller cannot change the stored row.
-// Call dropCacheSlot on the next line after commit. Do not await between them.
-// A failed write does not call dropCacheSlot.
-// Do not call readCached inside an open write transaction.
-// A missing xact_commit does not count as fresh.
 import fs from 'node:fs';
 import { sql } from 'drizzle-orm';
 
@@ -88,8 +81,6 @@ function clientOf(db: object): unknown {
   return (db as { $client?: unknown }).$client;
 }
 
-// better-sqlite3 sets $client to the file object. postgres.js sets $client to a
-// function whose name is "sql". That name is not a database file.
 function sqliteFile(db: object): string | null {
   const client = clientOf(db);
   if (typeof client !== 'object' || client === null) {
@@ -157,8 +148,6 @@ async function readXact(db: ExecuteDb): Promise<string | null> {
   return null;
 }
 
-// This session does not see its own commits in xact_commit. Another session does.
-// A missing value is not fresh (CWE-345).
 async function readFresh(cache: DbCache, db: ExecuteDb): Promise<boolean> {
   const seen = await readXact(db);
   if (seen === null || cache.xact === null) {

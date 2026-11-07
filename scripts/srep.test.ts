@@ -30,7 +30,6 @@ afterEach(() => {
   removeTempDirs(dirs);
 });
 
-// Each case starts tsx once or twice. A loaded host needs more than the default 5 s.
 describe('srep reset-auth', { timeout: 30_000 }, () => {
   it('prints a setup token and the setup address, and exits with 0', () => {
     const dir = makeTempDir(dirs);

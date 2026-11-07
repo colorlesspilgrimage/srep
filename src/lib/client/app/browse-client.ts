@@ -1,8 +1,3 @@
-// Contract: the browse JSON client.
-// A search string is set with URLSearchParams. It is not concatenated into the path.
-// Ids enter a body only after the UUID check. Tag text is a JSON field.
-// A failed check does not call fetch. No shell command is built.
-
 import { apiFetch, rejectedResult, type ApiResult } from '#lib/client/api.js';
 import {
   browseSearchPath,

@@ -23,7 +23,6 @@ async function cardNoteIds(tx: Exec, deckIds: string[]): Promise<string[]> {
   return out;
 }
 
-// Deletes the deepest decks first, so each child goes before its parent.
 async function deleteDecks(tx: Exec, all: DeckRow[], ids: string[]): Promise<void> {
   const depth = new Map(all.map((d) => [d.id, depthOf(d.path)]));
   const ordered = [...ids].sort((a, b) => (depth.get(b) ?? 0) - (depth.get(a) ?? 0));

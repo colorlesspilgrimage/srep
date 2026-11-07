@@ -23,7 +23,6 @@ function deck(id: string, name: string, parent: DeckRow | null = null): DeckRow 
   };
 }
 
-// Applies a successful plan to the deck list, like the store does.
 function apply(decks: DeckRow[], id: string, patch: DeckPatch) {
   const change = planDeckUpdate(decks, id, patch);
   if (!change.ok) {
@@ -155,7 +154,6 @@ describe('planDeckCreate', () => {
   });
 });
 
-// The parent chain is the source of truth. Paths must agree with it.
 function checkInvariants(decks: DeckRow[]): void {
   const byId = new Map(decks.map((d) => [d.id, d]));
   for (const d of decks) {
@@ -196,7 +194,6 @@ function checkMove(before: DeckRow[], after: DeckRow[], movedId: string): void {
 }
 
 describe('deck path properties (seeded)', () => {
-  // `a:b` holds one colon. A valid name can hold it, but never at the start or the end.
   const name = fc.constantFrom('a', 'b', 'A%', '_', '\\', '😀', 'a:b');
   const create = fc.record({ parent: fc.integer({ min: -1, max: 20 }), name });
   const move = fc.record({
@@ -253,8 +250,6 @@ describe('deck path properties (seeded)', () => {
     );
   });
 
-  // Regression: a name with a colon at the start or the end made `:::` in a path.
-  // Then two different chains of names gave the same path.
   it('splits the path of valid names back into the same names', () => {
     const raw = fc.array(fc.constantFrom(':', 'a', ' ', '%'), { minLength: 1, maxLength: 6 });
     fc.assert(

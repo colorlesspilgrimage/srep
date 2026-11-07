@@ -2,9 +2,6 @@ import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { resetAuthViaCli } from './support/cli';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
-// Contract: gallery theme checks for a guest and for a signed-in user.
-// The production build stores #ffff00 as #ff0. Expand that short form.
-
 function expandHex(value: string): string {
   const match = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/.exec(value);
   if (match === null) {

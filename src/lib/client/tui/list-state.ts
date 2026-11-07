@@ -1,6 +1,3 @@
-// Contract: listbox key moves. A bad index does not leave this module.
-// Arrow keys stop at the ends. Enter selects only a real row.
-
 function clampIndex(length: number, index: number): number {
   const last = length - 1;
   if (!Number.isFinite(index) || index < 0) {

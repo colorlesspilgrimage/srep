@@ -1,9 +1,3 @@
-// Contract: pure study-screen state. The screen passes the clock and the reply.
-// applyNext stores raw card text. CardHtml sanitizes that text once at display.
-// An open edit blocks reveal, rate, undo, and suspend.
-// A save for another card is ignored. A stale success asks for a new load.
-// A done screen uses the last answer interval. No I/O.
-
 import { appMessageFor } from './app-messages.js';
 import { formatInterval } from './format-interval.js';
 import { formatUntil } from './format-until.js';

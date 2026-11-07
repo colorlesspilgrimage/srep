@@ -13,7 +13,6 @@ const USER_AGENT_MAX = 256;
 
 export type NewSession = { row: SessionRow; rawToken: string; maxAgeSec: number };
 
-// Builds the row and the raw token. The raw token is not stored. Only its hash is.
 export function buildSession(deps: AuthDeps, userAgent: string): NewSession {
   const rawToken = randomToken(32, deps.random);
   const row: SessionRow = {

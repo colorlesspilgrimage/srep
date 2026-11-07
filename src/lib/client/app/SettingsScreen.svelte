@@ -19,11 +19,6 @@
   import { settingsSectionFromParam, type SettingsSectionId } from './settings-section.js';
   import { acceptStudyDay, parseStudySettings } from './study-day-form.js';
 
-  // Contract: Appearance through Data panes against APIs.
-  // Theme list does not save. Only Save theme writes. KeymapForm, display form,
-  // study form, and PresetsPanel own their network saves.
-  // Security, Pair app, and Data load via dynamic import to keep the settings chunk lean.
-
   const SECTIONS = [
     { id: 'appearance', label: 'Appearance' },
     { id: 'display', label: 'Display' },

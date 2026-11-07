@@ -1,6 +1,3 @@
-// Contract: the Postgres part of the StudyStore for card states: suspend, bury and unbury.
-// Card state changes lock the card rows with select ... for update, ordered by id, so two
-// calls cannot deadlock.
 import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { card } from '#lib/server/db/schema/pg.js';

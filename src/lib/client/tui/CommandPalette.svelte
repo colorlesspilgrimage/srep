@@ -5,9 +5,6 @@
   import { nextTrapIndex } from './palette-focus.js';
   import List from './List.svelte';
 
-  // Contract: the command palette. Enter on a row runs that command and closes.
-  // Arrow keys only move the row. This file does not call the network.
-
   type Props = {
     open: boolean;
     onClose: () => void;

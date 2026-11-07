@@ -8,7 +8,6 @@ import { isShortText } from '#lib/server/auth/short-text.js';
 import type { ApiTokenRow, PairingCodeRow } from '#lib/server/auth/store-types.js';
 import { randomToken, sha256Hex, type RandomBytes } from '#lib/server/auth/tokens.js';
 
-// Crockford base32 without I, L, O and U — same alphabet as recovery codes.
 const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
 export type PairingQrPayload = {

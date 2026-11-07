@@ -74,7 +74,6 @@ describe('renderCloze', () => {
 type Piece =
   { kind: 'lit'; text: string } | { kind: 'cloze'; index: number; text: string; hint?: string };
 
-// Literal text without `{{` and cloze text without `::` and `}`, so the document is exact.
 const literal = fc.string().filter((s) => !s.includes('{') && !s.endsWith('}'));
 const clozeText = fc
   .string()
@@ -146,7 +145,6 @@ describe('cloze properties (seeded)', () => {
   });
 
   it('runs in linear time on a long unclosed input (CWE-1333)', () => {
-    // The test timeout is the bound. A quadratic scan would not finish in time.
     expect(clozeIndices('{{c1::'.repeat(100_000 / 6))).toEqual([]);
     expect(clozeIndices('{{c1'.repeat(25_000))).toEqual([]);
     expect(clozeIndices(`${'{{c1::x'.repeat(14_000)}}}`)).toEqual([1]);

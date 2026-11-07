@@ -18,8 +18,6 @@ import {
 } from '#lib/server/domain/test-support/harness.js';
 import { dropCacheSlot, readCached, type CacheSlot } from '#lib/server/read-cache.js';
 
-// Contract: the read cache must not keep stale, shared, or poisoned rows.
-
 let h: DomainHarness | undefined;
 const dirs: string[] = [];
 

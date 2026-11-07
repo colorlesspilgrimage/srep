@@ -23,10 +23,6 @@
   } from './theme-save-state.js';
   import { DEFAULT_THEME_ID, PREMADE_THEMES, themeById, themeClass } from './themes.js';
 
-  // Contract: the gallery shell. One tree shows the side list or the tab bar.
-  // The side list is not a second frame.
-  // The Themes list does not save. Only Save theme writes the choice.
-
   const SECTIONS = [
     { id: 'panes', label: 'Panes' },
     { id: 'list', label: 'List' },

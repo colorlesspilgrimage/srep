@@ -1,8 +1,3 @@
-// Contract: the study repository. Every method is atomic. A "read, decide, write" method
-// takes a pure synchronous callback that runs inside the transaction after the read.
-// Answer, undo and rebuild take one global study lock (SQLite: the synchronous
-// transaction; Postgres: pg_advisory_xact_lock(STUDY_LOCK_KEY)). Card state changes lock
-// the card rows (Postgres: select ... for update, ordered by id).
 import type { Failure } from '#lib/server/auth/deps.js';
 import type { CardRow, PresetRow } from '#lib/server/domain/store/store-types.js';
 import type { AnswerPlan, UndoPlan } from '#lib/server/study/core/answer-plan.js';

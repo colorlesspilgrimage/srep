@@ -1,4 +1,3 @@
-// Row factories for the pure study tests.
 import { BASIC_CARD_ID, BUILTIN_PRESET } from '#lib/server/domain/builtin.js';
 import type { CardRow } from '#lib/server/domain/store/store-types.js';
 import type { AnswerPreset } from '#lib/server/study/core/answer-plan.js';

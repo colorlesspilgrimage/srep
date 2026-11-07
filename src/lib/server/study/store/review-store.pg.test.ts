@@ -7,9 +7,6 @@ import type { AnswerPlan, UndoPlan } from '#lib/server/study/core/answer-plan.js
 import type { ReviewLogRow } from '#lib/server/study/core/types.js';
 import { createPgStudyReviewStore } from '#lib/server/study/store/review-store.pg.js';
 
-// Contract: stub coverage for the Postgres answer read, answer, and undo.
-// No database server is used.
-
 const dialect = new PgDialect();
 
 type Stub = {

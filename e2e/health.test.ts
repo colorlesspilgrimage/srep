@@ -14,7 +14,6 @@ test('GET / redirects when not signed in', async ({ request }) => {
 });
 
 test('GET /nope redirects when not signed in', async ({ request }) => {
-  // Unknown pages need a session like every other page. The 404 comes after sign-in.
   const response = await request.get('/nope', { maxRedirects: 0 });
   expect(response.status()).toBe(303);
 });

@@ -1,8 +1,3 @@
-// Contract: one screen action runs at a time.
-// The lock stays until the task ends, including the reload after a write.
-// A second call while the lock is held does not start.
-// No I/O.
-
 export async function withBusy<T>(
   isBusy: () => boolean,
   setBusy: (value: boolean) => void,

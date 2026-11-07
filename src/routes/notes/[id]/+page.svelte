@@ -6,10 +6,6 @@
   import TuiPage from '#lib/client/app/TuiPage.svelte';
   import { isDeckUuid } from '#lib/client/app/deck-id.js';
 
-  // Contract: the edit-note route. Guests stay on the auth pages.
-  // A bad id renders the error and does not call GET /api/notes/:id.
-  // A new id mounts a new editor. The old editor drops a late reply.
-
   let { data }: { data: PageData } = $props();
   let paletteOpen = $state(false);
   const noteId = $derived(page.params.id ?? '');

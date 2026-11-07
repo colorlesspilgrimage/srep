@@ -16,7 +16,6 @@ export function detectImportFormat(bytes: Uint8Array, contentType: string): Impo
     return 'tsv';
   }
   if (isZip(bytes)) {
-    // Native srep archives and apkg are both zip. Peek for manifest.json vs collection.anki2.
     try {
       const zip = unzipSync(bytes);
       if (zip['manifest.json'] !== undefined) {

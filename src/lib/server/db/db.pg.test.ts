@@ -61,7 +61,6 @@ describe.skipIf(!url)('postgres database', () => {
     await expect(handle.ping()).resolves.toBeUndefined();
   });
 
-  // The store suites run here, so they cannot race with the cleanup above.
   describe('auth store (postgres)', () => {
     defineStoreSuite(() => createPgHarness(url ?? ''));
   });

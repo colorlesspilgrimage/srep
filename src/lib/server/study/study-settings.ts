@@ -1,6 +1,3 @@
-// Contract: reads and writes the study-day settings (app_settings key 'study').
-// An absent value gives the defaults (rollover 04:00, UTC). A stored value that does not
-// parse is a server error (500 settings_corrupt). It is logged and never silently replaced.
 import { fail, type Result } from '#lib/server/auth/deps.js';
 import { DEFAULT_STUDY_SETTINGS, type StudySettings } from '#lib/server/study/core/types.js';
 import { studySettingsSchema } from '#lib/server/study/core/validation.js';

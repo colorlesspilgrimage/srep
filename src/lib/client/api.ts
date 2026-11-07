@@ -23,7 +23,6 @@ export function setCsrfToken(token: string | null): void {
   csrfToken = token;
 }
 
-// Media upload sends this header. It is the same token apiFetch sends.
 export function csrfHeaders(): Record<string, string> {
   if (csrfToken === null) {
     return {};
@@ -31,7 +30,6 @@ export function csrfHeaders(): Record<string, string> {
   return { 'x-srep-csrf': csrfToken };
 }
 
-// Calls the same-origin JSON API. Adds the CSRF header when a token is known.
 export async function apiFetch<T>(
   path: string,
   init: { method?: string; body?: unknown } = {},

@@ -12,7 +12,6 @@ export async function recoveryLogin(
     return failed;
   }
   const unused = await deps.store.listUnusedRecovery();
-  // Check every row. Do not stop at the first match.
   let matchId: string | null = null;
   for (const row of unused) {
     if (verifyRecoveryCode(code, row.codeHash)) {

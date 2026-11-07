@@ -3,10 +3,6 @@
   import NoteDeckList from './NoteDeckList.svelte';
   import type { BrowseDeck } from './browse-model.js';
 
-  // Contract: bulk controls for the browse table.
-  // Move uses the deck listbox. Tag uses one text field.
-  // Disabled buttons do not call the parent.
-
   type Props = {
     decks: readonly BrowseDeck[];
     deckIndex: number;

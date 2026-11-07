@@ -1,8 +1,3 @@
-// Contract: the app navigation list and command targets.
-// Later slices add items here. The paths are fixed. No user text is encoded.
-// tabKeyIndex moves a tab. ArrowDown, j, k, and digits do not move a tab.
-// No I/O.
-
 export const NAV_ITEMS = [
   { id: 'decks', label: 'Decks', href: '/', icon: 'decks' },
   { id: 'study', label: 'Study', href: '/study', icon: 'study' },
@@ -25,7 +20,6 @@ export type NavPath = '/' | '/study' | '/browse' | '/stats' | '/settings';
 
 type CommandPath = NavPath | '/gallery' | '/security';
 
-// Own keys only. A name such as "constructor" must not read Object members (CWE-1321).
 const TARGETS = new Map<string, CommandPath>([
   ['Open Decks', '/'],
   ['Open Study', '/study'],

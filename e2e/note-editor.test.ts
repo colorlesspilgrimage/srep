@@ -1,10 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { makeDecks, openNewNote, postNote, signInEditor, TINY_PNG } from './support/note-editor';
 
-// Contract: note editor keys, preview, cloze, media, and edit.
-// Deck keys use page.keyboard on Alpha, Beta, and Gamma.
-// This file uses its own client IP.
-
 const CLIENT_IP = '198.51.100.42';
 
 let page: Page;

@@ -9,8 +9,6 @@ import { THEME_SETTINGS_KEY } from '#lib/server/settings/theme-key.js';
 import { createSqliteThemeStore } from '#lib/server/settings/theme-store.sqlite.js';
 import { makeTempDir, removeTempDirs } from '#lib/server/temp-dir.js';
 
-// Contract: two theme writes leave one complete row. The study row stays.
-
 const STUDY_VALUE = { rolloverHour: 4, timezone: 'UTC' };
 const silent = { info: () => undefined };
 

@@ -1,6 +1,5 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 
-// Signed-in users get 404 here. The hook answers 401 to everyone else first.
 const notFound: RequestHandler = () => json({ error: 'not_found' }, { status: 404 });
 
 export const GET = notFound;

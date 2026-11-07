@@ -1,5 +1,3 @@
-// Contract: the saved theme store. SQLite and Postgres each have one factory.
-
 import type { DbHandle } from '#lib/server/db/client.js';
 import { createPgThemeStore } from '#lib/server/settings/theme-store.pg.js';
 import { createSqliteThemeStore } from '#lib/server/settings/theme-store.sqlite.js';

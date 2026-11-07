@@ -21,7 +21,6 @@ afterEach(async () => {
   await h.close();
 });
 
-// Answers each card a few times over several days.
 async function studySome(cardIds: string[]): Promise<void> {
   for (let round = 0; round < 3; round += 1) {
     for (const cardId of cardIds) {

@@ -58,7 +58,6 @@ describe('pairing codes', () => {
     expect(row?.id).toBe(exchanged.tokenId);
     expect(row?.name).toBe('iPhone');
 
-    // Single-use: a second claim fails.
     const again = await exchangePairingCode(h.deps, { code: created.code });
     expect(again).toEqual({ ok: false, status: 401, error: 'pairing_failed' });
   });

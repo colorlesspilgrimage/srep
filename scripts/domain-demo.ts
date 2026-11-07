@@ -39,7 +39,6 @@ const NOTES: { type: string; noteTypeId: string; fields: string[]; tags: string[
   },
 ];
 
-// Creates two decks and three notes, then renames the top deck. Returns one line per step.
 async function runDemo(deps: DomainDeps, suffix: string): Promise<Line[]> {
   const lines: Line[] = [];
   const top = must(await createDeck(deps, { name: `Languages${suffix}` })).deck;
@@ -73,7 +72,6 @@ async function main(): Promise<number> {
     console.error(USAGE);
     return EXIT_USAGE;
   }
-  // A suffix keeps repeated runs on one database apart. It is used only with --unique.
   const suffix = args.includes('--unique') ? `-${Date.now()}` : '';
   let db: DbHandle | undefined;
   try {

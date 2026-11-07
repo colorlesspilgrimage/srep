@@ -7,9 +7,6 @@
   import type { DisplayPrefs } from '#lib/client/app/display-prefs.js';
   import type { KeybindMap } from '#lib/client/tui/keymap.js';
 
-  // Contract: the signed-in settings route. Guests stay on the auth pages.
-  // Theme, keybinds, and display stay local so panes can preview without a reload.
-
   let { data }: { data: PageData } = $props();
   let paletteOpen = $state(false);
   let keyCapture = $state(false);

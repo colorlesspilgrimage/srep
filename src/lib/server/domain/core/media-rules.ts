@@ -1,6 +1,3 @@
-// Media rules. Only the listed binary formats are allowed. SVG, HTML and all
-// other types are refused, because they can carry active content (CWE-434, CWE-79).
-
 export const ALLOWED_MIME_TYPES = [
   'image/png',
   'image/jpeg',
@@ -36,7 +33,6 @@ function sniffRiff(bytes: Uint8Array): AllowedMime | null {
   return startsWith(bytes, ascii('WAVE'), 8) ? 'audio/wav' : null;
 }
 
-// Finds the type from the magic bytes. Returns null for a type that is not allowed.
 export function sniffMime(bytes: Uint8Array): AllowedMime | null {
   if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) {
     return 'image/png';
@@ -65,13 +61,11 @@ export function sniffMime(bytes: Uint8Array): AllowedMime | null {
   return startsWith(bytes, ascii('ftyp'), 4) ? 'audio/mp4' : null;
 }
 
-// Lower case, without parameters such as `; charset=x`.
 export function normalizeDeclaredMime(header: string): string {
   const semicolon = header.indexOf(';');
   return (semicolon === -1 ? header : header.slice(0, semicolon)).trim().toLowerCase();
 }
 
-// The name is metadata only. It is never used to build a path or a header.
 export function sanitizeOriginalName(name: string): string {
   const cleaned = Array.from(name.normalize('NFC'), (c) => (/[\p{Cc}/\\]/u.test(c) ? '_' : c)).join(
     '',
@@ -80,7 +74,6 @@ export function sanitizeOriginalName(name: string): string {
   return cut.length === 0 ? 'file' : cut;
 }
 
-// The hash comes from the server. Check it before it goes into a path (CWE-22).
 export function isSha256Hex(value: string): boolean {
   return SHA256_HEX.test(value);
 }
@@ -89,8 +82,6 @@ function isLowerHex(code: number): boolean {
   return (code >= 48 && code <= 57) || (code >= 97 && code <= 102);
 }
 
-// Finds `{{media:<64 lower-case hex>}}` tokens with one linear scan.
-// A malformed token is literal text.
 export function findMediaTokens(text: string): string[] {
   const found: string[] = [];
   const marker = '{{media:';

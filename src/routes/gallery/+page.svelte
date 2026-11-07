@@ -3,8 +3,6 @@
   import TuiPage from '#lib/client/app/TuiPage.svelte';
   import type { PageData } from './$types';
 
-  // Contract: the signed-in gallery route. Guests stay on the auth pages.
-
   let { data }: { data: PageData } = $props();
 </script>
 

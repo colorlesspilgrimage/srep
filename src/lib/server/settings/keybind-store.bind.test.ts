@@ -1,6 +1,4 @@
-import Database from 'better-sqlite3';
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_KEYBINDS,
@@ -12,31 +10,17 @@ import {
 import { appSettings } from '#lib/server/db/schema/sqlite.js';
 import { KEYBIND_SETTINGS_KEY } from '#lib/server/settings/keybind-key.js';
 import { createSqliteKeybindStore } from '#lib/server/settings/keybind-store.sqlite.js';
+import { openTracedAppSettings } from '#lib/server/settings/test-support/traced-app-settings.js';
 import { THEME_SETTINGS_KEY } from '#lib/server/settings/theme-key.js';
-
-// Contract: the key-chord upsert binds its values. It does not join them into SQL text.
-// Extra fields do not become other app_settings keys (CWE-89, CWE-915).
 
 const EVIL = "x' OR 1=1; DROP TABLE app_settings;--";
 const STUDY_VALUE = { rolloverHour: 4, timezone: 'UTC' };
 const THEME_VALUE = { id: 'nord' };
 
-function openTraced() {
-  const sqlite = new Database(':memory:');
-  const sqls: string[] = [];
-  const prepare = sqlite.prepare.bind(sqlite);
-  sqlite.prepare = ((sql: string) => {
-    sqls.push(sql);
-    return prepare(sql);
-  }) as typeof sqlite.prepare;
-  sqlite.exec('create table app_settings (key text primary key, value text not null)');
-  const db = drizzle(sqlite);
-  return { sqlite, sqls, db, store: createSqliteKeybindStore(db) };
-}
-
 describe('keybind store binding', () => {
   it('keeps the chord text out of the SQL text', async () => {
-    const { sqlite, sqls, store } = openTraced();
+    const { sqlite, sqls, db } = openTracedAppSettings();
+    const store = createSqliteKeybindStore(db);
     const evilMap: KeybindMap = {
       [PALETTE_OPEN]: EVIL,
       [PALETTE_OPEN_COLON]: ':',
@@ -58,7 +42,8 @@ describe('keybind store binding', () => {
   });
 
   it('drops extra fields and leaves other keys in place', async () => {
-    const { sqlite, db, store } = openTraced();
+    const { sqlite, db } = openTracedAppSettings();
+    const store = createSqliteKeybindStore(db);
     db.insert(appSettings).values({ key: 'study', value: STUDY_VALUE }).run();
     db.insert(appSettings).values({ key: THEME_SETTINGS_KEY, value: THEME_VALUE }).run();
     const extra = {

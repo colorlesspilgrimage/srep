@@ -2,14 +2,12 @@ import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
 import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
-// The domain tables keep their rows across runs. Each name gets the process id and a counter.
 let counter = 0;
 const unique = (name: string) => `${name}-${process.pid}-${(counter += 1)}`;
 
 const BASIC_ID = '00000000-0000-4000-8000-000000000011';
 const BASIC_REVERSED_ID = '00000000-0000-4000-8000-000000000012';
 const CLOZE_ID = '00000000-0000-4000-8000-000000000013';
-// A valid 1x1 transparent PNG.
 const PNG = Buffer.from(
   '89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000b49444154789c6360000200000500017a5eab3f0000000049454e44ae426082',
   'hex',
@@ -98,7 +96,6 @@ test.describe.serial('decks, notes and media', () => {
       headers: await headers({ 'content-type': 'image/png', 'x-filename': 'dot.png' }),
       data: PNG,
     });
-    // An earlier run can have stored the same bytes. Then the answer is 200.
     expect([200, 201]).toContain(upload.status());
     const { media }: { media: { sha256: string } } = await upload.json();
     const download = await page.request.get(`/api/media/${media.sha256}`);

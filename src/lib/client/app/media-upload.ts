@@ -1,8 +1,3 @@
-// Contract: POST /api/media as raw bytes. A bad size, type, or body does not call fetch.
-// CR, LF, or NUL in the type token does not become a header (CWE-113).
-// A name with CR, LF, a slash, or ".." does not become a header (CWE-22, CWE-113).
-// This file does not log the file bytes.
-
 import { csrfHeaders, errorCodeOf } from '#lib/client/api.js';
 
 export const MEDIA_MAX_BYTES = 10_485_760;

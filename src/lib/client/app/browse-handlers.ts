@@ -1,8 +1,3 @@
-// Contract: browse screen event handlers. The caller owns the state.
-// A bulk handler captures ids before the request. A second call waits on the lock.
-// Enter opens a note only after the UUID check inside browseNotePath.
-// Focus and select are the only DOM writes.
-
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 import type { ApiResult } from '#lib/client/api.js';

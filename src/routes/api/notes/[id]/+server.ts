@@ -27,7 +27,6 @@ export const PATCH: RequestHandler = async ({ request, params }) => {
   return result.ok ? json({ note: result.note }) : errorResponse(result);
 };
 
-// Puts the note in the trash. The trash keeps it for 30 days.
 export const DELETE: RequestHandler = async ({ params }) => {
   const id = parseId(params.id);
   if (id === null) {

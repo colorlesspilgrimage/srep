@@ -83,7 +83,6 @@ export type Harness = {
   warnings: { obj: object; msg: string | undefined }[];
 };
 
-// Counter based bytes. The result is the same in every run.
 export function seededRandom(): (size: number) => Buffer {
   let counter = 0;
   return (size) => {
@@ -99,7 +98,6 @@ export function seededRandom(): (size: number) => Buffer {
   };
 }
 
-// Builds the harness on top of an open database. The store is real. WebAuthn is fake.
 export function buildHarness(handle: DbHandle, config: Config): Harness {
   const store = getAuthStore(handle);
   const clock: Clock = { now: 1_000_000 };
@@ -119,7 +117,6 @@ export function buildHarness(handle: DbHandle, config: Config): Harness {
   return { deps, store, handle, clock, webauthn, warnings };
 }
 
-// Real SQLite store in memory, fake WebAuthn, fixed clock, seeded random.
 export async function createHarness(env: Record<string, string> = {}): Promise<Harness> {
   const config = parseConfig({ SREP_DATABASE_URL: 'sqlite::memory:', ...env });
   const handle = createDb(config);
@@ -135,7 +132,6 @@ const AUTH_TABLES = [
   'app_settings',
 ];
 
-// Real Postgres store. Every call starts with empty auth tables.
 export async function createPgHarness(url: string): Promise<Harness> {
   const config = parseConfig({ SREP_DATABASE_URL: url });
   const handle = createDb(config);
@@ -148,7 +144,6 @@ export async function createPgHarness(url: string): Promise<Harness> {
 
 export const SETUP_RESPONSE = { id: 'cred-default' } as never;
 
-// Runs the full setup flow with the fake WebAuthn. Returns the secrets.
 export async function doSetup(h: Harness, kind: 'passkey' | 'security_key' = 'passkey') {
   const { ensureSetupToken, setupOptions, setupVerify } = await import('#lib/server/auth/setup.js');
   const setupToken = (await ensureSetupToken(h.deps)) ?? '';

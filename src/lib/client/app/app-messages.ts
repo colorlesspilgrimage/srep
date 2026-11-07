@@ -1,8 +1,3 @@
-// Contract: short text for a deck-screen error code.
-// Unknown codes use one default sentence.
-// No I/O.
-
-// Own keys only. A code such as "constructor" must not read Object members (CWE-1321).
 const MESSAGES = new Map<string, string>([
   ['deck_name_taken', 'That deck name is already used.'],
   ['bad_request', 'The deck name is not valid.'],

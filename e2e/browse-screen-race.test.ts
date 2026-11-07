@@ -3,10 +3,6 @@ import { E2E_ORIGIN } from './support/cli';
 import { signInEditor } from './support/note-editor';
 import { BASIC_ID, createDeck, csrf } from './support/study-screen';
 
-// Contract: one bulk write at a time, a stale search loses, and a failed write can be retried.
-// This file uses 198.51.100.45. note-editor-race uses .43 and browse-screen uses .44.
-// Browse has no client clock. is:due stays on the server clock from slice 12.
-
 const CLIENT_IP = '198.51.100.45';
 const SUSPEND = (url: URL) => url.pathname === '/api/cards/suspend';
 const BROWSE = (url: URL) => url.pathname === '/api/browse';

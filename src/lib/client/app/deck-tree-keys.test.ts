@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { deckTreeKeyAction, type DeckTreeKeyInput } from './deck-tree-keys.js';
 
-// Contract: every tree key from the deck-list plan.
-
 function input(patch: Partial<DeckTreeKeyInput> = {}): DeckTreeKeyInput {
   return {
     key: 'ArrowDown',

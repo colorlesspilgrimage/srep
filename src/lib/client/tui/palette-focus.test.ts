@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { nextTrapIndex } from './palette-focus.js';
 
-// Contract: Tab wraps inside the dialog. A bad count does not move focus.
-
 describe('palette focus trap', () => {
   it('wraps Tab and Shift+Tab inside the dialog', () => {
     expect(nextTrapIndex(3, 0, false)).toBe(1);

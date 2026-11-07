@@ -1,4 +1,3 @@
-// Contract: FSRS preset tuning from review_log. Pure except for ts-fsrs imports.
 import { checkParameters, clipParameters, default_w, generatorParameters } from 'ts-fsrs';
 import { fail, type Result } from '#lib/server/auth/deps.js';
 import type { PresetRow } from '#lib/server/domain/store/store-types.js';

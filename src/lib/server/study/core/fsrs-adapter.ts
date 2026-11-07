@@ -1,8 +1,3 @@
-// Contract: the only module that imports ts-fsrs. Pure: same input, same output.
-// Inputs: a preset, the card scheduling fields, a rating and the answer time (epoch ms).
-// Output: the new scheduling fields, or null when ts-fsrs refuses the preset.
-// Fuzz is off and short-term steps are on, so a replay of the log gives the same result.
-// Side effect of the import: ts-fsrs adds helper methods to Date.prototype.
 import {
   checkParameters,
   fsrs,
@@ -45,8 +40,6 @@ const NAME_BY_STATE: Record<State, SchedState> = {
   [State.Relearning]: 'relearning',
 };
 
-// ts-fsrs counts whole minutes only: it floors '0.5m' to 0, and a 0 step breaks the
-// step sequence. So each step is rounded to whole minutes, with a minimum of 1.
 function toStepUnits(minutes: number[]): StepUnit[] {
   return minutes.map((m): StepUnit => `${Math.max(1, Math.round(m))}m`);
 }
@@ -55,7 +48,6 @@ function toStepUnits(minutes: number[]): StepUnit[] {
 export function buildFsrs(preset: SchedulerPreset): FSRS | null {
   try {
     if (preset.fsrsParams !== null) {
-      // generatorParameters silently replaces a bad array with the defaults. This check throws.
       checkParameters(preset.fsrsParams);
     }
     return fsrs(
@@ -88,8 +80,6 @@ export function newCardFields(): SchedFields {
   };
 }
 
-// elapsed_days and scheduled_days are inputs that ts-fsrs recomputes from last_review.
-// The golden tests prove that the result does not depend on them.
 export function toFsrsCard(fields: SchedFields, elapsedDays = 0, scheduledDays = 0): Card {
   return {
     due: new Date(fields.due),

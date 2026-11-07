@@ -1,4 +1,3 @@
-// Contract: shared types of the study engine. No logic, no I/O.
 import type { SchedState } from '#lib/server/db/schema/sqlite.js';
 
 export type { SchedState };

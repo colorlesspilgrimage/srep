@@ -25,8 +25,6 @@ function redirectTo(location: string): Response {
   return new Response(null, { status: 303, headers: { location } });
 }
 
-// Checks the Origin header, and the CSRF header when the route needs a session cookie.
-// Bearer-authenticated API calls and the pairing exchange skip browser CSRF/Origin.
 function checkMutation(
   deps: AuthDeps,
   event: RequestEvent,
@@ -52,7 +50,6 @@ function checkMutation(
   return null;
 }
 
-// The path is the decoded path that SvelteKit uses to find the route.
 async function checkRoute(
   deps: AuthDeps,
   event: RequestEvent,
@@ -62,7 +59,6 @@ async function checkRoute(
   const method = event.request.method;
   const signedIn = event.locals.session !== null;
   if (isApiPath(path)) {
-    // Public routes match the raw path too, so an encoded spelling needs a session (CWE-863).
     const isPublic = isPublicApiRoute(method, path) && path === event.url.pathname;
     if (!isPublic && !signedIn) {
       return json({ error: 'unauthenticated' }, { status: 401 });
@@ -92,13 +88,9 @@ function finish(deps: AuthDeps, path: string, response: Response, clear: boolean
   for (const [name, value] of Object.entries(buildSecurityHeaders(deps.auth))) {
     response.headers.set(name, value);
   }
-  // API answers are not cached. A route can set its own policy: the media route marks
-  // content-addressed files as private and immutable.
   if (isApiPath(path) && !response.headers.has('cache-control')) {
     response.headers.set('cache-control', 'no-store');
   }
-  // A login route can set a new session cookie in the same response. The browser applies
-  // Set-Cookie lines in order, so a later clear line would delete the new session.
   const prefix = `${sessionCookieName(deps.auth.secureCookies)}=`;
   if (clear && !response.headers.getSetCookie().some((line) => line.startsWith(prefix))) {
     response.headers.append('set-cookie', clearCookieHeader(deps.auth.secureCookies));
@@ -106,7 +98,6 @@ function finish(deps: AuthDeps, path: string, response: Response, clear: boolean
   return response;
 }
 
-// Loads the session or Bearer token, applies the guards, and adds the security headers.
 export async function handleAuth(
   deps: AuthDeps,
   event: RequestEvent,
@@ -117,7 +108,6 @@ export async function handleAuth(
   if (path === null) {
     return finish(deps, event.url.pathname, badRequest(), false);
   }
-  // Static app files and the health check need no session. Remote functions do.
   if (path === '/healthz' || (path.startsWith('/_app/') && !isApiPath(path))) {
     return finish(deps, path, await resolve(event), false);
   }
@@ -130,7 +120,6 @@ export async function handleAuth(
       const rejected = await checkRoute(deps, event, path, undefined);
       return finish(deps, path, rejected ?? (await resolve(event)), false);
     }
-    // A present but invalid Bearer token is unauthenticated for API routes.
     if (isMutating(event.request.method) || !isPublicApiRoute(event.request.method, path)) {
       const isPublic = isPublicApiRoute(event.request.method, path) && path === event.url.pathname;
       if (!isPublic) {

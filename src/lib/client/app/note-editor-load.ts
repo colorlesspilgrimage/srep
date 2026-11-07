@@ -1,7 +1,3 @@
-// Contract: load decks, note types, and one note for the editor.
-// A failed request returns its error code. A bad JSON shape is bad_request.
-// The client checks ids before it builds a path. No I/O beyond that client.
-
 import type { ApiResult } from '#lib/client/api.js';
 import {
   parseDecks,

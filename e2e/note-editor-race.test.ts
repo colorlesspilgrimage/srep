@@ -1,9 +1,6 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { makeDecks, openNewNote, postNote, signInEditor, TINY_PNG } from './support/note-editor';
 
-// Contract: one save or upload at a time, a stale preview, and a failed retry.
-// This file uses its own client IP.
-
 const CLIENT_IP = '198.51.100.43';
 const PNG = { name: 'dot.png', mimeType: 'image/png', buffer: TINY_PNG };
 

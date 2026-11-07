@@ -1,6 +1,3 @@
-// Contract: form field checks.
-// The id parts stay in a safe set so the input id cannot break the label.
-
 export const FORM_VALUE_MAX = 80;
 
 export function formIdsOk(idPrefix: string, name: string): boolean {

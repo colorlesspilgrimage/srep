@@ -1,6 +1,5 @@
 import { csrfTokenFor, safeEqual } from '#lib/server/auth/tokens.js';
 
-// Exact [method, pathname] pairs. Never match with startsWith (CWE-863).
 const PUBLIC_API_ROUTES: readonly (readonly [string, string])[] = [
   ['GET', '/api/auth/status'],
   ['POST', '/api/auth/setup/options'],
@@ -8,20 +7,15 @@ const PUBLIC_API_ROUTES: readonly (readonly [string, string])[] = [
   ['POST', '/api/auth/login/options'],
   ['POST', '/api/auth/login/verify'],
   ['POST', '/api/auth/recovery/login'],
-  // Native apps claim a pairing code without a browser Origin or CSRF cookie.
   ['POST', '/api/auth/pairing/exchange'],
 ];
 
-// Public mutating routes that skip Origin (native clients have no first-party Origin).
 const ORIGIN_EXEMPT_PUBLIC_ROUTES: readonly (readonly [string, string])[] = [
   ['POST', '/api/auth/pairing/exchange'],
 ];
 
-// SvelteKit remote functions answer here. They return data, so they get the API guard.
 export const REMOTE_PREFIX = '/_app/remote/';
 
-// SvelteKit decodes paths the same way. The guard checks the decoded path, or "/%61pi" skips it
-// (CWE-863). "%25" stays encoded, so a decoded "%" cannot start an escape. Null means bad input.
 export function decodeRoutePath(pathname: string): string | null {
   try {
     return pathname.split('%25').map(decodeURI).join('%25');
@@ -30,7 +24,6 @@ export function decodeRoutePath(pathname: string): string | null {
   }
 }
 
-// Paths that get the API guard: /api and its children, and remote functions.
 export function isApiPath(pathname: string): boolean {
   return pathname === '/api' || pathname.startsWith('/api/') || pathname.startsWith(REMOTE_PREFIX);
 }

@@ -1,6 +1,3 @@
-// Contract: read and replace the saved theme id. A bad stored value is 500. It is not repaired.
-// A saved id must be a catalog id. The code does not trim it (CWE-20).
-
 import { z } from 'zod';
 import { fail, type Result } from '#lib/server/auth/deps.js';
 import { DEFAULT_THEME_ID, migrateThemeId, themeById } from '#lib/client/tui/themes.js';

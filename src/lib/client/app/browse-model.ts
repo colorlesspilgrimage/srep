@@ -1,12 +1,3 @@
-// Contract: pure browse-screen values. No I/O.
-// A search path is built with URLSearchParams. The raw query is not concatenated.
-// A cursor is set only after the UUID check. A bad cursor returns null.
-// A note id enters a path only after the UUID check, then encodeURIComponent.
-// Row text is plain text. A bad row is dropped. A bad page is null.
-// A late search serial is ignored. The newest serial wins.
-// Move and Suspend stop above 500 cards. Tag and Delete stop above 100 notes.
-// not_found uses the bulk sentence. Other codes use a short sentence.
-
 import { encodedUuid, isDeckUuid } from './deck-id.js';
 import type { BrowseMove } from './browse-keys.js';
 
@@ -23,7 +14,6 @@ export const NOT_FOUND_TEXT = 'One selected card was not found. Nothing was chan
 export const CARD_CAP_TEXT = 'Move and Suspend allow at most 500 cards.';
 export const NOTE_CAP_TEXT = 'Tag and Delete allow at most 100 notes.';
 
-// Own keys only. A code such as "constructor" must not read Object members (CWE-1321).
 const WRITE_TEXT = new Map<string, string>([
   ['not_found', NOT_FOUND_TEXT],
   ['bad_request', 'The request is not valid.'],

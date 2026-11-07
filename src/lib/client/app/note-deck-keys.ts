@@ -1,6 +1,3 @@
-// Contract: deck list keys. Arrow keys, j, k, Home, and End move and stop at the ends.
-// Enter keeps the deck. Escape blurs. Space, digits, h, l, and Tab do not change the deck.
-
 export type DeckListEffect =
   { type: 'select'; index: number } | { type: 'keep' } | { type: 'blur' } | { type: 'none' };
 

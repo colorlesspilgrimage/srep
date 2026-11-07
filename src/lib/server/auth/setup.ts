@@ -16,7 +16,6 @@ import type {
   RegistrationResponseJSON,
 } from '@simplewebauthn/server';
 
-// The lock check comes first. Then the token check, in constant time.
 async function checkSetupAccess(deps: AuthDeps, setupToken: string): Promise<Failure | null> {
   if (await deps.store.isSetupComplete()) {
     return fail(403, 'setup_locked');

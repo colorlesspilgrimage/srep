@@ -16,9 +16,6 @@ import {
   vulnerableEsbuildPaths,
 } from './toolchain-pin-check.js';
 
-// Contract: feed bad pin data and require a failure.
-// Inputs are fixtures. The test does not read the app and does not use the network.
-
 const COMMENT_SPOOF = [
   "# node-version: '>=22.17.0 <23.0.0'",
   "# node-version: '>=22.17.0 <23.0.0'",

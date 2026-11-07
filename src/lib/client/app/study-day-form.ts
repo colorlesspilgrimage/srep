@@ -1,6 +1,3 @@
-// Contract: pure study-day form values. No I/O.
-// A bad hour or timezone does not become a request body (CWE-20).
-
 export type StudyDaySettings = { rolloverHour: number; timezone: string };
 
 const TIMEZONE_PATTERN = /^[A-Za-z0-9_/+-]{1,64}$/;
