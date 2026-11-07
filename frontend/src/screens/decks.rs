@@ -322,7 +322,7 @@ pub fn DecksHome() -> impl IntoView {
                                 None
                             }
                         }
-                        on:keydown=move |ev| on_tree_key(ev)
+                        on:keydown=on_tree_key
                     >
                         {move || {
                             let visible = visible_deck_rows(&decks.get(), &expanded.get());

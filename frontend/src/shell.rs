@@ -70,13 +70,8 @@ pub fn AppShell(children: Children) -> impl IntoView {
         }
     });
 
-    {
-        let palette_open = palette_open;
-        let modal_open = modal_open;
-        Effect::new(move |_| {
+    Effect::new(move |_| {
             let window = web_sys::window().expect("window");
-            let palette_open = palette_open;
-            let modal_open = modal_open;
             let closure = Closure::wrap(Box::new(move |ev: web_sys::KeyboardEvent| {
                 let in_field = ev
                     .target()
@@ -99,7 +94,6 @@ pub fn AppShell(children: Children) -> impl IntoView {
             let _ = window.add_event_listener_with_callback("keydown", cb);
             closure.forget();
         });
-    }
 
     view! {
         <div class=root_class>
@@ -124,7 +118,7 @@ pub fn AppShell(children: Children) -> impl IntoView {
                                     class="app-nav-item"
                                     aria-current=move || active().then_some("page")
                                     on:click=move |_| {
-                                        let _ = go(&href, Default::default());
+                                        go(&href, Default::default());
                                     }
                                 >
                                     {label}
@@ -145,8 +139,7 @@ pub fn AppShell(children: Children) -> impl IntoView {
             <div class="tui-tabbar" role="tablist" aria-label="App sections">
                 {NAV
                     .into_iter()
-                    .enumerate()
-                    .map(|(_i, (href, label))| {
+                    .map(|(href, label)| {
                         let href = href.to_string();
                         let go = go.clone();
                         let active = {
@@ -158,9 +151,9 @@ pub fn AppShell(children: Children) -> impl IntoView {
                                 type="button"
                                 class="app-tab"
                                 role="tab"
-                                aria-selected=move || active()
+                                aria-selected=active
                                 on:click=move |_| {
-                                    let _ = go(&href, Default::default());
+                                    go(&href, Default::default());
                                 }
                                 on:keydown=move |ev| {
                                     let tab = ev.current_target().unwrap();

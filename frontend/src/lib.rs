@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use leptos_router::components::{Redirect, Route, Router, Routes};
+use leptos_router::components::{Route, Router, Routes};
 use leptos_router::hooks::use_navigate;
 use leptos_router::path;
 use wasm_bindgen::prelude::*;
@@ -130,7 +130,7 @@ fn SetupPage() -> impl IntoView {
 fn SecurityRedirect() -> impl IntoView {
     let navigate = use_navigate();
     Effect::new(move |_| {
-        let _ = navigate("/settings?section=security", Default::default());
+        navigate("/settings?section=security", Default::default());
     });
     view! { <main class="tui-dim" aria-busy="true">"Loading…"</main> }
 }
@@ -139,7 +139,7 @@ fn SecurityRedirect() -> impl IntoView {
 fn PairRedirect() -> impl IntoView {
     let navigate = use_navigate();
     Effect::new(move |_| {
-        let _ = navigate("/settings?section=pair-app", Default::default());
+        navigate("/settings?section=pair-app", Default::default());
     });
     view! { <main class="tui-dim" aria-busy="true">"Loading…"</main> }
 }

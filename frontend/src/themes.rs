@@ -9,6 +9,7 @@ pub fn theme_class(id: &str) -> String {
     format!("tui-theme-{id}")
 }
 
+#[allow(dead_code)]
 pub fn theme_label(id: &str) -> &'static str {
     match id {
         "xai-light" => "xAI Light",
@@ -33,6 +34,7 @@ pub fn theme_from_storage() -> String {
         .unwrap_or_else(|| DEFAULT_THEME_ID.to_string())
 }
 
+#[allow(dead_code)]
 pub fn persist_theme(id: &str) {
     if let Some(storage) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
         let _ = storage.set_item(STORAGE_KEY, id);

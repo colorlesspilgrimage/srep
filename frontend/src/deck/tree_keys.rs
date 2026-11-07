@@ -4,7 +4,7 @@ use wasm_bindgen::JsCast;
 pub enum DeckTreeKeyAction {
     None,
     Prevent,
-    Tab { shift: bool },
+    Tab { #[allow(dead_code)] shift: bool },
     FocusName,
     Expand,
     Child,

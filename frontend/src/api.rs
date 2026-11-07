@@ -7,10 +7,12 @@ use web_sys::{Request, RequestInit, RequestMode, Response};
 
 #[derive(Clone, Debug)]
 pub struct ApiError {
+    #[allow(dead_code)]
     pub status: u16,
     pub body: String,
 }
 
+#[allow(dead_code)]
 pub fn sync_csrf_from_client() {
     if let Some(token) = csrf_token() {
         set_csrf(&token);

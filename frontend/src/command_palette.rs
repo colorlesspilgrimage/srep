@@ -64,7 +64,7 @@ pub fn CommandPalette(open: RwSignal<bool>) -> impl IntoView {
                                 for name in APP_COMMANDS {
                                     if name.to_lowercase().contains(&needle) {
                                         if let Some(path) = command_target(name) {
-                                            let _ = go(path, Default::default());
+                                            go(path, Default::default());
                                         }
                                         close();
                                         break;
