@@ -1,11 +1,20 @@
+pub mod challenges;
 pub mod guard;
+pub mod http_util;
+pub mod limiters;
 pub mod middleware;
+pub mod pairing;
+pub mod rate_limit;
+pub mod recovery_codes;
 pub mod routes;
 pub mod session;
 pub mod state;
 pub mod store;
+pub mod text;
 pub mod tokens;
+pub mod types;
 pub mod webauthn;
+pub mod webauthn_ops;
 
 pub use middleware::{auth_layer, RequestAuth};
 pub use state::AppState;
