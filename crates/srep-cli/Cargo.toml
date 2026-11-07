@@ -1,0 +1,19 @@
+[package]
+name = "srep-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "srep"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+srep-auth = { path = "../srep-auth" }
+srep-config = { path = "../srep-config" }
+srep-db = { path = "../srep-db" }
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
