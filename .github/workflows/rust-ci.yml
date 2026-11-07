@@ -40,7 +40,8 @@ jobs:
       - run: cargo build --release -p srep-server
       - run: |
           SREP_DATABASE_URL=sqlite:/tmp/srep-smoke.db \
-          SREP_ORIGIN=http://127.0.0.1:3000 \
+          SREP_ORIGIN=http://localhost:3000 \
+          SREP_RP_ID=localhost \
           ./target/release/srep-server &
           sleep 2
           curl -fsS http://127.0.0.1:3000/healthz | grep -q '"status":"ok"'
