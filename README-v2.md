@@ -23,7 +23,22 @@ just dev
 # or: cargo run -p srep-server
 ```
 
-Open http://127.0.0.1:3000 — the Leptos bundle loads when built for `wasm32-unknown-unknown`; until then the bootstrap stub explains next steps.
+Build the WASM client (writes `site/pkg/` and copies the PWA manifest/icons):
+
+```bash
+./scripts/build-wasm.sh
+# or: just wasm
+```
+
+Open http://127.0.0.1:3000 — the bootstrap shim loads `/pkg/srep_ui.js` when present; otherwise it shows build instructions.
+
+### Playwright against `srep-server`
+
+```bash
+SREP_E2E_RUST=1 npx playwright test e2e/health.test.ts
+```
+
+With `SREP_E2E_RUST=1`, `playwright.config.ts` starts `cargo run -p srep-server` instead of the legacy Node build.
 
 ## Status
 

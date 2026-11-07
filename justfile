@@ -14,5 +14,11 @@ dev:
 test:
     cargo test --workspace
 
+wasm:
+    ./scripts/build-wasm.sh
+
+wasm-dev:
+    PROFILE=dev ./scripts/build-wasm.sh
+
 fmt:
     cargo fmt --all

@@ -5,13 +5,32 @@ const webEnv = { ...process.env };
 delete webEnv.NODE_ENV;
 
 const runAddress = `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 255)}`;
+const rustE2e = process.env.SREP_E2E_RUST === '1';
+
+const rustPort = '4173';
+const nodeEnv = {
+  ...webEnv,
+  NODE_ENV: 'production',
+  PORT: rustPort,
+  HOST: '127.0.0.1',
+  ORIGIN: `http://localhost:${rustPort}`,
+  ADDRESS_HEADER: 'x-forwarded-for',
+  XFF_DEPTH: '1',
+  SREP_ORIGIN: `http://localhost:${rustPort}`,
+  SREP_DATABASE_URL: process.env.E2E_DATABASE_URL ?? 'sqlite:./data/e2e.db',
+  SREP_LOG_LEVEL: 'warn',
+  SREP_MEDIA_DIR: './data/e2e-media',
+  SREP_E2E_CLOCK: '1',
+  BODY_SIZE_LIMIT: '11M',
+  SREP_RP_ID: 'localhost',
+};
 
 export default defineConfig({
   testDir: 'e2e',
   workers: 1,
   fullyParallel: false,
   use: {
-    baseURL: 'http://localhost:4173',
+    baseURL: `http://localhost:${rustPort}`,
     extraHTTPHeaders: { 'x-forwarded-for': runAddress },
   },
   projects: [
@@ -20,25 +39,20 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
-    command: 'npm run build && node build',
-    url: 'http://127.0.0.1:4173/healthz',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-    env: {
-      ...webEnv,
-      NODE_ENV: 'production',
-      PORT: '4173',
-      HOST: '127.0.0.1',
-      ORIGIN: 'http://127.0.0.1:4173',
-      ADDRESS_HEADER: 'x-forwarded-for',
-      XFF_DEPTH: '1',
-      SREP_ORIGIN: 'http://localhost:4173',
-      SREP_DATABASE_URL: process.env.E2E_DATABASE_URL ?? 'sqlite:./data/e2e.db',
-      SREP_LOG_LEVEL: 'warn',
-      SREP_MEDIA_DIR: './data/e2e-media',
-      SREP_E2E_CLOCK: '1',
-      BODY_SIZE_LIMIT: '11M',
-    },
-  },
+  webServer: rustE2e
+    ? {
+        command:
+          'cargo build -p srep-server && cargo run -p srep-server --release',
+        url: `http://localhost:${rustPort}/healthz`,
+        reuseExistingServer: !process.env.CI,
+        timeout: 180_000,
+        env: nodeEnv,
+      }
+    : {
+        command: 'npm run build && node build',
+        url: `http://localhost:${rustPort}/healthz`,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+        env: nodeEnv,
+      },
 });
