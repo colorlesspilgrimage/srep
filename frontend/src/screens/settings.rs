@@ -6,12 +6,17 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
 
 use crate::api::{self, error_code_from_body, message_for, ApiError};
-use crate::themes::ThemeHandle;
+use crate::client_js;
+use crate::prefs::{DisplayHandle, KeybindHandle, KeyCaptureHandle};
+use crate::screens::settings_panels::{DataPanel, PresetsPanel};
+use crate::themes::{self, ThemeHandle};
+use crate::tui::keymap_form::KeymapForm;
+use crate::tui::theme_pane::ThemeSettingsPane;
+use crate::tui::tui_list::TuiList;
 use crate::webauthn_client::{self, enroll_credential};
 
 async fn rename_credential_via_client(id: &str, nickname: &str) -> Result<(), String> {
     use js_sys::{Function, Promise, Reflect};
-    use wasm_bindgen::{JsCast, JsValue};
     use wasm_bindgen_futures::JsFuture;
 
     let window = web_sys::window().ok_or_else(|| "no window".to_string())?;
@@ -45,15 +50,6 @@ async fn rename_credential_via_client(id: &str, nickname: &str) -> Result<(), St
     }
 }
 
-fn read_rename_input_value() -> Option<String> {
-    let document = web_sys::window()?.document()?;
-    let input = document
-        .get_element_by_id("cred-rename-input")?
-        .dyn_into::<web_sys::HtmlInputElement>()
-        .ok()?;
-    Some(input.value())
-}
-
 const SECTIONS: &[(&str, &str)] = &[
     ("appearance", "Appearance"),
     ("display", "Display"),
@@ -85,7 +81,183 @@ pub fn SettingsScreen() -> impl IntoView {
         section.set(section_from_param(param.as_deref()).to_string());
     });
 
-    let _theme = expect_context::<ThemeHandle>();
+    let theme = expect_context::<ThemeHandle>();
+    let keybinds = expect_context::<KeybindHandle>();
+    let display = expect_context::<DisplayHandle>();
+    let _capture = expect_context::<KeyCaptureHandle>();
+
+    let section_labels: Vec<String> = SECTIONS.iter().map(|(_, l)| (*l).to_string()).collect();
+    let section_index = RwSignal::new(0usize);
+    Effect::new(move |_| {
+        let current = section.get();
+        let idx = SECTIONS
+            .iter()
+            .position(|(id, _)| *id == current.as_str())
+            .unwrap_or(0);
+        section_index.set(idx);
+    });
+
+    let picked_theme = RwSignal::new(String::new());
+    Effect::new(move |_| {
+        let saved = theme.id.get();
+        if picked_theme.get_untracked().is_empty() {
+            picked_theme.set(saved);
+        }
+    });
+
+    let active_theme = move || {
+        let id = picked_theme.get();
+        themes::normalize_theme_id(&id).to_string()
+    };
+
+    let theme_names: Vec<String> = themes::THEME_IDS
+        .iter()
+        .map(|id| themes::theme_label(id).to_string())
+        .collect();
+    let theme_list_index = RwSignal::new(0usize);
+    Effect::new(move |_| {
+        let id = active_theme();
+        let idx = themes::THEME_IDS
+            .iter()
+            .position(|tid| *tid == id.as_str())
+            .unwrap_or(0);
+        theme_list_index.set(idx);
+    });
+
+    Effect::new(move |_| {
+        let id = active_theme();
+        themes::apply_body_theme(&id);
+        theme.id.set(id);
+    });
+
+    let theme_status = RwSignal::new(String::new());
+    let theme_pending = RwSignal::new(false);
+    let save_serial = RwSignal::new(0u32);
+
+    let choose_theme = Callback::new(move |index: usize| {
+        let next = themes::THEME_IDS.get(index).copied().unwrap_or(themes::DEFAULT_THEME_ID);
+        if next != active_theme().as_str() {
+            save_serial.update(|s| *s += 1);
+            theme_status.set(String::new());
+        }
+        picked_theme.set(next.to_string());
+    });
+
+    let save_theme = Callback::new(move |_| {
+        if theme_pending.get_untracked() {
+            return;
+        }
+        let id = active_theme();
+        let serial = save_serial.get_untracked() + 1;
+        save_serial.set(serial);
+        theme_pending.set(true);
+        let theme_status = theme_status;
+        let theme = theme;
+        let save_serial = save_serial;
+        spawn_local(async move {
+            #[derive(Deserialize, serde::Serialize)]
+            struct Body {
+                id: String,
+            }
+            let saved = match api::put_json::<Body, Body>(
+                "/api/settings/theme",
+                &Body { id: id.clone() },
+            )
+            .await
+            {
+                Ok(body) => body.id == id,
+                Err(_) => false,
+            };
+            if save_serial.get_untracked() == serial {
+                theme_status.set(if saved {
+                    themes::persist_theme(&id);
+                    theme.id.set(id);
+                    "Saved.".to_string()
+                } else {
+                    "Could not save the theme.".to_string()
+                });
+            }
+            theme_pending.set(false);
+        });
+    });
+
+    let draft_keys = RwSignal::new(keybinds.binds.get_untracked());
+    Effect::new(move |_| {
+        keybinds.binds.track();
+        if draft_keys.get_untracked().is_null() {
+            draft_keys.set(keybinds.binds.get());
+        }
+    });
+
+    let on_keys_saved = Callback::new(move |map: JsValue| {
+        keybinds.binds.set(map.clone());
+        draft_keys.set(map);
+    });
+
+    let timezone = RwSignal::new("UTC".to_string());
+    let rollover_text = RwSignal::new("4".to_string());
+    let study_status = RwSignal::new(String::new());
+    let study_pending = RwSignal::new(false);
+    let study_ready = RwSignal::new(false);
+
+    Effect::new(move |_| {
+        spawn_local(async move {
+            #[derive(Deserialize)]
+            struct StudySettings {
+                rollover_hour: u32,
+                timezone: String,
+            }
+            #[derive(Deserialize)]
+            struct Body {
+                settings: StudySettings,
+            }
+            match api::get_json::<Body>("/api/settings/study").await {
+                Ok(body) => {
+                    timezone.set(body.settings.timezone);
+                    rollover_text.set(body.settings.rollover_hour.to_string());
+                }
+                Err(_) => study_status.set("Could not load the study day.".to_string()),
+            }
+            study_ready.set(true);
+        });
+    });
+
+    let font_size_text = RwSignal::new("16".to_string());
+    let reduced_motion = RwSignal::new(false);
+    let display_status = RwSignal::new(String::new());
+    let display_pending = RwSignal::new(false);
+    let display_ready = RwSignal::new(false);
+
+    Effect::new(move |_| {
+        spawn_local(async move {
+            #[derive(Deserialize)]
+            struct DisplayPrefs {
+                font_size: u32,
+                reduced_motion: bool,
+            }
+            #[derive(Deserialize)]
+            struct Body {
+                display: DisplayPrefs,
+            }
+            match api::get_json::<Body>("/api/settings/display").await {
+                Ok(body) => {
+                    font_size_text.set(body.display.font_size.to_string());
+                    reduced_motion.set(body.display.reduced_motion);
+                    display.apply_js(body.display.font_size, body.display.reduced_motion);
+                }
+                Err(_) => display_status.set("Could not load display settings.".to_string()),
+            }
+            display_ready.set(true);
+        });
+    });
+
+    let preview_display = move || {
+        if let Ok((size, motion)) =
+            client_js::accept_display_fields(&font_size_text.get_untracked(), reduced_motion.get_untracked())
+        {
+            display.apply_js(size, motion);
+        }
+    };
 
     view! {
         <main class="app-screen">
@@ -97,64 +269,236 @@ pub fn SettingsScreen() -> impl IntoView {
                 </p>
             </header>
             <div class="tui-layout">
-                <div class="tui-side" role="tablist" aria-label="Settings sections">
-                    {SECTIONS
-                        .iter()
-                        .map(|(id, label)| {
-                            let section_id = id.to_string();
-                            let selected = {
-                                let section_id = section_id.clone();
-                                move || section.get() == section_id
-                            };
-                            view! {
-                                <button
-                                    type="button"
-                                    role="tab"
-                                    aria-selected=selected
-                                    on:click=move |_| section.set(section_id.clone())
-                                >
-                                    {*label}
-                                </button>
-                            }
+                <div class="tui-side">
+                    <TuiList
+                        label="Settings sections"
+                        items=section_labels.clone()
+                        selected_index=section_index
+                        on_select=Callback::new(move |i: usize| {
+                            let id = SECTIONS.get(i).map(|p| p.0).unwrap_or("appearance");
+                            section.set(id.to_string());
                         })
-                        .collect_view()}
+                    />
                 </div>
                 <div class="tui-main">
-                    <Show when=move || section.get() == "appearance">
-                        <div role="tabpanel" aria-label="Appearance">
-                            <h2>"Appearance"</h2>
-                        </div>
-                    </Show>
-                    <Show when=move || section.get() == "display">
-                        <div role="tabpanel" aria-label="Display">
-                            <h2>"Display"</h2>
-                        </div>
-                    </Show>
-                    <Show when=move || section.get() == "study-day">
-                        <div role="tabpanel" aria-label="Study day">
-                            <h2>"Study day"</h2>
-                        </div>
-                    </Show>
-                    <Show when=move || section.get() == "presets">
-                        <div role="tabpanel" aria-label="Presets">
-                            <h2>"Presets"</h2>
-                        </div>
-                    </Show>
-                    <Show when=move || section.get() == "security">
-                        <div role="tabpanel" aria-label="Security">
-                            <SecurityPanel />
-                        </div>
-                    </Show>
-                    <Show when=move || section.get() == "pair-app">
-                        <div role="tabpanel" aria-label="Pair app">
-                            <h2>"Pair app"</h2>
-                        </div>
-                    </Show>
-                    <Show when=move || section.get() == "data">
-                        <div role="tabpanel" aria-label="Data">
-                            <h2>"Data"</h2>
-                        </div>
-                    </Show>
+                    <div
+                        role="tabpanel"
+                        aria-label="Appearance"
+                        hidden=move || section.get() != "appearance"
+                    >
+                        <ThemeSettingsPane
+                            theme_names=theme_names.clone()
+                            selected_index=theme_list_index
+                            on_select=choose_theme
+                            on_save=save_theme
+                            save_pending=theme_pending
+                            status_text=theme_status
+                        />
+                        <KeymapForm map=draft_keys on_saved=on_keys_saved />
+                    </div>
+                    <div
+                        role="tabpanel"
+                        aria-label="Display"
+                        hidden=move || section.get() != "display"
+                    >
+                        <Show when=move || display_ready.get() fallback=|| view! { <p>"Loading display…"</p> }>
+                            <form
+                                class="tui-form"
+                                method="post"
+                                on:submit=move |ev| {
+                                    ev.prevent_default();
+                                    if display_pending.get_untracked() {
+                                        return;
+                                    }
+                                    let Ok((font_size, motion)) = client_js::accept_display_fields(
+                                        &font_size_text.get_untracked(),
+                                        reduced_motion.get_untracked(),
+                                    ) else {
+                                        display_status.set("Could not save display settings.".to_string());
+                                        return;
+                                    };
+                                    display_pending.set(true);
+                                    let display = display;
+                                    let display_status = display_status;
+                                    spawn_local(async move {
+                                        #[derive(serde::Serialize)]
+                                        #[serde(rename_all = "camelCase")]
+                                        struct Put {
+                                            font_size: u32,
+                                            reduced_motion: bool,
+                                            scanline: bool,
+                                            cursor_blink: bool,
+                                        }
+                                        let ok = api::put_json::<serde_json::Value, Put>(
+                                            "/api/settings/display",
+                                            &Put {
+                                                font_size,
+                                                reduced_motion: motion,
+                                                scanline: false,
+                                                cursor_blink: false,
+                                            },
+                                        )
+                                        .await
+                                        .is_ok();
+                                        if ok {
+                                            display.apply_js(font_size, motion);
+                                            display_status.set("Saved.".to_string());
+                                        } else {
+                                            display_status.set("Could not save display settings.".to_string());
+                                        }
+                                        display_pending.set(false);
+                                    });
+                                }
+                            >
+                                <label for="settings-display-font-size">"Font size"</label>
+                                <input
+                                    id="settings-display-font-size"
+                                    name="fontSize"
+                                    type="text"
+                                    inputmode="numeric"
+                                    autocomplete="off"
+                                    prop:value=move || font_size_text.get()
+                                    on:input=move |ev| {
+                                        font_size_text.set(event_target_value(&ev));
+                                        preview_display();
+                                    }
+                                    disabled=move || display_pending.get()
+                                />
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        name="reducedMotion"
+                                        prop:checked=move || reduced_motion.get()
+                                        on:change=move |ev| {
+                                            reduced_motion.set(event_target_checked(&ev));
+                                            preview_display();
+                                        }
+                                        disabled=move || display_pending.get()
+                                    />
+                                    " Reduced motion"
+                                </label>
+                                <button type="submit" aria-busy=move || display_pending.get()>
+                                    "Save display"
+                                </button>
+                            </form>
+                            <Show when=move || !display_status.get().is_empty()>
+                                <p role="status" aria-label="Display status">
+                                    {move || display_status.get()}
+                                </p>
+                            </Show>
+                        </Show>
+                    </div>
+                    <div
+                        role="tabpanel"
+                        aria-label="Study day"
+                        hidden=move || section.get() != "study-day"
+                    >
+                        <Show when=move || study_ready.get() fallback=|| view! { <p>"Loading study day…"</p> }>
+                            <form
+                                class="tui-form"
+                                method="post"
+                                on:submit=move |ev| {
+                                    ev.prevent_default();
+                                    if study_pending.get_untracked() {
+                                        return;
+                                    }
+                                    match client_js::accept_study_day(
+                                        &timezone.get_untracked(),
+                                        &rollover_text.get_untracked(),
+                                    ) {
+                                        Ok((tz, hour)) => {
+                                            study_pending.set(true);
+                                            let timezone = timezone;
+                                            let rollover_text = rollover_text;
+                                            let study_status = study_status;
+                                            spawn_local(async move {
+                                                #[derive(serde::Serialize)]
+                                                #[serde(rename_all = "camelCase")]
+                                                struct Put {
+                                                    timezone: String,
+                                                    rollover_hour: u32,
+                                                }
+                                                let ok = api::put_json::<serde_json::Value, Put>(
+                                                    "/api/settings/study",
+                                                    &Put {
+                                                        timezone: tz.clone(),
+                                                        rollover_hour: hour,
+                                                    },
+                                                )
+                                                .await
+                                                .is_ok();
+                                                if ok {
+                                                    timezone.set(tz);
+                                                    rollover_text.set(hour.to_string());
+                                                    study_status.set("Saved.".to_string());
+                                                } else {
+                                                    study_status.set("Could not save the study day.".to_string());
+                                                }
+                                                study_pending.set(false);
+                                            });
+                                        }
+                                        Err(msg) => study_status.set(msg),
+                                    }
+                                }
+                            >
+                                <label for="settings-study-timezone">"Timezone"</label>
+                                <input
+                                    id="settings-study-timezone"
+                                    name="timezone"
+                                    type="text"
+                                    autocomplete="off"
+                                    aria-label="Timezone"
+                                    prop:value=move || timezone.get()
+                                    on:input=move |ev| timezone.set(event_target_value(&ev))
+                                    disabled=move || study_pending.get()
+                                />
+                                <label for="settings-study-rollover">"Rollover hour"</label>
+                                <input
+                                    id="settings-study-rollover"
+                                    name="rolloverHour"
+                                    type="text"
+                                    inputmode="numeric"
+                                    autocomplete="off"
+                                    aria-label="Rollover hour"
+                                    prop:value=move || rollover_text.get()
+                                    on:input=move |ev| rollover_text.set(event_target_value(&ev))
+                                    disabled=move || study_pending.get()
+                                />
+                                <button type="submit" aria-busy=move || study_pending.get()>
+                                    "Save study day"
+                                </button>
+                            </form>
+                            <Show when=move || !study_status.get().is_empty()>
+                                <p role="status" aria-label="Study day status">
+                                    {move || study_status.get()}
+                                </p>
+                            </Show>
+                        </Show>
+                    </div>
+                    <div
+                        role="tabpanel"
+                        aria-label="Presets"
+                        hidden=move || section.get() != "presets"
+                    >
+                        <PresetsPanel />
+                    </div>
+                    <div
+                        role="tabpanel"
+                        aria-label="Security"
+                        hidden=move || section.get() != "security"
+                    >
+                        <SecurityPanel />
+                    </div>
+                    <div
+                        role="tabpanel"
+                        aria-label="Pair app"
+                        hidden=move || section.get() != "pair-app"
+                    >
+                        <h2>"Pair app"</h2>
+                    </div>
+                    <div role="tabpanel" aria-label="Data" hidden=move || section.get() != "data">
+                        <DataPanel />
+                    </div>
                 </div>
             </div>
         </main>
@@ -170,6 +514,7 @@ struct CredentialRow {
 #[component]
 fn SecurityPanel() -> impl IntoView {
     let credentials = RwSignal::new(Vec::<CredentialRow>::new());
+    let unused_count = RwSignal::new(None::<u32>);
     let error = RwSignal::new(String::new());
     let confirming_id = RwSignal::new(None::<String>);
     let editing_id = RwSignal::new(None::<String>);
@@ -185,8 +530,15 @@ fn SecurityPanel() -> impl IntoView {
             struct CredsBody {
                 credentials: Vec<CredentialRow>,
             }
+            #[derive(Deserialize)]
+            struct RecoveryBody {
+                unused_count: u32,
+            }
             if let Ok(body) = api::get_json::<CredsBody>("/api/auth/credentials").await {
                 credentials.set(body.credentials);
+            }
+            if let Ok(body) = api::get_json::<RecoveryBody>("/api/auth/recovery").await {
+                unused_count.set(Some(body.unused_count));
             }
             ready.set(true);
         });
@@ -220,6 +572,15 @@ fn SecurityPanel() -> impl IntoView {
                 />
             </ul>
             {move || {
+                unused_count
+                    .get()
+                    .map(|n| view! {
+                        <p role="status" aria-label="Recovery codes">
+                            {format!("Unused recovery codes: {n}")}
+                        </p>
+                    })
+            }}
+            {move || {
                 (!error.get().is_empty())
                     .then(|| view! {
                         <p class="error" role="alert" data-srep-security-error="">{error.get()}</p>
@@ -235,6 +596,26 @@ fn SecurityPanel() -> impl IntoView {
                     prop:value=move || new_nickname.get()
                     on:input=move |ev| new_nickname.set(event_target_value(&ev))
                 />
+                <button
+                    type="button"
+                    disabled=move || busy.get()
+                    on:click=move |_| {
+                        let nick = new_nickname.get();
+                        busy.set(true);
+                        spawn_local(async move {
+                            let result = enroll_credential(nick, "passkey").await;
+                            busy.set(false);
+                            if result.ok {
+                                new_nickname.set(String::new());
+                                reload.run(());
+                            } else {
+                                error.set(result.message);
+                            }
+                        });
+                    }
+                >
+                    <span>"Add a passkey"</span>
+                </button>
                 <button
                     type="button"
                     disabled=move || busy.get()
@@ -332,21 +713,6 @@ fn CredentialRow(
                                 let nick = nickname.with_value(|s| s.clone());
                                 editing_id.set(Some(cred_id.with_value(|s| s.clone())));
                                 edit_value.set(nick.clone());
-                                spawn_local(async move {
-                                    let _ = wasm_bindgen_futures::JsFuture::from(
-                                        js_sys::Promise::resolve(&JsValue::UNDEFINED),
-                                    )
-                                    .await;
-                                    if let Some(input) = web_sys::window()
-                                        .and_then(|w| w.document())
-                                        .and_then(|d| d.get_element_by_id("cred-rename-input"))
-                                        .and_then(|el| {
-                                            el.dyn_into::<web_sys::HtmlInputElement>().ok()
-                                        })
-                                    {
-                                        let _ = input.set_value(&nick);
-                                    }
-                                });
                             }
                         >
                             "Rename"

@@ -4,11 +4,16 @@ use leptos_router::hooks::{use_location, use_query_map};
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 
-use crate::command_palette::{palette_key_action, CommandPalette};
+use crate::api;
+use crate::command_palette::{palette_key_action_js, CommandPalette};
 use crate::deck::tree_keys::target_is_text_field;
+use crate::prefs::{KeybindHandle, KeyCaptureHandle};
 use crate::tui::form_value::{accept_form_value, form_ids_ok, FormValueResult};
-use crate::tui::list_state::list_key_index;
+use crate::tui::keymap_form::KeymapForm;
+use crate::tui::theme_pane::ThemeSettingsPane;
+use crate::tui::tui_list::TuiList;
 use crate::themes::{self, ThemeHandle};
+use wasm_bindgen_futures::spawn_local;
 
 const SECTIONS: &[(&str, &str)] = &[
     ("panes", "Panes"),
@@ -19,69 +24,6 @@ const SECTIONS: &[(&str, &str)] = &[
 ];
 
 const SAMPLE_ITEMS: &[&str] = &["Alpha", "Beta", "Gamma"];
-
-#[component]
-fn TuiList(
-    label: &'static str,
-    items: Vec<String>,
-    selected_index: RwSignal<usize>,
-    #[prop(optional)] on_select: Option<Callback<usize>>,
-) -> impl IntoView {
-    let count = items.len();
-    let on_key = move |ev: web_sys::KeyboardEvent| {
-        let next = list_key_index(count, selected_index.get_untracked(), &ev.key());
-        if let Some(idx) = next {
-            ev.prevent_default();
-            selected_index.set(idx);
-        }
-    };
-    view! {
-        <div
-            class="tui-list"
-            role="listbox"
-            aria-label=label
-            tabindex="0"
-            on:keydown=on_key
-        >
-            {items
-                .clone()
-                .into_iter()
-                .enumerate()
-                .map(|(index, item)| {
-                    let is_selected = move || selected_index.get() == index;
-                    let row_ref = NodeRef::<Button>::new();
-                    let on_select = on_select;
-                    Effect::new(move |_| {
-                        let Some(el) = row_ref.get() else {
-                            return;
-                        };
-                        let _ = is_selected();
-                        let _ = el.set_attribute(
-                            "aria-selected",
-                            if is_selected() { "true" } else { "false" },
-                        );
-                    });
-                    view! {
-                        <button
-                            type="button"
-                            class="tui-option"
-                            role="option"
-                            node_ref=row_ref
-                            on:click=move |_| {
-                                selected_index.set(index);
-                                if let Some(cb) = on_select {
-                                    cb.run(index);
-                                }
-                            }
-                        >
-                            {item}
-                        </button>
-                    }
-                })
-                .collect_view()}
-        </div>
-    }
-}
 
 #[component]
 fn GalleryForm(on_submit: Callback<String>) -> impl IntoView {
@@ -180,6 +122,12 @@ fn GalleryModal(
 #[component]
 pub fn GalleryScreen() -> impl IntoView {
     let theme = expect_context::<ThemeHandle>();
+    let keybinds = expect_context::<KeybindHandle>();
+    let key_capture = expect_context::<KeyCaptureHandle>();
+    let draft_keys = RwSignal::new(keybinds.binds.get_untracked());
+    let theme_status = RwSignal::new(String::new());
+    let theme_pending = RwSignal::new(false);
+    let save_serial = RwSignal::new(0u32);
     let query = use_query_map();
     let location = use_location();
     let section = RwSignal::new("panes".to_string());
@@ -250,18 +198,80 @@ pub fn GalleryScreen() -> impl IntoView {
         }
     });
 
+    let save_theme = Callback::new(move |_| {
+        if theme_pending.get_untracked() {
+            return;
+        }
+        let id = active_theme();
+        let serial = save_serial.get_untracked() + 1;
+        save_serial.set(serial);
+        theme_pending.set(true);
+        let theme_status = theme_status;
+        let theme = theme;
+        spawn_local(async move {
+            #[derive(serde::Deserialize, serde::Serialize)]
+            struct ThemeBody {
+                id: String,
+            }
+            let saved = match api::put_json::<ThemeBody, ThemeBody>(
+                "/api/settings/theme",
+                &ThemeBody { id: id.clone() },
+            )
+                .await
+            {
+                Ok(body) => body.id == id,
+                Err(_) => false,
+            };
+            if save_serial.get_untracked() == serial {
+                theme_status.set(if saved {
+                    themes::persist_theme(&id);
+                    theme.id.set(id);
+                    "Saved.".to_string()
+                } else {
+                    "Could not save the theme.".to_string()
+                });
+            }
+            theme_pending.set(false);
+        });
+    });
+
+    let on_keys_saved = Callback::new(move |map: wasm_bindgen::JsValue| {
+        keybinds.binds.set(map.clone());
+        draft_keys.set(map);
+    });
+
+    let run_gallery_command = Callback::new(move |name: String| {
+        let section_id = match name.as_str() {
+            "Show Panes" => "panes",
+            "Show List" => "list",
+            "Show Form" => "form",
+            "Show Modal" => "modal",
+            "Show Settings" => "settings",
+            _ => return,
+        };
+        if let Some(idx) = SECTIONS.iter().position(|(id, _)| *id == section_id) {
+            section_index.set(idx);
+            section.set(section_id.to_string());
+        }
+    });
+
     Effect::new(move |_| {
         let window = web_sys::window().expect("window");
         let closure = Closure::wrap(Box::new(move |ev: web_sys::KeyboardEvent| {
+            if key_capture.active.get_untracked() {
+                return;
+            }
             let in_field = ev
                 .target()
                 .map(|t| target_is_text_field(&t))
                 .unwrap_or(false);
-            if let Some(action) = palette_key_action(
+            let binds = keybinds.binds.get_untracked();
+            if let Some(action) = palette_key_action_js(
                 &ev,
                 palette_open.get(),
                 modal_open_flag.get(),
                 in_field,
+                &binds,
             ) {
                 ev.prevent_default();
                 ev.stop_propagation();
@@ -293,11 +303,15 @@ pub fn GalleryScreen() -> impl IntoView {
         }
     };
 
-    let choose_theme = move |index: usize| {
+    let choose_theme = Callback::new(move |index: usize| {
         if let Some(id) = themes::THEME_IDS.get(index) {
+            if id.to_string() != active_theme() {
+                save_serial.update(|s| *s += 1);
+                theme_status.set(String::new());
+            }
             picked_theme.set(id.to_string());
         }
-    };
+    });
 
     let close_modal = Callback::new(move |_| {
         modal_open.set(false);
@@ -367,7 +381,7 @@ pub fn GalleryScreen() -> impl IntoView {
                                 label="Themes"
                                 items=theme_names.clone()
                                 selected_index=theme_list_index
-                                on_select=Callback::new(move |i| choose_theme(i))
+                                on_select=choose_theme.clone()
                             />
                         </div>
                         <div
@@ -413,21 +427,31 @@ pub fn GalleryScreen() -> impl IntoView {
                             attr:aria-labelledby="tui-tab-settings"
                             hidden=move || section.get().as_str() != "settings"
                         >
-                            <TuiList
-                                label="Themes"
-                                items=theme_names.clone()
+                            <ThemeSettingsPane
+                                theme_names=theme_names.clone()
                                 selected_index=theme_list_index
-                                on_select=Callback::new(move |i| choose_theme(i))
+                                on_select=choose_theme
+                                on_save=save_theme
+                                save_pending=theme_pending
+                                status_text=theme_status
                             />
+                            <KeymapForm map=draft_keys on_saved=on_keys_saved />
                         </div>
                     </div>
                 </div>
             </main>
-            <CommandPalette open=palette_open on_close=close_palette />
+            <CommandPalette
+                open=palette_open
+                on_close=close_palette
+                gallery=true
+                on_run=run_gallery_command
+            />
             <footer class="tui-status" role="contentinfo" aria-label="Status line">
                 {move || {
+                    let open = keybinds.open_hint();
+                    let close = keybinds.close_hint();
                     let name = themes::theme_label(&active_theme());
-                    format!("GALLERY | Ctrl+K palette | Esc close | {name}")
+                    format!("GALLERY | {open} | {close} | {name}")
                 }}
             </footer>
         </div>

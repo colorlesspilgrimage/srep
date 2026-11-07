@@ -143,6 +143,138 @@ pub fn default_keybinds() -> JsValue {
     Reflect::get(&c, &JsValue::from_str("DEFAULT_KEYBINDS")).unwrap_or(JsValue::NULL)
 }
 
+pub fn copy_keybind_map(map: &JsValue) -> JsValue {
+    call1("copyKeybindMap", map)
+}
+
+pub fn remap_keybind(map: &JsValue, action: &str, chord: &str) -> Result<JsValue, String> {
+    let out = call3(
+        "remap",
+        map,
+        &JsValue::from_str(action),
+        &JsValue::from_str(chord),
+    );
+    if out.is_string() {
+        Err(out.as_string().unwrap_or_default())
+    } else {
+        Ok(out)
+    }
+}
+
+pub fn capture_key_effect(key: &str) -> String {
+    call1("captureKeyEffect", &JsValue::from_str(key))
+        .as_string()
+        .unwrap_or_else(|| "pass".to_string())
+}
+
+pub fn close_hint(binds: &JsValue) -> String {
+    call1("closeHint", binds)
+        .as_string()
+        .unwrap_or_else(|| "Esc close".to_string())
+}
+
+pub fn filter_command_names(commands: &[&str], filter: &str) -> Vec<String> {
+    let needle = filter.trim().to_lowercase();
+    if needle.is_empty() {
+        return Vec::new();
+    }
+    commands
+        .iter()
+        .filter(|name| name.to_lowercase().contains(&needle))
+        .map(|s| (*s).to_string())
+        .collect()
+}
+
+pub fn gallery_command_names(filter: &str) -> Vec<String> {
+    let out = call1("commandsFor", &JsValue::from_str(filter));
+    let arr = out.dyn_ref::<js_sys::Array>().cloned().unwrap_or_default();
+    arr.iter()
+        .filter_map(|v| v.as_string())
+        .collect()
+}
+
+pub fn accept_display_fields(
+    font_size_text: &str,
+    reduced_motion: bool,
+) -> Result<(u32, bool), String> {
+    let obj = js_sys::Object::new();
+    let _ = Reflect::set(
+        &obj,
+        &JsValue::from_str("fontSizeText"),
+        &JsValue::from_str(font_size_text),
+    );
+    let _ = Reflect::set(
+        &obj,
+        &JsValue::from_str("reducedMotion"),
+        &JsValue::from(reduced_motion),
+    );
+    let _ = Reflect::set(&obj, &JsValue::from_str("scanline"), &JsValue::FALSE);
+    let _ = Reflect::set(&obj, &JsValue::from_str("cursorBlink"), &JsValue::FALSE);
+    let out = call1("acceptDisplay", &obj);
+    let ok = Reflect::get(&out, &JsValue::from_str("ok"))
+        .ok()
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    if !ok {
+        return Err(
+            Reflect::get(&out, &JsValue::from_str("error"))
+                .ok()
+                .and_then(|v| v.as_string())
+                .unwrap_or_else(|| "Invalid display settings.".to_string()),
+        );
+    }
+    let display = Reflect::get(&out, &JsValue::from_str("display")).unwrap_or(JsValue::NULL);
+    let font = Reflect::get(&display, &JsValue::from_str("fontSize"))
+        .ok()
+        .and_then(|v| v.as_f64())
+        .unwrap_or(16.0) as u32;
+    let motion = Reflect::get(&display, &JsValue::from_str("reducedMotion"))
+        .ok()
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    Ok((font, motion))
+}
+
+pub fn accept_study_day(
+    timezone: &str,
+    rollover_text: &str,
+) -> Result<(String, u32), String> {
+    let obj = js_sys::Object::new();
+    let _ = Reflect::set(
+        &obj,
+        &JsValue::from_str("timezone"),
+        &JsValue::from_str(timezone),
+    );
+    let _ = Reflect::set(
+        &obj,
+        &JsValue::from_str("rolloverText"),
+        &JsValue::from_str(rollover_text),
+    );
+    let out = call1("acceptStudyDay", &obj);
+    let ok = Reflect::get(&out, &JsValue::from_str("ok"))
+        .ok()
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    if !ok {
+        return Err(
+            Reflect::get(&out, &JsValue::from_str("error"))
+                .ok()
+                .and_then(|v| v.as_string())
+                .unwrap_or_else(|| "Invalid study day.".to_string()),
+        );
+    }
+    let settings = Reflect::get(&out, &JsValue::from_str("settings")).unwrap_or(JsValue::NULL);
+    let tz = Reflect::get(&settings, &JsValue::from_str("timezone"))
+        .ok()
+        .and_then(|v| v.as_string())
+        .unwrap_or_else(|| timezone.to_string());
+    let hour = Reflect::get(&settings, &JsValue::from_str("rolloverHour"))
+        .ok()
+        .and_then(|v| v.as_f64())
+        .unwrap_or(4.0) as u32;
+    Ok((tz, hour))
+}
+
 pub fn js_ok<T: DeserializeOwned>(v: &JsValue) -> Option<T> {
     serde_wasm_bindgen::from_value(v.clone()).ok()
 }

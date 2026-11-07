@@ -25,6 +25,14 @@ import {
   displayRootClass,
 } from '../legacy/v1-sveltekit/src/lib/client/app/display-prefs.ts';
 import { acceptStudyDay } from '../legacy/v1-sveltekit/src/lib/client/app/study-day-form.ts';
+import {
+  acceptPreset,
+  BLANK_PRESET_DRAFT,
+  copyDraft,
+  draftFromPreset,
+  presetMessageFor,
+} from '../legacy/v1-sveltekit/src/lib/client/app/preset-form.ts';
+import { commandsFor } from '../legacy/v1-sveltekit/src/lib/client/tui/keymap.ts';
 
 export {
   sanitizeCardHtml,
@@ -51,4 +59,10 @@ export {
   DEFAULT_DISPLAY,
   displayRootClass,
   acceptStudyDay,
+  acceptPreset,
+  BLANK_PRESET_DRAFT,
+  copyDraft,
+  draftFromPreset,
+  presetMessageFor,
+  commandsFor,
 };

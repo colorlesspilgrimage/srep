@@ -4,6 +4,7 @@ mod decks;
 mod gallery;
 mod note_editor;
 mod settings;
+pub mod settings_panels;
 mod study;
 
 pub use auth::{LoginScreen, SetupScreen};

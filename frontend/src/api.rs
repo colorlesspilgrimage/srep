@@ -76,6 +76,18 @@ pub async fn get_json<T: DeserializeOwned>(path: &str) -> Result<T, ApiError> {
     parse_json_response(response).await
 }
 
+pub async fn put_json<T: DeserializeOwned, B: Serialize>(
+    path: &str,
+    body: &B,
+) -> Result<T, ApiError> {
+    let payload = serde_json::to_string(body).map_err(|e| ApiError {
+        status: 0,
+        body: e.to_string(),
+    })?;
+    let response = fetch_raw(path, "PUT", Some(payload)).await?;
+    parse_json_response(response).await
+}
+
 pub async fn post_json<T: DeserializeOwned, B: Serialize>(
     path: &str,
     body: &B,

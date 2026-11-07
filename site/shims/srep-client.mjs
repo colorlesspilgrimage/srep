@@ -427,19 +427,24 @@ async function startAuthentication(options) {
 // scripts/ui-client-entry.mjs
 var ui_client_entry_exports = {};
 __export(ui_client_entry_exports, {
+  BLANK_PRESET_DRAFT: () => BLANK_PRESET_DRAFT,
   DEFAULT_DISPLAY: () => DEFAULT_DISPLAY,
   DEFAULT_KEYBINDS: () => DEFAULT_KEYBINDS,
   PALETTE_CLOSE: () => PALETTE_CLOSE,
   PALETTE_OPEN: () => PALETTE_OPEN,
   PALETTE_OPEN_COLON: () => PALETTE_OPEN_COLON,
   acceptDisplay: () => acceptDisplay,
+  acceptPreset: () => acceptPreset,
   acceptStudyDay: () => acceptStudyDay,
   captureKeyEffect: () => captureKeyEffect,
   chordFromEvent: () => chordFromEvent,
   closeHint: () => closeHint,
+  commandsFor: () => commandsFor,
+  copyDraft: () => copyDraft,
   copyKeybindMap: () => copyKeybindMap,
   deckListKey: () => deckListKey,
   displayRootClass: () => displayRootClass,
+  draftFromPreset: () => draftFromPreset,
   fieldKeyEffect: () => fieldKeyEffect,
   formatInterval: () => formatInterval,
   formatUntil: () => formatUntil,
@@ -447,6 +452,7 @@ __export(ui_client_entry_exports, {
   nextClozeIndex: () => nextClozeIndex,
   openHint: () => openHint,
   paletteKeyAction: () => paletteKeyAction,
+  presetMessageFor: () => presetMessageFor,
   remap: () => remap,
   sanitizeCardHtml: () => sanitizeCardHtml,
   studyKeyAction: () => studyKeyAction,
@@ -608,6 +614,13 @@ var RESERVED_CHORD_KEYS = /* @__PURE__ */ new Set([
   "8",
   "9"
 ]);
+var COMMAND_NAMES = [
+  "Show Panes",
+  "Show List",
+  "Show Form",
+  "Show Modal",
+  "Show Settings"
+];
 var CANCEL_PASS_KEYS = /* @__PURE__ */ new Set(["Tab", "Enter", " "]);
 function failChord() {
   throw new Error("bad_chord");
@@ -700,6 +713,18 @@ function asciiUpper(text) {
   }
   return null;
 }
+function asciiLower(text) {
+  let folded = "";
+  for (let index = 0; index < text.length; index += 1) {
+    const code = text.charCodeAt(index);
+    if (code >= 65 && code <= 90) {
+      folded += String.fromCharCode(code + 32);
+    } else {
+      folded += text.charAt(index);
+    }
+  }
+  return folded;
+}
 function keyMatches(key, eventKey) {
   if (/^[A-Z]$/.test(key)) {
     return asciiUpper(eventKey) === key;
@@ -724,6 +749,10 @@ function closeHint(chord) {
     return "Esc close";
   }
   return `${chord} close`;
+}
+function commandsFor(filter) {
+  const needle = asciiLower(filter.trim());
+  return COMMAND_NAMES.filter((name) => asciiLower(name).includes(needle));
 }
 function isReservedChord(chord) {
   const parsed = parseChordOrNull(chord);
@@ -1184,6 +1213,128 @@ function acceptStudyDay(input) {
     return { ok: false, error: "Rollover hour must be 0 to 23." };
   }
   return { ok: true, settings: { timezone, rolloverHour } };
+}
+
+// legacy/v1-sveltekit/src/lib/client/app/preset-form.ts
+var BLANK_PRESET_DRAFT = {
+  name: "",
+  newPerDayText: "20",
+  reviewsPerDayText: "200",
+  desiredRetentionText: "0.9",
+  learningStepsText: "1, 10",
+  relearningStepsText: "10",
+  maxIntervalText: "36500",
+  burySiblings: false,
+  newOrder: "added",
+  fsrsParams: null
+};
+var MSGS = /* @__PURE__ */ new Map([
+  ["builtin_protected", "The default preset cannot be deleted."],
+  ["in_use", "That preset is in use by a deck."],
+  ["name_taken", "That preset name is already used."]
+]);
+function presetMessageFor(code) {
+  return MSGS.get(code) ?? "The request failed.";
+}
+function intText(raw, min, max) {
+  if (!/^\d{1,5}$/.test(raw)) {
+    return null;
+  }
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= min && n <= max ? n : null;
+}
+function stepsText(raw) {
+  const t = raw.trim();
+  if (t === "") {
+    return [];
+  }
+  const parts = t.split(",");
+  if (parts.length > 10) {
+    return null;
+  }
+  const out = [];
+  for (const p of parts) {
+    const s = p.trim();
+    if (!/^\d{1,5}$/.test(s)) {
+      return null;
+    }
+    const n = Number(s);
+    if (!Number.isInteger(n) || n <= 0 || n > 43200) {
+      return null;
+    }
+    out.push(n);
+  }
+  return out;
+}
+function draftFromPreset(p) {
+  return {
+    name: p.name,
+    newPerDayText: String(p.newPerDay),
+    reviewsPerDayText: String(p.reviewsPerDay),
+    desiredRetentionText: String(p.desiredRetention),
+    learningStepsText: p.learningSteps.join(", "),
+    relearningStepsText: p.relearningSteps.join(", "),
+    maxIntervalText: String(p.maxInterval),
+    burySiblings: p.burySiblings,
+    newOrder: p.newOrder,
+    fsrsParams: p.fsrsParams
+  };
+}
+function copyDraft(d) {
+  return { ...d, fsrsParams: d.fsrsParams === null ? null : [...d.fsrsParams] };
+}
+function acceptPreset(d) {
+  const name = d.name.trim();
+  if (name.length < 1 || name.length > 100 || name.includes("\0")) {
+    return { ok: false, error: "Enter a preset name (1 to 100 characters)." };
+  }
+  const newPerDay = intText(d.newPerDayText.trim(), 0, 9999);
+  if (newPerDay === null) {
+    return { ok: false, error: "New per day must be 0 to 9999." };
+  }
+  const reviewsPerDay = intText(d.reviewsPerDayText.trim(), 0, 9999);
+  if (reviewsPerDay === null) {
+    return { ok: false, error: "Reviews per day must be 0 to 9999." };
+  }
+  const retRaw = d.desiredRetentionText.trim();
+  const desiredRetention = /^\d+(\.\d+)?$/.test(retRaw) ? Number(retRaw) : NaN;
+  if (!Number.isFinite(desiredRetention) || desiredRetention < 0.7 || desiredRetention > 0.99) {
+    return { ok: false, error: "Desired retention must be 0.7 to 0.99." };
+  }
+  const learningSteps = stepsText(d.learningStepsText);
+  if (learningSteps === null) {
+    return { ok: false, error: "Learning steps must be up to 10 positive minutes." };
+  }
+  const relearningSteps = stepsText(d.relearningStepsText);
+  if (relearningSteps === null) {
+    return { ok: false, error: "Relearning steps must be up to 10 positive minutes." };
+  }
+  const maxInterval = intText(d.maxIntervalText.trim(), 1, 36500);
+  if (maxInterval === null) {
+    return { ok: false, error: "Max interval must be 1 to 36500." };
+  }
+  if (d.newOrder !== "added" && d.newOrder !== "random") {
+    return { ok: false, error: "New order must be added or random." };
+  }
+  const fsrs = d.fsrsParams;
+  if (fsrs !== null && (!Array.isArray(fsrs) || fsrs.length < 19 || fsrs.length > 21 || !fsrs.every(Number.isFinite))) {
+    return { ok: false, error: "FSRS params must be empty or 19 to 21 numbers." };
+  }
+  return {
+    ok: true,
+    preset: {
+      name,
+      newPerDay,
+      reviewsPerDay,
+      desiredRetention,
+      learningSteps,
+      relearningSteps,
+      maxInterval,
+      fsrsParams: fsrs,
+      burySiblings: d.burySiblings === true,
+      newOrder: d.newOrder
+    }
+  };
 }
 
 // scripts/client-entry.mjs

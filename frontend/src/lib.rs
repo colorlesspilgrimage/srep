@@ -8,6 +8,7 @@ mod api;
 mod card_html;
 mod client_js;
 mod command_palette;
+mod prefs;
 mod deck;
 mod dialog_focus;
 mod id_util;
@@ -18,6 +19,7 @@ mod themes;
 mod tui;
 mod webauthn_client;
 
+pub use prefs::{DisplayHandle, KeybindHandle, KeyCaptureHandle};
 pub use themes::ThemeHandle;
 
 use screens::{
@@ -159,7 +161,15 @@ pub fn hydrate() {
 
 #[component]
 fn App() -> impl IntoView {
-    provide_context(ThemeHandle::new(themes::theme_from_storage()));
+    let theme = ThemeHandle::new(themes::theme_from_storage());
+    let keybinds = KeybindHandle::new(client_js::default_keybinds());
+    let display = DisplayHandle::new();
+    let key_capture = KeyCaptureHandle::new();
+    provide_context(theme);
+    provide_context(keybinds);
+    provide_context(display);
+    provide_context(key_capture);
+    prefs::load_signed_in_prefs(theme, keybinds, display);
 
     view! {
         <Router>
