@@ -5,9 +5,13 @@ use leptos_router::path;
 use wasm_bindgen::prelude::*;
 
 mod api;
+mod card_html;
+mod client_js;
 mod command_palette;
 mod deck;
 mod dialog_focus;
+mod id_util;
+mod study_keys;
 mod screens;
 mod shell;
 mod themes;
@@ -16,17 +20,11 @@ mod webauthn_client;
 
 pub use themes::ThemeHandle;
 
-use screens::{DecksHome, GalleryScreen, LoginScreen, SettingsScreen, SetupScreen, StudyScreen};
+use screens::{
+    BrowseScreen, DecksHome, GalleryScreen, LoginScreen, NoteEditScreen, NotesNewScreen,
+    SettingsScreen, SetupScreen, StudyScreen,
+};
 use shell::{AppShell, AuthShell};
-
-#[component]
-fn BrowseScreen() -> impl IntoView {
-    view! {
-        <section class="screen-placeholder">
-            <h1 class="screen-title">"Browse"</h1>
-        </section>
-    }
-}
 
 #[component]
 fn StatsScreen() -> impl IntoView {
@@ -137,9 +135,7 @@ fn PairRedirect() -> impl IntoView {
 fn NotesNewPage() -> impl IntoView {
     view! {
         <AppShell>
-            <main class="app-screen">
-                <h1>"New note"</h1>
-            </main>
+            <NotesNewScreen />
         </AppShell>
     }
 }
@@ -148,9 +144,7 @@ fn NotesNewPage() -> impl IntoView {
 fn NoteDetailPage() -> impl IntoView {
     view! {
         <AppShell>
-            <main class="app-screen">
-                <h1>"Note"</h1>
-            </main>
+            <NoteEditScreen />
         </AppShell>
     }
 }

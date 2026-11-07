@@ -1,3 +1,9 @@
+var __defProp = Object.defineProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+
 // node_modules/@simplewebauthn/browser/esm/helpers/bufferToBase64URLString.js
 function bufferToBase64URLString(buffer) {
   const bytes = new Uint8Array(buffer);
@@ -418,6 +424,768 @@ async function startAuthentication(options) {
   };
 }
 
+// scripts/ui-client-entry.mjs
+var ui_client_entry_exports = {};
+__export(ui_client_entry_exports, {
+  DEFAULT_DISPLAY: () => DEFAULT_DISPLAY,
+  DEFAULT_KEYBINDS: () => DEFAULT_KEYBINDS,
+  PALETTE_CLOSE: () => PALETTE_CLOSE,
+  PALETTE_OPEN: () => PALETTE_OPEN,
+  PALETTE_OPEN_COLON: () => PALETTE_OPEN_COLON,
+  acceptDisplay: () => acceptDisplay,
+  acceptStudyDay: () => acceptStudyDay,
+  captureKeyEffect: () => captureKeyEffect,
+  chordFromEvent: () => chordFromEvent,
+  closeHint: () => closeHint,
+  copyKeybindMap: () => copyKeybindMap,
+  deckListKey: () => deckListKey,
+  displayRootClass: () => displayRootClass,
+  fieldKeyEffect: () => fieldKeyEffect,
+  formatInterval: () => formatInterval,
+  formatUntil: () => formatUntil,
+  listKeyIndex: () => listKeyIndex,
+  nextClozeIndex: () => nextClozeIndex,
+  openHint: () => openHint,
+  paletteKeyAction: () => paletteKeyAction,
+  remap: () => remap,
+  sanitizeCardHtml: () => sanitizeCardHtml,
+  studyKeyAction: () => studyKeyAction,
+  wrapCloze: () => wrapCloze
+});
+
+// legacy/v1-sveltekit/src/lib/client/card/sanitize-card.ts
+var MAX_HTML = 2e5;
+var MAX_DEPTH = 32;
+var MEDIA_MARK = "{{media:";
+var CLOZE_OPEN = '<span class="cloze">';
+var CLOZE_CLOSE = "</span>";
+function escapeChar(ch) {
+  if (ch === "&") {
+    return "&amp;";
+  }
+  if (ch === "<") {
+    return "&lt;";
+  }
+  if (ch === ">") {
+    return "&gt;";
+  }
+  return ch;
+}
+function escapePrefix(input) {
+  let out = "";
+  for (let index = 0; index < input.length && out.length < MAX_HTML; index += 1) {
+    out += escapeChar(input.charAt(index));
+    if (out.length > MAX_HTML) {
+      return out.slice(0, MAX_HTML);
+    }
+  }
+  return out;
+}
+function isLowerHex(text, start) {
+  for (let index = start; index < start + 64; index += 1) {
+    const code = text.charCodeAt(index);
+    const digit = code >= 48 && code <= 57;
+    const lower = code >= 97 && code <= 102;
+    if (!digit && !lower) {
+      return false;
+    }
+  }
+  return true;
+}
+function mediaHex(text, at) {
+  if (!text.startsWith(MEDIA_MARK, at) || at + MEDIA_MARK.length + 66 > text.length) {
+    return null;
+  }
+  const start = at + MEDIA_MARK.length;
+  if (!isLowerHex(text, start)) {
+    return null;
+  }
+  if (text.charAt(start + 64) !== "}" || text.charAt(start + 65) !== "}") {
+    return null;
+  }
+  return text.slice(start, start + 64);
+}
+function closeSpan(open) {
+  if (open > 0) {
+    return { text: CLOZE_CLOSE, size: CLOZE_CLOSE.length, open: open - 1 };
+  }
+  return { text: "&lt;/span&gt;", size: CLOZE_CLOSE.length, open };
+}
+function takeMark(text, at, open) {
+  if (text.startsWith(CLOZE_OPEN, at)) {
+    if (open >= MAX_DEPTH) {
+      return null;
+    }
+    return { text: CLOZE_OPEN, size: CLOZE_OPEN.length, open: open + 1 };
+  }
+  if (text.startsWith(CLOZE_CLOSE, at)) {
+    return closeSpan(open);
+  }
+  if (text.startsWith("<br>", at) || text.startsWith("<hr>", at)) {
+    return { text: text.slice(at, at + 4), size: 4, open };
+  }
+  const hex = mediaHex(text, at);
+  if (hex === null) {
+    return null;
+  }
+  return {
+    text: `<img src="/api/media/${hex}" alt="">`,
+    size: MEDIA_MARK.length + 66,
+    open
+  };
+}
+function scan(input) {
+  let out = "";
+  let open = 0;
+  let index = 0;
+  while (index < input.length) {
+    const mark = takeMark(input, index, open);
+    const next = mark ?? { text: escapeChar(input.charAt(index)), size: 1, open };
+    out += next.text;
+    open = next.open;
+    index += next.size;
+    if (out.length > MAX_HTML) {
+      return escapePrefix(input);
+    }
+  }
+  return out;
+}
+function sanitizeCardHtml(input) {
+  if (typeof input !== "string") {
+    return "";
+  }
+  if (input.length > MAX_HTML) {
+    return escapePrefix(input);
+  }
+  return scan(input);
+}
+
+// legacy/v1-sveltekit/src/lib/client/tui/keymap.ts
+var PALETTE_OPEN = "palette.open";
+var PALETTE_OPEN_COLON = "palette.open-colon";
+var PALETTE_CLOSE = "palette.close";
+var ACTION_IDS = [PALETTE_OPEN, PALETTE_OPEN_COLON, PALETTE_CLOSE];
+var DEFAULT_KEYBINDS = {
+  [PALETTE_OPEN]: "Ctrl+K",
+  [PALETTE_OPEN_COLON]: ":",
+  [PALETTE_CLOSE]: "Escape"
+};
+function copyKeybindMap(value) {
+  return {
+    [PALETTE_OPEN]: value[PALETTE_OPEN],
+    [PALETTE_OPEN_COLON]: value[PALETTE_OPEN_COLON],
+    [PALETTE_CLOSE]: value[PALETTE_CLOSE]
+  };
+}
+var MODIFIER_NAMES = ["Ctrl", "Alt", "Shift", "Meta"];
+var NAMED_KEYS = ["Escape", "ArrowUp", "ArrowDown", "Enter", "Home", "End", "Tab"];
+var MODIFIER_KEYS = /* @__PURE__ */ new Set(["Control", "Alt", "Shift", "Meta"]);
+var MAX_CHORD = 32;
+var RESERVED_CHORD_KEYS = /* @__PURE__ */ new Set([
+  "D",
+  "F",
+  "H",
+  "J",
+  "L",
+  "N",
+  "O",
+  "P",
+  "Q",
+  "R",
+  "S",
+  "T",
+  "U",
+  "W",
+  "Tab",
+  "0",
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9"
+]);
+var CANCEL_PASS_KEYS = /* @__PURE__ */ new Set(["Tab", "Enter", " "]);
+function failChord() {
+  throw new Error("bad_chord");
+}
+function isNamedKey(part) {
+  for (const name of NAMED_KEYS) {
+    if (name === part) {
+      return true;
+    }
+  }
+  return false;
+}
+function isChordKey(part) {
+  if (part === ":") {
+    return true;
+  }
+  if (/^[A-Z]$/.test(part) || /^[0-9]$/.test(part)) {
+    return true;
+  }
+  return isNamedKey(part);
+}
+function modifierIndex(part) {
+  for (let index = 0; index < MODIFIER_NAMES.length; index += 1) {
+    if (MODIFIER_NAMES[index] === part) {
+      return index;
+    }
+  }
+  return -1;
+}
+function modifiersOf(parts) {
+  const modifiers = parts.slice(0, -1);
+  let previous = -1;
+  for (const part of modifiers) {
+    const index = modifierIndex(part);
+    if (index <= previous) {
+      failChord();
+    }
+    previous = index;
+  }
+  return modifiers;
+}
+function parseChord(input) {
+  if (input.length < 1 || input.length > MAX_CHORD || /\s/u.test(input)) {
+    failChord();
+  }
+  const parts = input.split("+");
+  const key = parts.at(-1) ?? "";
+  if (!isChordKey(key) || parts.some((part) => part.length === 0)) {
+    failChord();
+  }
+  return { modifiers: modifiersOf(parts), key };
+}
+function parseChordOrNull(input) {
+  try {
+    return parseChord(input);
+  } catch (error) {
+    if (error instanceof Error && error.message === "bad_chord") {
+      return null;
+    }
+    throw error;
+  }
+}
+function canonicalChord(input) {
+  const parsed = parseChordOrNull(input);
+  if (parsed === null) {
+    return null;
+  }
+  return [...parsed.modifiers, parsed.key].join("+");
+}
+function modifierSet(modifiers) {
+  return new Set(modifiers);
+}
+function modifiersMatch(event, modifiers) {
+  const want = modifierSet(modifiers);
+  if (event.ctrlKey !== want.has("Ctrl") || event.altKey !== want.has("Alt")) {
+    return false;
+  }
+  return event.shiftKey === want.has("Shift") && event.metaKey === want.has("Meta");
+}
+function asciiUpper(text) {
+  if (text.length !== 1) {
+    return null;
+  }
+  const code = text.charCodeAt(0);
+  if (code >= 65 && code <= 90) {
+    return text;
+  }
+  if (code >= 97 && code <= 122) {
+    return String.fromCharCode(code - 32);
+  }
+  return null;
+}
+function keyMatches(key, eventKey) {
+  if (/^[A-Z]$/.test(key)) {
+    return asciiUpper(eventKey) === key;
+  }
+  return eventKey === key;
+}
+function eventMatches(chord, event) {
+  const parsed = parseChordOrNull(chord);
+  if (parsed === null) {
+    return false;
+  }
+  if (!modifiersMatch(event, parsed.modifiers)) {
+    return false;
+  }
+  return keyMatches(parsed.key, event.key);
+}
+function openHint(chord) {
+  return `${chord} palette`;
+}
+function closeHint(chord) {
+  if (chord === "Escape") {
+    return "Esc close";
+  }
+  return `${chord} close`;
+}
+function isReservedChord(chord) {
+  const parsed = parseChordOrNull(chord);
+  if (parsed === null) {
+    return false;
+  }
+  if (!RESERVED_CHORD_KEYS.has(parsed.key) || parsed.modifiers.includes("Alt")) {
+    return false;
+  }
+  return parsed.modifiers.includes("Ctrl") || parsed.modifiers.includes("Meta");
+}
+function isCharacterKeyChord(chord) {
+  const parsed = parseChordOrNull(chord);
+  if (parsed === null) {
+    return false;
+  }
+  if (parsed.modifiers.includes("Ctrl") || parsed.modifiers.includes("Alt") || parsed.modifiers.includes("Meta")) {
+    return false;
+  }
+  return parsed.key === ":" || /^[A-Z0-9]$/.test(parsed.key);
+}
+function isActionId(actionId) {
+  for (const id of ACTION_IDS) {
+    if (id === actionId) {
+      return true;
+    }
+  }
+  return false;
+}
+function chordInUse(map, actionId, chord) {
+  for (const id of ACTION_IDS) {
+    if (id !== actionId && map[id] === chord) {
+      return true;
+    }
+  }
+  return false;
+}
+function remap(map, actionId, chord) {
+  if (!isActionId(actionId)) {
+    return "bad_action";
+  }
+  const canonical = canonicalChord(chord);
+  if (canonical === null) {
+    return "bad_chord";
+  }
+  if (isReservedChord(canonical)) {
+    return "reserved_chord";
+  }
+  if (chordInUse(map, actionId, canonical)) {
+    return "duplicate_chord";
+  }
+  return { ...map, [actionId]: canonical };
+}
+function captureKeyEffect(key) {
+  if (key === "Escape") {
+    return "cancel";
+  }
+  if (CANCEL_PASS_KEYS.has(key)) {
+    return "pass";
+  }
+  return "chord";
+}
+function chordFromEvent(event) {
+  if (MODIFIER_KEYS.has(event.key)) {
+    return null;
+  }
+  const parts = [];
+  if (event.ctrlKey) {
+    parts.push("Ctrl");
+  }
+  if (event.altKey) {
+    parts.push("Alt");
+  }
+  if (event.shiftKey) {
+    parts.push("Shift");
+  }
+  if (event.metaKey) {
+    parts.push("Meta");
+  }
+  const key = asciiUpper(event.key) ?? event.key;
+  parts.push(key);
+  return parts.join("+");
+}
+function fieldBlocksChord(chord, inField) {
+  return inField && isCharacterKeyChord(chord);
+}
+function paletteKeyAction(event, state) {
+  if (state.modalOpen) {
+    return "none";
+  }
+  const openChord = state.binds[PALETTE_OPEN];
+  const colonChord = state.binds[PALETTE_OPEN_COLON];
+  const closeChord = state.binds[PALETTE_CLOSE];
+  if (!state.paletteOpen && eventMatches(openChord, event)) {
+    if (fieldBlocksChord(openChord, state.targetIsField)) {
+      return "none";
+    }
+    return "open";
+  }
+  if (!state.paletteOpen && eventMatches(colonChord, event) && !state.targetIsField) {
+    return "open";
+  }
+  if (state.paletteOpen && eventMatches(closeChord, event)) {
+    if (fieldBlocksChord(closeChord, state.targetIsField)) {
+      return "none";
+    }
+    return "close";
+  }
+  return "none";
+}
+
+// legacy/v1-sveltekit/src/lib/client/tui/list-state.ts
+function clampIndex(length, index) {
+  const last = length - 1;
+  if (!Number.isFinite(index) || index < 0) {
+    return 0;
+  }
+  if (index > last) {
+    return last;
+  }
+  return index;
+}
+function listKeyIndex(length, selectedIndex, key) {
+  if (!Number.isInteger(length) || length < 1) {
+    return null;
+  }
+  if (key === "Home") {
+    return 0;
+  }
+  if (key === "End") {
+    return length - 1;
+  }
+  if (key === "ArrowDown" || key === "ArrowUp") {
+    const step = key === "ArrowDown" ? 1 : -1;
+    const base = Number.isInteger(selectedIndex) ? selectedIndex : 0;
+    return clampIndex(length, base + step);
+  }
+  if (key === "Enter") {
+    if (!Number.isInteger(selectedIndex) || selectedIndex < 0 || selectedIndex >= length) {
+      return null;
+    }
+    return selectedIndex;
+  }
+  return null;
+}
+
+// legacy/v1-sveltekit/src/lib/client/app/format-interval.ts
+function formatInterval(minutes) {
+  if (!Number.isInteger(minutes) || minutes < 0) {
+    return "0m";
+  }
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+  if (minutes < 1440) {
+    return minutes % 60 === 0 ? `${minutes / 60}h` : `${minutes}m`;
+  }
+  return minutes % 1440 === 0 ? `${minutes / 1440}d` : `${minutes}m`;
+}
+
+// legacy/v1-sveltekit/src/lib/client/app/format-until.ts
+var MAX_DATE_MS = 864e13;
+var UNTIL_OPTIONS = {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit"
+};
+function formatUntil(ms, timeZone) {
+  if (typeof ms !== "number" || !Number.isFinite(ms)) {
+    return "";
+  }
+  if (ms > MAX_DATE_MS || ms < -MAX_DATE_MS) {
+    return "";
+  }
+  try {
+    const options = { ...UNTIL_OPTIONS };
+    if (timeZone !== void 0) {
+      options.timeZone = timeZone;
+    }
+    return new Intl.DateTimeFormat("en-US", options).format(new Date(ms));
+  } catch {
+    return "";
+  }
+}
+
+// legacy/v1-sveltekit/src/lib/client/app/study-keys.ts
+var STUDY_RATINGS = [1, 2, 3, 4];
+var NONE = { type: "none" };
+var RATE_BY_KEY = new Map(
+  STUDY_RATINGS.map((rating) => [String(rating), rating])
+);
+function blocked(input) {
+  return input.inFlight || input.targetIsField || input.modalOpen || input.paletteOpen;
+}
+function rateKey(key) {
+  return RATE_BY_KEY.get(key) ?? null;
+}
+function cardControl(key) {
+  if (key === "s") {
+    return { type: "suspend" };
+  }
+  if (key === "e") {
+    return { type: "edit" };
+  }
+  return null;
+}
+function frontAction(input) {
+  const showsBack = input.key === " " || input.key === "Enter";
+  if (showsBack && !input.targetIsButton) {
+    return { type: "reveal" };
+  }
+  return cardControl(input.key) ?? NONE;
+}
+function backAction(input) {
+  const rating = rateKey(input.key);
+  if (rating !== null) {
+    return { type: "rate", rating };
+  }
+  if (input.key === " " && !input.targetIsButton) {
+    return { type: "rate", rating: 3 };
+  }
+  return cardControl(input.key) ?? NONE;
+}
+function studyKeyAction(input) {
+  if (blocked(input)) {
+    return NONE;
+  }
+  if (input.key === "u") {
+    return { type: "undo" };
+  }
+  if (input.status !== "card") {
+    return NONE;
+  }
+  if (input.side === "front") {
+    return frontAction(input);
+  }
+  return backAction(input);
+}
+
+// legacy/v1-sveltekit/src/lib/client/app/note-field-keys.ts
+function fieldKeyEffect(input) {
+  if (input.ctrlKey || input.metaKey) {
+    return { type: "pass" };
+  }
+  const clozeKey = input.key === "c" || input.key === "C" || input.code === "KeyC";
+  if (input.altKey && clozeKey) {
+    return { type: "cloze" };
+  }
+  if (!input.altKey && input.key === "Escape") {
+    return { type: "blur" };
+  }
+  return { type: "pass" };
+}
+
+// legacy/v1-sveltekit/src/lib/client/app/note-deck-keys.ts
+function clamp(index, length) {
+  if (index < 0) {
+    return 0;
+  }
+  if (index > length - 1) {
+    return length - 1;
+  }
+  return index;
+}
+function deckListKey(key, index, length) {
+  if (!Number.isInteger(length) || length < 1) {
+    return { type: "none" };
+  }
+  const current = Number.isInteger(index) ? clamp(index, length) : 0;
+  if (key === "ArrowDown" || key === "j") {
+    return { type: "select", index: clamp(current + 1, length) };
+  }
+  if (key === "ArrowUp" || key === "k") {
+    return { type: "select", index: clamp(current - 1, length) };
+  }
+  if (key === "Home") {
+    return { type: "select", index: 0 };
+  }
+  if (key === "End") {
+    return { type: "select", index: length - 1 };
+  }
+  if (key === "Enter") {
+    return { type: "keep" };
+  }
+  if (key === "Escape") {
+    return { type: "blur" };
+  }
+  return { type: "none" };
+}
+
+// legacy/v1-sveltekit/src/lib/client/app/cloze-edit.ts
+var MAX_CLOZE_INDEX = 999;
+var MAX_CLOZE_TEXT = 5e4;
+function integerInRange(value, min, max) {
+  return Number.isInteger(value) && value >= min && value <= max;
+}
+function cutsSurrogate(text, index) {
+  if (index <= 0 || index >= text.length) {
+    return false;
+  }
+  const prev = text.charCodeAt(index - 1);
+  const next = text.charCodeAt(index);
+  return prev >= 55296 && prev <= 56319 && next >= 56320 && next <= 57343;
+}
+function wrapCloze(text, start, end, index) {
+  if (text.length > MAX_CLOZE_TEXT) {
+    return null;
+  }
+  if (!integerInRange(index, 1, MAX_CLOZE_INDEX)) {
+    return null;
+  }
+  if (!Number.isInteger(start) || !Number.isInteger(end)) {
+    return null;
+  }
+  if (start < 0 || end < start || end > text.length) {
+    return null;
+  }
+  if (cutsSurrogate(text, start) || cutsSurrogate(text, end)) {
+    return null;
+  }
+  const body = text.slice(start, end);
+  const next = `${text.slice(0, start)}{{c${index}::${body}}}${text.slice(end)}`;
+  if (next.length > MAX_CLOZE_TEXT) {
+    return null;
+  }
+  return next;
+}
+function readDigits(text, from) {
+  let end = from;
+  while (end < text.length && text.charCodeAt(end) >= 48 && text.charCodeAt(end) <= 57) {
+    end += 1;
+  }
+  return end;
+}
+function clozeAt(text, start) {
+  if (!text.startsWith("{{c", start)) {
+    return null;
+  }
+  const digitsEnd = readDigits(text, start + 3);
+  if (digitsEnd === start + 3 || !text.startsWith("::", digitsEnd)) {
+    return null;
+  }
+  const index = Number(text.slice(start + 3, digitsEnd));
+  if (!integerInRange(index, 1, MAX_CLOZE_INDEX)) {
+    return null;
+  }
+  const close = text.indexOf("}}", digitsEnd + 2);
+  if (close === -1) {
+    return null;
+  }
+  return { index, end: close + 2 };
+}
+function nextClozeIndex(text) {
+  if (text.length > MAX_CLOZE_TEXT) {
+    return 1;
+  }
+  let highest = 0;
+  let at = 0;
+  while (at < text.length) {
+    const start = text.indexOf("{{c", at);
+    if (start === -1) {
+      break;
+    }
+    const found = clozeAt(text, start);
+    if (found === null) {
+      at = start + 1;
+      continue;
+    }
+    if (found.index > highest) {
+      highest = found.index;
+    }
+    at = found.end;
+  }
+  const next = highest + 1;
+  return next > MAX_CLOZE_INDEX ? MAX_CLOZE_INDEX : next;
+}
+
+// legacy/v1-sveltekit/src/lib/client/app/display-prefs.ts
+var DEFAULT_DISPLAY = {
+  fontSize: 16,
+  reducedMotion: false,
+  scanline: false,
+  cursorBlink: false
+};
+var MIN_FONT_SIZE = 12;
+var MAX_FONT_SIZE = 24;
+function isFontSize(value) {
+  return Number.isInteger(value) && value >= MIN_FONT_SIZE && value <= MAX_FONT_SIZE;
+}
+function parseFontSizeText(raw) {
+  if (!/^\d{1,2}$/.test(raw)) {
+    return null;
+  }
+  const fontSize = Number(raw);
+  if (!isFontSize(fontSize)) {
+    return null;
+  }
+  return fontSize;
+}
+function acceptDisplay(input) {
+  const fontSize = parseFontSizeText(input.fontSizeText.trim());
+  if (fontSize === null) {
+    return { ok: false, error: `Font size must be ${MIN_FONT_SIZE} to ${MAX_FONT_SIZE}.` };
+  }
+  if (typeof input.reducedMotion !== "boolean" || typeof input.scanline !== "boolean" || typeof input.cursorBlink !== "boolean") {
+    return { ok: false, error: "Display flags must be true or false." };
+  }
+  return {
+    ok: true,
+    display: {
+      fontSize,
+      reducedMotion: input.reducedMotion,
+      scanline: input.scanline,
+      cursorBlink: input.cursorBlink
+    }
+  };
+}
+function displayRootClass(prefs) {
+  const parts = ["tui-display", `tui-font-${prefs.fontSize}`];
+  if (prefs.reducedMotion) {
+    parts.push("tui-display-reduced-motion");
+  }
+  return parts.join(" ");
+}
+
+// legacy/v1-sveltekit/src/lib/client/app/study-day-form.ts
+var TIMEZONE_PATTERN = /^[A-Za-z0-9_/+-]{1,64}$/;
+function isClientTimezone(name) {
+  if (!TIMEZONE_PATTERN.test(name)) {
+    return false;
+  }
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: name });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function parseRolloverHour(raw) {
+  if (!/^\d{1,2}$/.test(raw)) {
+    return null;
+  }
+  const hour = Number(raw);
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
+    return null;
+  }
+  return hour;
+}
+function acceptStudyDay(input) {
+  const timezone = input.timezone.trim();
+  if (!isClientTimezone(timezone)) {
+    return { ok: false, error: "Enter a valid timezone." };
+  }
+  const rolloverHour = parseRolloverHour(input.rolloverText.trim());
+  if (rolloverHour === null) {
+    return { ok: false, error: "Rollover hour must be 0 to 23." };
+  }
+  return { ok: true, settings: { timezone, rolloverHour } };
+}
+
 // scripts/client-entry.mjs
 var csrfToken = null;
 var MESSAGES = {
@@ -563,7 +1331,8 @@ window.srepClient = {
   enroll,
   loginWith,
   recoveryLogin,
-  renameCredential
+  renameCredential,
+  ...ui_client_entry_exports
 };
 export {
   apiFetch,

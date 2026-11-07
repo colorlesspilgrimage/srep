@@ -3,6 +3,7 @@ import {
   startAuthentication,
   startRegistration,
 } from '@simplewebauthn/browser';
+import * as ui from './ui-client-entry.mjs';
 
 let csrfToken = null;
 
@@ -168,4 +169,5 @@ window.srepClient = {
   loginWith,
   recoveryLogin,
   renameCredential,
+  ...ui,
 };

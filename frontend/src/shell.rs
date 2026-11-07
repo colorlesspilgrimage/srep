@@ -56,7 +56,9 @@ pub fn AppShell(children: Children) -> impl IntoView {
         }
     };
 
-    let root_class = move || "tui-root app-root".to_string();
+    let root_class = move || {
+        format!("tui-root app-root {}", themes::theme_class(&theme.id.get()))
+    };
 
     Effect::new(move |_| {
         themes::apply_body_theme(&theme.id.get());
