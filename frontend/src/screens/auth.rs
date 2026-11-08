@@ -33,7 +33,7 @@ pub fn LoginScreen() -> impl IntoView {
                 </form>
             </details>
             <p class="tui-dim">
-                "Until WASM ceremonies land, use the v1 UI or API directly. "
+                "WebAuthn sign-in isn't available in this UI yet. "
                 <A href="/setup">"Setup"</A>
             </p>
         </main>

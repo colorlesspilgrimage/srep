@@ -24,16 +24,4 @@ fi
 mkdir -p site/pkg
 wasm-bindgen "$WASM" --out-dir site/pkg --target web --no-typescript
 
-if [[ -f site/manifest.webmanifest ]]; then
-  :
-elif [[ -f legacy/v1-sveltekit/static/manifest.webmanifest ]]; then
-  cp -f legacy/v1-sveltekit/static/manifest.webmanifest site/manifest.webmanifest
-fi
-mkdir -p site/icons
-if compgen -G "site/icons/*.png" >/dev/null; then
-  :
-elif compgen -G "legacy/v1-sveltekit/static/icons/*.png" >/dev/null; then
-  cp -f legacy/v1-sveltekit/static/icons/*.png site/icons/
-fi
-
 echo "WASM bundle written to site/pkg/"

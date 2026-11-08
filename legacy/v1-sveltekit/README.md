@@ -11,7 +11,9 @@ This tree is **archived** as of srep **2.0.0**. The supported product stack is R
 | `drizzle.*.config.ts`, `vite.config.ts` | v1 build tooling |
 | `static/` | v1 PWA static assets |
 | `scripts/` | v1 CLI helpers, vitest suites, bundle budgets |
-| `../Dockerfile.v1.node` (repo root) | Former default `Dockerfile` (Node multi-stage image) |
+| `Dockerfile.v1.node` | Former default `Dockerfile` (Node multi-stage image) |
+| `docs/` | Archived v1 docs (feature map, architecture, config, contributing) |
+| `e2e-gallery/` | Archived Playwright tests for the v1 `/gallery` route (theme showcase) |
 
 ## Running v1 locally (unsupported)
 

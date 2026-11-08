@@ -42,21 +42,13 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: rustE2e
-    ? {
-        command: process.env.CI
-          ? 'rm -rf ./data/e2e.db ./data/e2e-media && mkdir -p ./data && ./target/release/srep-server'
-          : 'rm -rf ./data/e2e.db ./data/e2e-media && mkdir -p ./data && cargo build -p srep-server --release && ./target/release/srep-server',
-        url: `http://localhost:${rustPort}/healthz`,
-        reuseExistingServer: !process.env.CI,
-        timeout: process.env.CI ? 120_000 : 300_000,
-        env: nodeEnv,
-      }
-    : {
-        command: 'npm run build && node build',
-        url: `http://localhost:${rustPort}/healthz`,
-        reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
-        env: nodeEnv,
-      },
+  webServer: {
+    command: process.env.CI
+      ? 'rm -rf ./data/e2e.db ./data/e2e-media && mkdir -p ./data && ./target/release/srep-server'
+      : 'rm -rf ./data/e2e.db ./data/e2e-media && mkdir -p ./data && cargo build -p srep-server --release && ./target/release/srep-server',
+    url: `http://localhost:${rustPort}/healthz`,
+    reuseExistingServer: !process.env.CI,
+    timeout: process.env.CI ? 120_000 : 300_000,
+    env: nodeEnv,
+  },
 });

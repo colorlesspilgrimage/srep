@@ -1,6 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { resetAuthViaCli } from './support/cli';
-import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
+import { resetAuthViaCli } from '../../e2e/support/cli';
+import { addAuthenticator, enableWebAuthn } from '../../e2e/support/virtual-authenticator';
 
 test.describe.serial('gallery shell', () => {
   let context: BrowserContext;

@@ -6,8 +6,8 @@ import {
   type BrowserContext,
   type Page,
 } from '@playwright/test';
-import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
-import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
+import { E2E_ORIGIN, resetAuthViaCli } from '../../e2e/support/cli';
+import { addAuthenticator, enableWebAuthn } from '../../e2e/support/virtual-authenticator';
 
 const CLIENT_IP = '198.51.100.30';
 

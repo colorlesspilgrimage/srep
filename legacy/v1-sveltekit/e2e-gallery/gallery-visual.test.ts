@@ -3,9 +3,9 @@ import {
   visualGalleryPath,
   visualShotPlan,
   type VisualShot,
-} from '../legacy/v1-sveltekit/src/lib/client/tui/visual-shots.ts';
-import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
-import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
+} from '../src/lib/client/tui/visual-shots.ts';
+import { E2E_ORIGIN, resetAuthViaCli } from '../../e2e/support/cli';
+import { addAuthenticator, enableWebAuthn } from '../../e2e/support/virtual-authenticator';
 
 const CLIENT_IP = '198.51.100.32';
 const DEFAULT_MAP = {
