@@ -177,15 +177,7 @@ Each milestone ends with something runnable and with passing tests. Rough sizing
 
 ## 5. v1.0 definition of done
 
-- [ ] Single-user passkey and security-key login works, with recovery, and no passwords exist anywhere.
-- [ ] Decks, notes (Basic, Reversed, Cloze, custom), tags, media and presets are fully usable from the UI.
-- [ ] FSRS scheduling with correct daily limits, undo, suspend and bury.
-- [ ] Anki `.apkg` import, and lossless native export.
-- [x] xAI Dark, Light, and High Contrast themes with settings pane and live preview.
-- [x] Usable by keyboard on desktop and by touch on mobile, installable as a PWA.
-- [x] Stats, plus FSRS optimizer.
-- [x] CI green on SQLite and Postgres, a security review completed, and docs complete.
-- [x] Docker image published, with upgrade and backup procedures tested.
+v1.0.0 shipped (tag `v1.0.0`): passkey/security-key login with recovery, decks/notes/tags/media/presets, FSRS scheduling, Anki `.apkg` import and lossless export, themes, keyboard/touch + PWA, stats + optimizer, CI on SQLite and Postgres, and the published Docker image. The old checkbox list was removed as stale — all four unchecked items had landed in M1–M6.
 
 ## 6. Post-1.0 backlog (explicitly out of scope)
 
