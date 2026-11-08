@@ -262,3 +262,22 @@ a:hover {
   border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
   border-radius: var(--tui-radius-sm);
 }
+
+.study-card {
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius-sm);
+  padding: 1.5rem;
+  font-size: 1.5rem;
+}
+
+.study-ratings {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.study-rate {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+}

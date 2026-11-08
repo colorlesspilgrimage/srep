@@ -1,7 +1,7 @@
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, RequestInit, RequestMode, Response};
+use web_sys::{Request, RequestInit, Response};
 
 #[derive(Clone, Debug)]
 pub struct ApiError {
@@ -10,84 +10,110 @@ pub struct ApiError {
 }
 
 pub async fn get_json<T: DeserializeOwned>(path: &str) -> Result<T, ApiError> {
-    let response = fetch(path, "GET", None).await?;
-    let status = response.status();
-    let text = JsFuture::from(response.text().unwrap())
-        .await
-        .map_err(|e| ApiError {
-            status,
-            body: format!("{e:?}"),
-        })?;
-    let text = text.as_string().unwrap_or_default();
-    if !(200..300).contains(&status) {
-        return Err(ApiError { status, body: text });
-    }
-    serde_json::from_str(&text).map_err(|e| ApiError {
-        status,
-        body: format!("json: {e}; body={text}"),
-    })
+    let response = fetch("GET", path, &[], None).await?;
+    decode_json(response).await
 }
 
-#[allow(dead_code)]
-pub async fn post_json<T: DeserializeOwned, B: serde::Serialize>(
-    path: &str,
-    body: &B,
-) -> Result<T, ApiError> {
+pub async fn post_json_csrf<T, B>(path: &str, body: &B) -> Result<T, ApiError>
+where
+    T: DeserializeOwned,
+    B: Serialize + ?Sized,
+{
+    #[derive(Deserialize)]
+    struct AuthStatus {
+        #[serde(rename = "csrfToken")]
+        csrf_token: String,
+    }
+
+    let status: AuthStatus = get_json("/api/auth/status").await?;
     let payload = serde_json::to_string(body).map_err(|e| ApiError {
         status: 0,
-        body: e.to_string(),
+        body: format!("Could not encode request: {e}"),
     })?;
-    let response = fetch(path, "POST", Some(payload)).await?;
-    let status = response.status();
-    let text = JsFuture::from(response.text().unwrap())
-        .await
-        .map_err(|e| ApiError {
-            status,
-            body: format!("{e:?}"),
-        })?;
-    let text = text.as_string().unwrap_or_default();
-    if !(200..300).contains(&status) {
-        return Err(ApiError { status, body: text });
-    }
-    serde_json::from_str(&text).map_err(|e| ApiError {
-        status,
-        body: format!("json: {e}; body={text}"),
-    })
+    let response = fetch(
+        "POST",
+        path,
+        &[
+            ("Content-Type", "application/json"),
+            ("x-srep-csrf", status.csrf_token.as_str()),
+        ],
+        Some(payload),
+    )
+    .await?;
+    decode_json(response).await
 }
 
-async fn fetch(path: &str, method: &str, body: Option<String>) -> Result<Response, ApiError> {
-    let opts = RequestInit::new();
-    opts.set_method(method);
-    opts.set_mode(RequestMode::Cors);
-    let has_body = body.is_some();
-    if let Some(payload) = body {
-        opts.set_body(&JsValue::from_str(&payload));
+async fn fetch(
+    method: &str,
+    path: &str,
+    headers: &[(&str, &str)],
+    body: Option<String>,
+) -> Result<Response, ApiError> {
+    let init = RequestInit::new();
+    init.set_method(method);
+    if let Some(body) = body {
+        init.set_body(&JsValue::from_str(&body));
     }
-    let request = Request::new_with_str_and_init(path, &opts).map_err(|e| ApiError {
+
+    let request = Request::new_with_str_and_init(path, &init).map_err(|e| ApiError {
         status: 0,
         body: format!("request: {e:?}"),
     })?;
-    if has_body {
-        request
-            .headers()
-            .set("Content-Type", "application/json")
-            .map_err(|e| ApiError {
-                status: 0,
-                body: format!("header: {e:?}"),
-            })?;
+    for (name, value) in headers {
+        request.headers().set(name, value).map_err(|e| ApiError {
+            status: 0,
+            body: format!("header: {e:?}"),
+        })?;
     }
+
     let window = web_sys::window().ok_or(ApiError {
         status: 0,
-        body: "no window".into(),
+        body: "no window".to_string(),
     })?;
-    let resp_value = JsFuture::from(window.fetch_with_request(&request))
+    let value = JsFuture::from(window.fetch_with_request(&request))
         .await
         .map_err(|e| ApiError {
             status: 0,
             body: format!("fetch: {e:?}"),
         })?;
-    resp_value.dyn_into::<Response>().map_err(|e| ApiError {
+    let response: Response = value.dyn_into().map_err(|e| ApiError {
         status: 0,
         body: format!("response: {e:?}"),
+    })?;
+
+    if !response.ok() {
+        let status = response.status();
+        let text = response_text(&response).await.unwrap_or_default();
+        let body = if text.is_empty() {
+            format!("Request failed with HTTP {status}")
+        } else {
+            text
+        };
+        return Err(ApiError { status, body });
+    }
+
+    Ok(response)
+}
+
+async fn decode_json<T: DeserializeOwned>(response: Response) -> Result<T, ApiError> {
+    let text = response_text(&response).await?;
+    serde_json::from_str(&text).map_err(|e| ApiError {
+        status: response.status(),
+        body: format!("json: {e}; body={text}"),
+    })
+}
+
+async fn response_text(response: &Response) -> Result<String, ApiError> {
+    let promise = response.text().map_err(|e| ApiError {
+        status: 0,
+        body: format!("text: {e:?}"),
+    })?;
+    let value = JsFuture::from(promise).await.map_err(|e| ApiError {
+        status: 0,
+        body: format!("text: {e:?}"),
+    })?;
+    value.as_string().ok_or(ApiError {
+        status: 0,
+        body: "Response was not text".to_string(),
     })
 }
