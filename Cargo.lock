@@ -5727,6 +5727,7 @@ name = "srep-ui"
 version = "2.0.0"
 dependencies = [
  "console_error_panic_hook",
+ "js-sys",
  "leptos",
  "leptos_router",
  "serde",

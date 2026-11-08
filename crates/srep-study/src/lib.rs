@@ -51,6 +51,7 @@ pub fn router() -> Router<AppState> {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct NextQuery {
     deck_id: Option<String>,
 }
