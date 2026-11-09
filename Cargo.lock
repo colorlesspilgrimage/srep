@@ -5716,9 +5716,12 @@ dependencies = [
  "serde_json",
  "sqlx",
  "srep-auth",
+ "srep-config",
  "srep-db",
  "srep-domain",
+ "tempfile",
  "thiserror 2.0.21",
+ "tokio",
  "uuid",
 ]
 

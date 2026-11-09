@@ -57,6 +57,7 @@ pub enum NextReply {
     },
 }
 
+#[derive(Debug)]
 pub enum StudyError {
     Unauthorized,
     BadRequest,
@@ -444,7 +445,7 @@ pub async fn study_undo(state: &AppState) -> Result<serde_json::Value, StudyErro
     }
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VerifyReport {
     pub checked: u32,
@@ -453,13 +454,13 @@ pub struct VerifyReport {
     pub chain_mismatches: Vec<ChainMismatch>,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct Mismatch {
     pub card_id: String,
     pub fields: Vec<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct ChainMismatch {
     pub card_id: String,
     pub log_indexes: Vec<usize>,

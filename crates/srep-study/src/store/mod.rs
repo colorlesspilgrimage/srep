@@ -86,7 +86,23 @@ impl<'a> StudyStore<'a> {
         now_ms: i64,
         window: &StudyWindow,
     ) -> Result<serde_json::Value> {
-        sync::sync_apply_item(self.pool, device_id, item, now_ms, window).await
+        // SQLite uses deferred transactions, so two concurrent writers can
+        // collide with SQLITE_BUSY / SQLITE_BUSY_SNAPSHOT even though a busy
+        // timeout is configured (the snapshot error is not retried by it).
+        // Retrying the whole item is safe: the receipt lookup inside the
+        // transaction makes a re-run after a committed first attempt return
+        // the stored duplicate outcome instead of applying twice.
+        let mut attempt = 0;
+        loop {
+            match sync::sync_apply_item(self.pool, device_id, item, now_ms, window).await {
+                Ok(value) => return Ok(value),
+                Err(e) if is_sqlite_lock_error(&e) && attempt < 5 => {
+                    attempt += 1;
+                    tokio::time::sleep(std::time::Duration::from_millis(10 * (1 << attempt))).await;
+                }
+                Err(e) => return Err(e),
+            }
+        }
     }
 
     pub async fn review_log_head(&self) -> Result<Option<i64>> {
@@ -137,4 +153,16 @@ impl<'a> StudyStore<'a> {
     pub async fn put_study_settings(&self, value: &StudySettings) -> Result<()> {
         settings::put_settings(self.pool, value).await
     }
+}
+
+/// True when the error is a SQLite writer-lock collision (SQLITE_BUSY = 5,
+/// SQLITE_BUSY_SNAPSHOT = 517). Postgres uses the per-item advisory lock to
+/// serialize writers, so its errors are never lock collisions of this kind.
+fn is_sqlite_lock_error(e: &anyhow::Error) -> bool {
+    e.downcast_ref::<sqlx::Error>()
+        .and_then(|sql_err| match sql_err {
+            sqlx::Error::Database(db_err) => db_err.code().map(|code| code == "5" || code == "517"),
+            _ => None,
+        })
+        .unwrap_or(false)
 }
