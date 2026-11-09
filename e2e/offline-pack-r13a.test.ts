@@ -100,15 +100,22 @@ test.describe.serial('R13a offline study pack', () => {
       expect(stored.cards[index]!.payload.front).toContain(card.front);
     }
 
+    // Requests that actually reached the server (got a response). A failed
+    // GET that never left the machine — e.g. the load effect's one `next()`
+    // attempt on a cold offline launch, which fails with
+    // ERR_INTERNET_DISCONNECTED before the fallback runs — is not a server
+    // mutation and must not fail this assertion.
     const apiRequests: string[] = [];
     let postRequests = 0;
     page.on('request', (request) => {
-      const url = request.url();
-      if (url.includes('/api/')) {
-        apiRequests.push(url);
-      }
       if (request.method() === 'POST') {
         postRequests += 1;
+      }
+    });
+    page.on('response', (response) => {
+      const url = response.url();
+      if (url.includes('/api/')) {
+        apiRequests.push(url);
       }
     });
 
@@ -161,6 +168,21 @@ test.describe.serial('R13a offline study pack', () => {
   });
 
   test('a stale stored pack shows the stale warning', async () => {
+    // The offline goto needs the /study shell in the HTTP cache: visit it
+    // online first. That visit also auto-stores a fresh pack, so wait for
+    // the auto-store to finish and only then wipe the repository before
+    // seeding the stale one (otherwise the fresh pack could land after the
+    // wipe and would be the newest, so the fallback would not show the
+    // stale one).
+    await page.goto('/study');
+    await expect(page.getByRole('heading', { name: 'Study', level: 1 })).toBeVisible();
+    await waitForHandle(page);
+    await openRepo(page);
+    await expect
+      .poll(async () => (await listPacks(page)).length, { timeout: 15_000 })
+      .toBe(1);
+    await page.evaluate(() => (window as any).__srepR12.delete_database());
+    await openRepo(page);
     const pack = {
       packId: crypto.randomUUID(),
       serverRevision: 'r13a-test',
@@ -204,6 +226,18 @@ test.describe.serial('R13a offline study pack', () => {
   });
 
   test('offline with no stored pack shows the load error', async () => {
+    // Warm the /study shell cache online, then wipe any auto-stored pack.
+    // Wait for the warm-up's auto-store to finish first, so it cannot land
+    // after the wipe and masquerade as a stored pack.
+    await page.goto('/study');
+    await expect(page.getByRole('heading', { name: 'Study', level: 1 })).toBeVisible();
+    await waitForHandle(page);
+    await openRepo(page);
+    await expect
+      .poll(async () => (await listPacks(page)).length, { timeout: 15_000 })
+      .toBe(1);
+    await page.evaluate(() => (window as any).__srepR12.delete_database());
+    await openRepo(page);
     try {
       await context.setOffline(true);
       await page.goto('/study');
