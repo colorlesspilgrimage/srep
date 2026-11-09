@@ -29,6 +29,7 @@ pub enum NextReply {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StudyCard {
     pub id: String,
     pub note_id: String,

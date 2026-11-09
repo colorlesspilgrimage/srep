@@ -9,7 +9,12 @@ let clockHeaders: Record<string, string> = {};
 
 const BASIC_ID = '00000000-0000-4000-8000-000000000011';
 
-type StudyCard = { id: string; reps: number; previews: Record<string, { due: number }> };
+type StudyCard = {
+  id: string;
+  noteId: string;
+  reps: number;
+  previews: Record<string, [number, number]>;
+};
 type NextReply = { status: string; card?: StudyCard; until?: number };
 
 test.describe.serial('study engine', () => {
@@ -70,15 +75,18 @@ test.describe.serial('study engine', () => {
       201,
     );
     deckId = deck.id;
-    const { note } = await post<{ note: { cards: { id: string }[] } }>(
+    // v2's create-note response is the bare NoteRow — it carries no
+    // `cards` (v1 did). The card id comes from /api/study/next instead.
+    const { note } = await post<{ note: { id: string } }>(
       '/api/notes',
       { noteTypeId: BASIC_ID, deckId, fields: ['猫', 'cat'], tags: ['study'] },
       201,
     );
-    cardId = note.cards[0]?.id ?? '';
     const reply = await next();
     expect(reply.status).toBe('card');
-    expect(reply.card?.id).toBe(cardId);
+    expect(reply.card?.noteId).toBe(note.id);
+    cardId = reply.card?.id ?? '';
+    expect(cardId).not.toBe('');
     expect(Object.keys(reply.card?.previews ?? {})).toEqual(['1', '2', '3', '4']);
   });
 
