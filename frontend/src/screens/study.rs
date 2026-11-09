@@ -157,6 +157,15 @@ pub fn StudyScreen() -> impl IntoView {
                 // hint — it can read true while the network is down).
                 let report = sync::drain_outbox_fail_fast().await;
                 sync::refresh_conflicts(signals.conflicts).await;
+                // R17: reconcile acked offline reviews against the
+                // server's undo tombstones before showing the next card.
+                // Log-only on failure: next() still loads from server
+                // state, so a failed reconcile never blocks study.
+                if let Err(error) = sync::reconcile_undo_events().await {
+                    web_sys::console::warn_1(&JsValue::from_str(&format!(
+                        "Undo reconciliation failed: {error}"
+                    )));
+                }
                 match &report.status {
                     SyncStatus::Failed { reason } => {
                         // Do not return here: next() retains its existing error

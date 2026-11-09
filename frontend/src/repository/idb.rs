@@ -24,6 +24,11 @@ const PACK_CARDS_STORE: &str = "pack_cards";
 const OUTBOX_STORE: &str = "outbox";
 const CONFLICTS_STORE: &str = "conflicts";
 const QUARANTINE_STORE: &str = "quarantine";
+/// R17: durable acked-review ledger (key path `reviewId`).
+const ACKED_REVIEWS_STORE: &str = "acked_reviews";
+/// R17: sync cursors (key path `key`; one row, key `"undo"`).
+const SYNC_CURSORS_STORE: &str = "sync_cursors";
+const UNDO_CURSOR_KEY: &str = "undo";
 const META_KEY: &str = "repository";
 const BLOCKED_REJECTION: &str = "srep-indexeddb-blocked";
 
@@ -1206,13 +1211,294 @@ impl ClientRepository {
         finish_transaction_result(tx, completion, OPERATION, result).await
     }
 
+    /// R17: record the server-accepted outcomes of a drain batch in the
+    /// durable acked-review ledger, BEFORE `apply_sync_outcome` deletes
+    /// the outbox records. Only outcomes the server committed count:
+    /// `accepted`, or `duplicate` replaying an originally-accepted
+    /// result. Stale/invalid/blocked outcomes never enter the ledger.
+    /// A record already in the ledger is left untouched, so a superseded
+    /// record stays superseded (terminal).
+    pub async fn record_acked_results(
+        &self,
+        results: &[Value],
+        pending: &[OutboxRecord],
+    ) -> Result<(), RepositoryError> {
+        const OPERATION: &str = "record_acked_results";
+        let by_review_id: BTreeMap<&str, &OutboxRecord> = pending
+            .iter()
+            .map(|record| (record.review_id.as_str(), record))
+            .collect();
+        let mut records: Vec<AckedReviewRecord> = Vec::new();
+        for result in results {
+            let status = result.get("status").and_then(Value::as_str).unwrap_or("");
+            let outcome = result.get("outcome").and_then(Value::as_str);
+            let accepted = matches!(status, "accepted")
+                || matches!((status, outcome), ("duplicate", Some("accepted")));
+            if !accepted {
+                continue;
+            }
+            let Some(review_id) = result.get("reviewId").and_then(Value::as_str) else {
+                continue;
+            };
+            let Some(log_id) = result.get("logId").and_then(Value::as_str) else {
+                continue;
+            };
+            let Some(record) = by_review_id.get(review_id) else {
+                continue;
+            };
+            records.push(AckedReviewRecord {
+                review_id: review_id.to_string(),
+                log_id: log_id.to_string(),
+                card_id: record.card_id.clone(),
+                pack_id: record.pack_id.clone(),
+                superseded: false,
+            });
+        }
+        if records.is_empty() {
+            return Ok(());
+        }
+        let (tx, completion) = start_transaction(
+            &self.db,
+            &[ACKED_REVIEWS_STORE],
+            IdbTransactionMode::Readwrite,
+            OPERATION,
+        )?;
+        let result: Result<(), RepositoryError> = async {
+            let store = object_store(&tx, ACKED_REVIEWS_STORE, OPERATION)?;
+            for record in records {
+                let existing_request = store
+                    .get(&JsValue::from_str(&record.review_id))
+                    .map_err(|error| transaction_error(OPERATION, error))?;
+                let raw = request_value(existing_request, OPERATION).await?;
+                if !raw.is_undefined() {
+                    // Already recorded (e.g. a replayed duplicate): a
+                    // superseded record stays superseded.
+                    continue;
+                }
+                let js = record_to_js(&record, ACKED_REVIEWS_STORE, OPERATION)?;
+                let request = store
+                    .put(&js)
+                    .map_err(|error| transaction_error(OPERATION, error))?;
+                request_value(request, OPERATION).await?;
+            }
+            Ok(())
+        }
+        .await;
+        finish_transaction_result(tx, completion, OPERATION, result).await
+    }
+
+    /// R17: remember the newest authoritative log head the client has
+    /// observed (diagnostic; the reconcile cursor itself advances to
+    /// server time, not to the log head).
+    pub async fn observe_sync_log_head(&self, log_head: &Value) -> Result<(), RepositoryError> {
+        const OPERATION: &str = "observe_sync_log_head";
+        let Some(head) = log_head.as_i64() else {
+            return Ok(());
+        };
+        let (tx, completion) = start_transaction(
+            &self.db,
+            &[SYNC_CURSORS_STORE],
+            IdbTransactionMode::Readwrite,
+            OPERATION,
+        )?;
+        let result: Result<(), RepositoryError> = async {
+            let store = object_store(&tx, SYNC_CURSORS_STORE, OPERATION)?;
+            let mut cursor = read_undo_cursor_in(&store, OPERATION).await?;
+            if head > cursor.last_seen_log_head_ms.unwrap_or(0) {
+                cursor.last_seen_log_head_ms = Some(head);
+            }
+            let js = record_to_js(&cursor, SYNC_CURSORS_STORE, OPERATION)?;
+            let request = store
+                .put(&js)
+                .map_err(|error| transaction_error(OPERATION, error))?;
+            request_value(request, OPERATION).await?;
+            Ok(())
+        }
+        .await;
+        finish_transaction_result(tx, completion, OPERATION, result).await
+    }
+
+    /// R17: the server time to ask undo events from on the next pull.
+    pub async fn undo_since_ms(&self) -> Result<i64, RepositoryError> {
+        Ok(self.undo_cursor().await?.undo_high_water_ms)
+    }
+
+    /// R17: read the undo-reconciliation cursor (defaults when absent).
+    pub async fn undo_cursor(&self) -> Result<UndoCursorRecord, RepositoryError> {
+        const OPERATION: &str = "read_undo_cursor";
+        let (tx, completion) = start_transaction(
+            &self.db,
+            &[SYNC_CURSORS_STORE],
+            IdbTransactionMode::Readonly,
+            OPERATION,
+        )?;
+        let result = async {
+            let store = object_store(&tx, SYNC_CURSORS_STORE, OPERATION)?;
+            read_undo_cursor_in(&store, OPERATION).await
+        }
+        .await;
+        finish_transaction_result(tx, completion, OPERATION, result).await
+    }
+
+    /// R17: every acked-review ledger entry, ordered by review id.
+    pub async fn list_acked_reviews(&self) -> Result<Vec<AckedReviewRecord>, RepositoryError> {
+        const OPERATION: &str = "list_acked_reviews";
+        let (tx, completion) = start_transaction(
+            &self.db,
+            &[ACKED_REVIEWS_STORE],
+            IdbTransactionMode::Readonly,
+            OPERATION,
+        )?;
+        let result: Result<Vec<AckedReviewRecord>, RepositoryError> = async {
+            let store = object_store(&tx, ACKED_REVIEWS_STORE, OPERATION)?;
+            let values = scan_values(&store, OPERATION).await?;
+            let mut records = Vec::with_capacity(values.len());
+            for value in values {
+                let record: AckedReviewRecord = serde_json::from_value(value).map_err(|error| {
+                    RepositoryError::Serialization(format!(
+                        "Invalid acked review during {OPERATION}: {error}"
+                    ))
+                })?;
+                records.push(record);
+            }
+            records.sort_by(|left, right| left.review_id.cmp(&right.review_id));
+            Ok(records)
+        }
+        .await;
+        finish_transaction_result(tx, completion, OPERATION, result).await
+    }
+
+    /// R17: reconcile the durable acked-review ledger against the server's
+    /// undo tombstones. For every ledger entry whose log id the server
+    /// reports undone: mark it superseded (terminal) and unmark its pack
+    /// card, so the offline view stops showing it as "Queued for sync".
+    /// The cursor advances to the response's server time on success, so a
+    /// later reconcile only ever sees newer tombstones. One transaction
+    /// over the ledger, the cursor, and the pack cards.
+    pub async fn reconcile_undos(
+        &self,
+        response: &UndoEventsResponse,
+    ) -> Result<UndoReconcileReport, RepositoryError> {
+        const OPERATION: &str = "reconcile_undos";
+        let (tx, completion) = start_transaction(
+            &self.db,
+            &[ACKED_REVIEWS_STORE, SYNC_CURSORS_STORE, PACK_CARDS_STORE],
+            IdbTransactionMode::Readwrite,
+            OPERATION,
+        )?;
+        let result: Result<UndoReconcileReport, RepositoryError> = async {
+            let acked_store = object_store(&tx, ACKED_REVIEWS_STORE, OPERATION)?;
+            let cursors = object_store(&tx, SYNC_CURSORS_STORE, OPERATION)?;
+            let cards = object_store(&tx, PACK_CARDS_STORE, OPERATION)?;
+
+            let mut cursor = read_undo_cursor_in(&cursors, OPERATION).await?;
+
+            let undone: BTreeSet<&str> =
+                response.undone_log_ids.iter().map(String::as_str).collect();
+            let mut superseded_reviews = Vec::new();
+            let mut card_ids = Vec::new();
+            if !undone.is_empty() {
+                let values = scan_values(&acked_store, OPERATION).await?;
+                for value in values {
+                    let record: AckedReviewRecord =
+                        serde_json::from_value(value).map_err(|error| {
+                            RepositoryError::Serialization(format!(
+                                "Invalid acked review during {OPERATION}: {error}"
+                            ))
+                        })?;
+                    if record.superseded || !undone.contains(record.log_id.as_str()) {
+                        continue;
+                    }
+                    // Unmark the pack card (same shape as
+                    // cancel_latest_unsent): a missing card is fine, the
+                    // ledger entry is what matters.
+                    let card_key = compound_pack_card_key(&record.pack_id, &record.card_id);
+                    let request = cards
+                        .get(&card_key)
+                        .map_err(|error| transaction_error(OPERATION, error))?;
+                    let raw_card = request_value(request, OPERATION).await?;
+                    if !raw_card.is_undefined() {
+                        let card_value = convert::js_to_value(&raw_card).map_err(|error| {
+                            RepositoryError::Serialization(format!(
+                                "Invalid card {}/{} during {OPERATION}: {}",
+                                record.pack_id, record.card_id, error
+                            ))
+                        })?;
+                        let card = validate::validate_pack_card_record(&card_value).map_err(
+                            |failure| {
+                                RepositoryError::Serialization(format!(
+                                    "Invalid card {}/{} during {OPERATION}: {}",
+                                    record.pack_id,
+                                    record.card_id,
+                                    validation_message(&failure)
+                                ))
+                            },
+                        )?;
+                        if card.answered {
+                            let updated = PackCardRecord {
+                                answered: false,
+                                ..card
+                            };
+                            let js = record_to_js(&updated, PACK_CARDS_STORE, OPERATION)?;
+                            let request = cards
+                                .put(&js)
+                                .map_err(|error| transaction_error(OPERATION, error))?;
+                            request_value(request, OPERATION).await?;
+                        }
+                    }
+                    let updated = AckedReviewRecord {
+                        superseded: true,
+                        ..record
+                    };
+                    let js = record_to_js(&updated, ACKED_REVIEWS_STORE, OPERATION)?;
+                    let request = acked_store
+                        .put(&js)
+                        .map_err(|error| transaction_error(OPERATION, error))?;
+                    request_value(request, OPERATION).await?;
+                    card_ids.push(updated.card_id.clone());
+                    superseded_reviews.push(updated.review_id.clone());
+                }
+            }
+
+            if response.log_head > cursor.last_seen_log_head_ms.unwrap_or(0) {
+                cursor.last_seen_log_head_ms = Some(response.log_head);
+            }
+            if response.server_time > cursor.undo_high_water_ms {
+                cursor.undo_high_water_ms = response.server_time;
+            }
+            let cursor_js = record_to_js(&cursor, SYNC_CURSORS_STORE, OPERATION)?;
+            let request = cursors
+                .put(&cursor_js)
+                .map_err(|error| transaction_error(OPERATION, error))?;
+            request_value(request, OPERATION).await?;
+
+            Ok(UndoReconcileReport {
+                returned_events: response.undone_log_ids.len(),
+                superseded_reviews,
+                card_ids,
+                cursor_ms: cursor.undo_high_water_ms,
+            })
+        }
+        .await;
+        finish_transaction_result(tx, completion, OPERATION, result).await
+    }
+
     pub async fn export_diagnostics(&self) -> Result<DiagnosticExport, RepositoryError> {
         const OPERATION: &str = "export_diagnostics";
         let generated_at_ms = js_sys::Date::now() as i64;
+        // R17: requested before the transaction opens (see above).
+        let persistence = Self::request_persistent_storage().await;
 
         let (tx, completion) = start_transaction(
             &self.db,
-            &[META_STORE, QUARANTINE_STORE, OUTBOX_STORE, PACKS_STORE],
+            &[
+                META_STORE,
+                QUARANTINE_STORE,
+                OUTBOX_STORE,
+                PACKS_STORE,
+                ACKED_REVIEWS_STORE,
+                SYNC_CURSORS_STORE,
+            ],
             IdbTransactionMode::Readonly,
             OPERATION,
         )?;
@@ -1222,6 +1508,8 @@ impl ClientRepository {
             let quarantine_store = object_store(&tx, QUARANTINE_STORE, OPERATION)?;
             let outbox_store = object_store(&tx, OUTBOX_STORE, OPERATION)?;
             let packs_store = object_store(&tx, PACKS_STORE, OPERATION)?;
+            let acked_store = object_store(&tx, ACKED_REVIEWS_STORE, OPERATION)?;
+            let cursors_store = object_store(&tx, SYNC_CURSORS_STORE, OPERATION)?;
 
             let request = meta_store
                 .get(&JsValue::from_str(META_KEY))
@@ -1260,6 +1548,27 @@ impl ClientRepository {
             }
             pack_ids.sort();
 
+            // R17: acked-ledger counts, outbox clock-skew offsets, cursor.
+            let acked_values = scan_values(&acked_store, OPERATION).await?;
+            let mut acked_review_count = 0;
+            let mut superseded_review_count = 0;
+            for value in acked_values {
+                let record: AckedReviewRecord = serde_json::from_value(value).map_err(|error| {
+                    RepositoryError::Serialization(format!(
+                        "Invalid acked review during {OPERATION}: {error}"
+                    ))
+                })?;
+                acked_review_count += 1;
+                if record.superseded {
+                    superseded_review_count += 1;
+                }
+            }
+            let outbox_server_time_offsets_ms = outbox
+                .iter()
+                .map(|record| record.pack_server_time_offset_ms)
+                .collect::<Vec<_>>();
+            let cursor = read_undo_cursor_in(&cursors_store, OPERATION).await?;
+
             Ok(DiagnosticExport {
                 format_version: DIAGNOSTIC_FORMAT_VERSION,
                 generated_at_ms,
@@ -1271,6 +1580,11 @@ impl ClientRepository {
                 quarantine,
                 outbox,
                 pack_ids,
+                persistence,
+                outbox_server_time_offsets_ms,
+                acked_review_count,
+                superseded_review_count,
+                undo_cursor_ms: cursor.undo_high_water_ms,
             })
         }
         .await;
@@ -1356,6 +1670,14 @@ async fn await_open_request(request: IdbOpenDbRequest) -> Result<IdbDatabase, Re
 }
 
 fn migrate_database(db: &IdbDatabase, old_version: u32) -> Result<(), String> {
+    // R17 (DB version 2): a v1 database gains only the two new stores;
+    // everything else is created untouched. Any other version is still
+    // rejected rather than guessed at.
+    if old_version == 1 {
+        create_store(db, ACKED_REVIEWS_STORE, &JsValue::from_str("reviewId"))?;
+        create_store(db, SYNC_CURSORS_STORE, &JsValue::from_str("key"))?;
+        return Ok(());
+    }
     if old_version != 0 {
         return Err(format!(
             "Unsupported IndexedDB upgrade from version {}",
@@ -1388,6 +1710,8 @@ fn migrate_database(db: &IdbDatabase, old_version: u32) -> Result<(), String> {
 
     let quarantine = create_store(db, QUARANTINE_STORE, &JsValue::from_str("quarantineId"))?;
     create_string_index(&quarantine, "bySourceStore", "sourceStore", false)?;
+    create_store(db, ACKED_REVIEWS_STORE, &JsValue::from_str("reviewId"))?;
+    create_store(db, SYNC_CURSORS_STORE, &JsValue::from_str("key"))?;
     Ok(())
 }
 
@@ -2119,6 +2443,32 @@ fn compound_pack_card_key(pack_id: &str, card_id: &str) -> JsValue {
     key.push(&JsValue::from_str(pack_id));
     key.push(&JsValue::from_str(card_id));
     key.into()
+}
+
+/// R17: read the undo cursor row from an already-open cursors store;
+/// returns the default cursor when the row is absent (fresh database or
+/// a database created before the v2 migration).
+async fn read_undo_cursor_in(
+    store: &IdbObjectStore,
+    operation: &'static str,
+) -> Result<UndoCursorRecord, RepositoryError> {
+    let request = store
+        .get(&JsValue::from_str(UNDO_CURSOR_KEY))
+        .map_err(|error| transaction_error(operation, error))?;
+    let raw = request_value(request, operation).await?;
+    if raw.is_undefined() {
+        return Ok(UndoCursorRecord {
+            key: UNDO_CURSOR_KEY.to_string(),
+            last_seen_log_head_ms: None,
+            undo_high_water_ms: 0,
+        });
+    }
+    let value = convert::js_to_value(&raw).map_err(|error| {
+        RepositoryError::Serialization(format!("Invalid undo cursor during {operation}: {error}"))
+    })?;
+    serde_json::from_value(value).map_err(|error| {
+        RepositoryError::Serialization(format!("Invalid undo cursor during {operation}: {error}"))
+    })
 }
 
 fn record_to_js<T: Serialize>(

@@ -10,7 +10,7 @@ pub use idb::ClientRepository;
 pub use model::*;
 
 pub const DB_NAME: &str = "srep-client";
-pub const DB_VERSION: u32 = 1;
+pub const DB_VERSION: u32 = 2;
 pub const REPOSITORY_SCHEMA_VERSION: u32 = 1;
 pub const PACK_SCHEMA_VERSION: u32 = 1;
 pub const OUTBOX_PAYLOAD_SCHEMA_VERSION: u32 = 1;

@@ -148,6 +148,19 @@ round except the milestone plan. Branch: `kimi/offline-sync-design`.
   must treat server card/log state as authoritative (including undo/tombstone
   or history-cursor information), mark R superseded/undone, clear its done
   presentation, and never retry it as a new review.
+- **Implemented (R17, Nov 9, 2026).** Server: `undo_events` table (`log_id`,
+  `card_id`, `undone_at` = server time at undo, written in the same
+  transaction as the log-row delete) plus `GET /api/study/undo-events?since=<ms>`
+  returning `{undoneLogIds, logHead, serverTime}`. Client: a durable
+  `acked_reviews` ledger (one entry per server-accepted review, recorded
+  before the outbox record is deleted) plus a `sync_cursors` undo cursor.
+  On every online study load the client drains, then reconciles: tombstones
+  supersede the ledger entries (terminal) and unmark the pack cards, so the
+  offline view stops showing them as "Queued for sync". The cursor advances
+  to the response's server time, so each tombstone is seen at most once; a
+  first-ever reconcile queries `since=0`. A failed reconcile is log-only and
+  never blocks study. Tombstones are never pruned in v1 (the server cannot
+  know every client's cursor).
 - Decided Nov 8, 2026 (see Decisions): offline users may cancel the latest
   unsent review. No additional cross-device/targeted undo UX for v1. Undo of
   unseen pending reviews is impossible.
@@ -251,6 +264,18 @@ timestamp/quota/undo behavior, and test
 skew, storage eviction, SW upgrades, and long-lived packs.
 *Gate:* product acceptance plus end-to-end offline → restart → partial sync
 → undo → rebuild, with documented day-window and quota results.
+*Implemented Nov 9, 2026 (PR #50):* undo tombstones + acked-review ledger +
+undo cursor (§4); OQ1/OQ2 covered by the upload-time scheduling already in
+R15, with tests for ±2-day client skew and the arrival-day quota; the
+04:00 day-window rollover is tested at the boundary; SW upgrade with a
+pending review is tested (the review still drains after the upgrade);
+long-lived-pack warning is tested end-to-end; diagnostics now carry
+persistence, per-review clock-skew offsets, ledger counts, and the cursor,
+and Settings surfaces them. The online answer path now shares the sync
+path's process-wide SQLite write mutex (the busy-collision follow-up from
+PR #42). Not in R17: the `srep-browse` `fetch_pg` jsonb decode (browse
+path, reported as a follow-up) and server-side sanitization (explicitly
+out of v1 scope per Decisions).
 
 ## Decisions (Sam, Nov 8, 2026)
 

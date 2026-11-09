@@ -84,6 +84,13 @@ impl<'a> StudyStore<'a> {
     where
         F: FnOnce(review::AnswerContext) -> Result<AnswerPlan, PlanFailure>,
     {
+        // R17: the online answer path had the same SQLITE_BUSY_SNAPSHOT
+        // collision the R13 merger fixed for sync (same mutex, same shape).
+        let _sqlite_write_guard = if self.pool.dialect() == "sqlite" {
+            Some(SQLITE_SYNC_WRITE_LOCK.lock().await)
+        } else {
+            None
+        };
         review::answer_card(self.pool, card_id, compute).await
     }
 
@@ -138,11 +145,20 @@ impl<'a> StudyStore<'a> {
         pack::read_queues(self.pool, input, limit).await
     }
 
-    pub async fn undo_last_review<F>(&self, compute: F) -> Result<review::UndoResult>
+    pub async fn undo_last_review<F>(
+        &self,
+        undone_at: i64,
+        compute: F,
+    ) -> Result<review::UndoResult>
     where
         F: FnOnce(review::UndoContext) -> UndoPlan,
     {
-        review::undo_last_review(self.pool, compute).await
+        review::undo_last_review(self.pool, undone_at, compute).await
+    }
+
+    /// R17: log ids undone at or after `since_ms` (server time), ascending.
+    pub async fn undo_events_since(&self, since_ms: i64) -> Result<Vec<String>> {
+        sync::undo_events_since(self.pool, since_ms).await
     }
 
     pub async fn change_card_states<F>(
