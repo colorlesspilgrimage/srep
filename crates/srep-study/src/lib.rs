@@ -41,6 +41,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/study/next", get(study_next))
         .route("/api/study/answer", post(study_answer))
+        .route("/api/study/sync", post(study_sync))
         .route("/api/study/undo", post(study_undo))
         .route("/api/study/rebuild", post(study_rebuild))
         .route("/api/study/verify", post(study_verify))
@@ -113,6 +114,39 @@ async fn study_answer(
         }
         Err(_) => (
             StatusCode::BAD_REQUEST,
+            Json(json!({"error":"bad_request"})),
+        )
+            .into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SyncBodyRaw {
+    device_id: String,
+    items: Vec<serde_json::Value>,
+}
+
+async fn study_sync(
+    State(state): State<AppState>,
+    req_auth: Option<axum::Extension<RequestAuth>>,
+    Json(body): Json<SyncBodyRaw>,
+) -> impl IntoResponse {
+    if let Some(resp) = require_auth(req_auth).await {
+        return resp;
+    }
+    let Some((device_id, items)) = validation::parse_sync_body(&body.device_id, &body.items) else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error":"bad_request"})),
+        )
+            .into_response();
+    };
+    let device_id = device_id.to_string();
+    match service::study_sync(&state, &device_id, items).await {
+        Ok(v) => Json(v).into_response(),
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({"error":"bad_request"})),
         )
             .into_response(),

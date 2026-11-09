@@ -11,7 +11,7 @@ use crate::store::{
 };
 use crate::study_settings::get_settings_default;
 use crate::types::{StudySettings, StudyWindow};
-use crate::validation::AnswerBody;
+use crate::validation::{AnswerBody, SyncItem};
 use anyhow::Result;
 use serde::Serialize;
 use sqlx::Row;
@@ -19,6 +19,7 @@ use srep_auth::AppState;
 use srep_domain::builtin::{builtin_preset, DEFAULT_PRESET_ID};
 use srep_domain::core::deck_paths::subtree_ids;
 use srep_domain::store::DomainStore;
+use std::collections::HashSet;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -358,6 +359,70 @@ pub async fn study_answer(
             }))
         }
     }
+}
+
+pub async fn study_sync(
+    state: &AppState,
+    device_id: &str,
+    items: Vec<SyncItem>,
+) -> Result<serde_json::Value, StudyError> {
+    let study = StudyStore::new(&state.db);
+    let settings = load_settings(&study).await?;
+    let now = now_ms();
+    let window = study_window(now, &settings);
+    study
+        .unbury_expired(now)
+        .await
+        .map_err(|_| StudyError::Internal)?;
+
+    let mut results = Vec::with_capacity(items.len());
+    let mut blocked_cards = HashSet::new();
+    let mut iter = items.into_iter();
+
+    while let Some(item) = iter.next() {
+        if blocked_cards.contains(&item.card_id) {
+            results.push(serde_json::json!({
+                "reviewId": item.review_id.to_string(),
+                "status": "blocked",
+            }));
+            continue;
+        }
+
+        match study
+            .sync_apply_item(device_id, &item, now_ms(), &window)
+            .await
+        {
+            Ok(result) => {
+                if result.get("status").and_then(|s| s.as_str()) == Some("stale_card") {
+                    blocked_cards.insert(item.card_id);
+                }
+                results.push(result);
+            }
+            Err(_) => {
+                results.push(serde_json::json!({
+                    "reviewId": item.review_id.to_string(),
+                    "status": "not_attempted",
+                }));
+                for remaining in iter {
+                    results.push(serde_json::json!({
+                        "reviewId": remaining.review_id.to_string(),
+                        "status": "not_attempted",
+                    }));
+                }
+                break;
+            }
+        }
+    }
+
+    let log_head = study
+        .review_log_head()
+        .await
+        .map_err(|_| StudyError::Internal)?;
+    Ok(serde_json::json!({
+        "results": results,
+        "serverTime": now_ms(),
+        "logHead": log_head,
+    }))
 }
 
 pub async fn study_undo(state: &AppState) -> Result<serde_json::Value, StudyError> {

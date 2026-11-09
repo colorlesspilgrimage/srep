@@ -4,6 +4,7 @@ mod replay;
 pub mod review;
 mod settings;
 mod snapshot;
+mod sync;
 
 pub use replay::REPLAY_PAGE_SIZE;
 pub use settings::STUDY_SETTINGS_KEY;
@@ -14,6 +15,7 @@ use crate::card_state_plan::CardStateUpdate;
 use crate::queue_choice::DeckSnapshot;
 use crate::types::StudyWindow;
 use crate::types::{ReviewLogRow, StudySettings};
+use crate::validation::SyncItem;
 use anyhow::Result;
 use srep_db::DbPool;
 
@@ -75,6 +77,20 @@ impl<'a> StudyStore<'a> {
         F: FnOnce(review::AnswerContext) -> Result<AnswerPlan, PlanFailure>,
     {
         review::answer_card(self.pool, card_id, compute).await
+    }
+
+    pub async fn sync_apply_item(
+        &self,
+        device_id: &str,
+        item: &SyncItem,
+        now_ms: i64,
+        window: &StudyWindow,
+    ) -> Result<serde_json::Value> {
+        sync::sync_apply_item(self.pool, device_id, item, now_ms, window).await
+    }
+
+    pub async fn review_log_head(&self) -> Result<Option<i64>> {
+        sync::review_log_head(self.pool).await
     }
 
     pub async fn undo_last_review<F>(&self, compute: F) -> Result<review::UndoResult>

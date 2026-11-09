@@ -149,7 +149,7 @@ where
     }
 }
 
-async fn read_answer_ctx_sqlite(
+pub(crate) async fn read_answer_ctx_sqlite(
     tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
     card_id: &str,
 ) -> Result<Option<AnswerContext>> {
@@ -203,7 +203,7 @@ async fn read_answer_ctx_sqlite(
     }))
 }
 
-async fn read_answer_ctx_pg(
+pub(crate) async fn read_answer_ctx_pg(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     card_id: &str,
 ) -> Result<Option<AnswerContext>> {
@@ -266,7 +266,7 @@ fn sched_to_parked(s: crate::types::SchedState) -> crate::parked::CardState {
     }
 }
 
-async fn apply_answer_sqlite(
+pub(crate) async fn apply_answer_sqlite(
     tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
     card_id: &str,
     plan: &AnswerPlan,
@@ -325,7 +325,7 @@ async fn apply_answer_sqlite(
     Ok(())
 }
 
-async fn apply_answer_pg(
+pub(crate) async fn apply_answer_pg(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     card_id: &str,
     plan: &AnswerPlan,
