@@ -388,11 +388,12 @@ async fn fetch_heads_pg(
             .fetch_all(&mut **tx)
             .await?
     } else {
-        sqlx::query(&sql)
-            .bind(ids)
-            .bind(now)
-            .fetch_all(&mut **tx)
-            .await?
+        // "new" heads filter references only $1 (the deck list); binding
+        // the extra `now` makes Postgres reject the query: bind supplies 2
+        // parameters but the statement declares 1. (The learning/review
+        // branches bind the same extra value, but their filters reference
+        // $3/$4, so their counts still match.)
+        sqlx::query(&sql).bind(ids).fetch_all(&mut **tx).await?
     };
     Ok(rows
         .iter()
