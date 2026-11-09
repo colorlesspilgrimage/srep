@@ -5,7 +5,8 @@ use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{HtmlElement, KeyboardEvent};
 
 use crate::{
-    api, sanitize,
+    api, offline_pack, sanitize,
+    repository::StoredPack,
     study_controller::{NextReply, OnlineStudyController, StudyCard, StudyController},
 };
 
@@ -14,6 +15,7 @@ enum StudyLoad {
     Loading,
     Ready(NextReply),
     Error(String),
+    OfflinePack(StoredPack, usize),
 }
 
 #[derive(Clone, Copy)]
@@ -128,17 +130,24 @@ pub fn StudyScreen() -> impl IntoView {
         signals.status_message.set(None);
         signals.state.set(StudyLoad::Loading);
 
+        let online = web_sys::window()
+            .map(|window| window.navigator().on_line())
+            .unwrap_or(true);
+
         spawn_local(async move {
-            match controller.next(deck).await {
-                Ok(reply) => {
-                    signals.shown_at.set(js_sys::Date::now());
-                    signals.state.set(StudyLoad::Ready(reply));
+            if online {
+                match controller.next(deck.clone()).await {
+                    Ok(reply) => {
+                        signals.shown_at.set(js_sys::Date::now());
+                        signals.state.set(StudyLoad::Ready(reply));
+                        spawn_local(async move {
+                            let _ = offline_pack::fetch_and_store_pack(deck).await;
+                        });
+                    }
+                    Err(_) => load_offline_fallback(signals).await,
                 }
-                Err(_) => {
-                    signals
-                        .state
-                        .set(StudyLoad::Error("Could not load study cards.".to_string()));
-                }
+            } else {
+                load_offline_fallback(signals).await;
             }
         });
     });
@@ -165,6 +174,7 @@ pub fn StudyScreen() -> impl IntoView {
                     view! { <p role="alert">{message}</p> }.into_any()
                 }
                 StudyLoad::Ready(reply) => ready_view(reply, controller, signals, edit_button),
+                StudyLoad::OfflinePack(pack, index) => offline_pack_view(pack, index, signals),
             }}
             {move || signals.status_message.get().map(|message| {
                 view! { <p role="status">{message}</p> }
@@ -173,6 +183,129 @@ pub fn StudyScreen() -> impl IntoView {
             {move || edit_view(signals, edit_dialog, edit_button)}
         </section>
     }
+}
+
+async fn load_offline_fallback(signals: StudySignals) {
+    match offline_pack::load_latest_pack().await {
+        Ok(Some(pack)) => {
+            signals.revealed.set(false);
+            signals.state.set(StudyLoad::OfflinePack(pack, 0));
+        }
+        Ok(None) | Err(_) => {
+            signals
+                .state
+                .set(StudyLoad::Error("Could not load study cards.".to_string()));
+        }
+    }
+}
+
+fn offline_pack_view(pack: StoredPack, index: usize, signals: StudySignals) -> AnyView {
+    let card_count = pack.cards.len();
+    let generated_at = pack
+        .pack
+        .payload
+        .get("generatedAt")
+        .and_then(serde_json::Value::as_i64)
+        .unwrap_or(pack.pack.server_time_ms);
+    let stale = offline_pack::is_stale(
+        pack.pack.server_time_ms,
+        js_sys::Date::now() as i64,
+    );
+    let body = match pack.cards.get(index) {
+        None => {
+            view! { <p class="offline-pack-end">"End of offline pack."</p> }.into_any()
+        }
+        Some(record) => match offline_pack::study_card_from_payload(&record.payload) {
+            Ok(card) => offline_card_view(card, signals),
+            Err(_) => {
+                view! { <p role="alert">"This offline card could not be read."</p> }.into_any()
+            }
+        },
+    };
+    let previous_pack = pack.clone();
+    let next_pack = pack.clone();
+
+    view! {
+        <div class="offline-pack" data-offline-pack="true">
+            <h2>"Offline pack"</h2>
+            <p>{format!("Generated {}", format_date(generated_at as f64))}</p>
+            {stale.then(|| view! {
+                <p class="offline-pack-stale">
+                    "This pack is more than a day old; its cards may be out of date."
+                </p>
+            })}
+            {body}
+            <div class="offline-pack-nav">
+                <button
+                    type="button"
+                    aria-label="Previous card"
+                    disabled=index == 0
+                    on:click=move |_| {
+                        show_offline_card(signals, previous_pack.clone(), index.saturating_sub(1));
+                    }
+                >
+                    "Previous"
+                </button>
+                <button
+                    type="button"
+                    aria-label="Next card"
+                    disabled=index >= card_count
+                    on:click=move |_| {
+                        let next = index.saturating_add(1).min(card_count);
+                        show_offline_card(signals, next_pack.clone(), next);
+                    }
+                >
+                    "Next"
+                </button>
+            </div>
+        </div>
+    }
+    .into_any()
+}
+
+fn offline_card_view(card: StudyCard, signals: StudySignals) -> AnyView {
+    let front = sanitize::card_html(&card.front);
+    let back = sanitize::card_html(&card.back);
+
+    view! {
+        <div class="study-card">
+            <div class="study-front" inner_html=front></div>
+            {move || {
+                if signals.revealed.get() {
+                    view! {
+                        <div class="study-back" inner_html=back.clone()></div>
+                    }
+                    .into_any()
+                } else {
+                    ().into_any()
+                }
+            }}
+            <div class="study-actions">
+                {move || {
+                    if signals.revealed.get() {
+                        ().into_any()
+                    } else {
+                        view! {
+                            <button type="button" on:click=move |_| signals.revealed.set(true)>
+                                "Reveal"
+                            </button>
+                        }
+                        .into_any()
+                    }
+                }}
+            </div>
+        </div>
+    }
+    .into_any()
+}
+
+fn show_offline_card(
+    signals: StudySignals,
+    pack: StoredPack,
+    index: usize,
+) {
+    signals.revealed.set(false);
+    signals.state.set(StudyLoad::OfflinePack(pack, index));
 }
 
 fn ready_view(
@@ -487,6 +620,39 @@ fn handle_study_key(
                     signals.commands_open.set(true);
                 }
             }
+        }
+        return;
+    }
+    if let StudyLoad::OfflinePack(pack, index) = signals.state.get_untracked() {
+        if event_target_is_text_input(&event)
+            || event.ctrl_key()
+            || event.meta_key()
+            || event.alt_key()
+        {
+            return;
+        }
+
+        let card_count = pack.cards.len();
+        match key.as_str() {
+            " " | "Spacebar" | "Enter" => {
+                if index < card_count && !signals.revealed.get_untracked() {
+                    event.prevent_default();
+                    signals.revealed.set(true);
+                }
+            }
+            "ArrowLeft" => {
+                if index > 0 {
+                    event.prevent_default();
+                    show_offline_card(signals, pack, index - 1);
+                }
+            }
+            "ArrowRight" => {
+                if index < card_count {
+                    event.prevent_default();
+                    show_offline_card(signals, pack, index + 1);
+                }
+            }
+            _ => {}
         }
         return;
     }

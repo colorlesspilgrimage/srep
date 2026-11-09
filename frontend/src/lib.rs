@@ -4,6 +4,7 @@ use leptos_router::path;
 use wasm_bindgen::prelude::*;
 
 mod api;
+mod offline_pack;
 mod repository;
 mod sanitize;
 mod screens;
