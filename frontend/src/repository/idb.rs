@@ -596,6 +596,114 @@ impl ClientRepository {
         finish_transaction_result(tx, completion, OPERATION, result).await
     }
 
+    pub async fn cancel_latest_unsent(
+        &self,
+        pack_id: &str,
+    ) -> Result<Option<OutboxRecord>, RepositoryError> {
+        const OPERATION: &str = "cancel_latest_unsent";
+
+        if !self.recovery.usable {
+            return Err(RepositoryError::RecoveryRequired);
+        }
+
+        let (tx, completion) = start_transaction(
+            &self.db,
+            &[META_STORE, PACK_CARDS_STORE, OUTBOX_STORE],
+            IdbTransactionMode::Readwrite,
+            OPERATION,
+        )?;
+
+        let result: Result<Option<OutboxRecord>, RepositoryError> = async {
+            let meta_store = object_store(&tx, META_STORE, OPERATION)?;
+            let cards = object_store(&tx, PACK_CARDS_STORE, OPERATION)?;
+            let outbox = object_store(&tx, OUTBOX_STORE, OPERATION)?;
+
+            let request = meta_store
+                .get(&JsValue::from_str(META_KEY))
+                .map_err(|error| transaction_error(OPERATION, error))?;
+            let raw_meta = request_value(request, OPERATION).await?;
+            if raw_meta.is_undefined() {
+                return Err(RepositoryError::MetaCorrupt(
+                    "The repository meta record is missing".to_string(),
+                ));
+            }
+            let meta_value = convert::js_to_value(&raw_meta)
+                .map_err(|error| RepositoryError::MetaCorrupt(error.to_string()))?;
+            let meta = parse_meta(&meta_value)?;
+
+            let raw_records = scan_values(&outbox, OPERATION).await?;
+            let records = validate_outbox_values(raw_records, &self.device_id, OPERATION)?;
+            let Some(record) = records
+                .into_iter()
+                .filter(|record| record.pack_id.as_str() == pack_id)
+                .max_by_key(|record| record.seq)
+            else {
+                return Ok(None);
+            };
+
+            if meta.next_seq.checked_sub(1) != Some(record.seq) {
+                return Err(RepositoryError::InvalidInput(format!(
+                    "The latest review for pack {pack_id} is not the globally latest review"
+                )));
+            }
+
+            let card_key = compound_pack_card_key(pack_id, &record.card_id);
+            let request = cards
+                .get(&card_key)
+                .map_err(|error| transaction_error(OPERATION, error))?;
+            let raw_card = request_value(request, OPERATION).await?;
+            if raw_card.is_undefined() {
+                return Err(RepositoryError::CardNotFound {
+                    pack_id: pack_id.to_string(),
+                    card_id: record.card_id.clone(),
+                });
+            }
+            let card_value = convert::js_to_value(&raw_card).map_err(|error| {
+                RepositoryError::Serialization(format!(
+                    "Invalid card {}/{} during cancel_latest_unsent: {}",
+                    pack_id, record.card_id, error
+                ))
+            })?;
+            let card = validate::validate_pack_card_record(&card_value).map_err(|failure| {
+                RepositoryError::Serialization(format!(
+                    "Invalid card {}/{} during cancel_latest_unsent: {}",
+                    pack_id,
+                    record.card_id,
+                    validation_message(&failure)
+                ))
+            })?;
+
+            let updated_meta = MetaRecord {
+                next_seq: record.seq,
+                ..meta
+            };
+            let updated_card = PackCardRecord {
+                answered: false,
+                ..card
+            };
+            let meta_js = record_to_js(&updated_meta, META_STORE, OPERATION)?;
+            let card_js = record_to_js(&updated_card, PACK_CARDS_STORE, OPERATION)?;
+
+            let request = outbox
+                .delete(&JsValue::from_str(&record.review_id))
+                .map_err(|error| transaction_error(OPERATION, error))?;
+            request_value(request, OPERATION).await?;
+            let request = meta_store
+                .put(&meta_js)
+                .map_err(|error| transaction_error(OPERATION, error))?;
+            request_value(request, OPERATION).await?;
+            let request = cards
+                .put(&card_js)
+                .map_err(|error| transaction_error(OPERATION, error))?;
+            request_value(request, OPERATION).await?;
+
+            Ok(Some(record))
+        }
+        .await;
+
+        finish_transaction_result(tx, completion, OPERATION, result).await
+    }
+
     pub async fn pending_outbox(&self) -> Result<Vec<OutboxRecord>, RepositoryError> {
         const OPERATION: &str = "pending_outbox";
 
