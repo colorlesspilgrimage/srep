@@ -211,7 +211,13 @@ pub(crate) async fn build_study_card(
             let note_type_id: String = note
                 .try_get("note_type_id")
                 .map_err(|_| StudyError::Internal)?;
-            let fields_json: String = note.try_get("fields").map_err(|_| StudyError::Internal)?;
+            // note.fields is jsonb on Postgres (text on SQLite): decoding
+            // it as String fails, so read it as Value and re-serialize.
+            // This is the same pattern as row_to_note_type_pg.
+            let fields_value: serde_json::Value =
+                note.try_get("fields").map_err(|_| StudyError::Internal)?;
+            let fields_json =
+                serde_json::to_string(&fields_value).map_err(|_| StudyError::Internal)?;
             (note_type_id, fields_json)
         }
     };
