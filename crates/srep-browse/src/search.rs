@@ -157,7 +157,10 @@ async fn fetch_pg(
     for row in rows {
         let note_id: String = row.try_get("note_id")?;
         let tags = load_tags_pg(p, &note_id).await?;
-        let fields_json: String = row.try_get("fields")?;
+        // note.fields is jsonb on Postgres (text on SQLite): decoding
+        // it as String fails, so read it as Value and re-serialize.
+        let fields_value: serde_json::Value = row.try_get("fields")?;
+        let fields_json = serde_json::to_string(&fields_value)?;
         out.push(BrowseRow {
             card_id: row.try_get("card_id")?,
             note_id,
