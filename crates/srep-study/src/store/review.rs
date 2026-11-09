@@ -126,14 +126,14 @@ where
     }
 }
 
-pub async fn undo_last_review<F>(pool: &DbPool, compute: F) -> Result<UndoResult>
+pub async fn undo_last_review<F>(pool: &DbPool, undone_at: i64, compute: F) -> Result<UndoResult>
 where
     F: FnOnce(UndoContext) -> UndoPlan,
 {
     match pool {
         DbPool::Sqlite(p) => {
             let mut tx = p.begin().await?;
-            let result = undo_sqlite(&mut tx, compute).await?;
+            let result = undo_sqlite(&mut tx, undone_at, compute).await?;
             tx.commit().await?;
             Ok(result)
         }
@@ -142,7 +142,7 @@ where
             sqlx::query("SELECT pg_advisory_xact_lock(7303301)")
                 .execute(&mut *tx)
                 .await?;
-            let result = undo_pg(&mut tx, compute).await?;
+            let result = undo_pg(&mut tx, undone_at, compute).await?;
             tx.commit().await?;
             Ok(result)
         }
@@ -386,6 +386,7 @@ pub(crate) async fn apply_answer_pg(
 
 async fn undo_sqlite<F>(
     tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    undone_at: i64,
     compute: F,
 ) -> Result<UndoResult>
 where
@@ -415,11 +416,23 @@ where
         .bind(&log.id)
         .execute(&mut **tx)
         .await?;
+
+    // R17 tombstone: the client reconciles acked reviews against undo_events
+    // on its next pull. Stamped with the server time of the undo (not the
+    // review's reviewed_at) so a client cursor that already passed the
+    // review's timestamp cannot miss it.
+    sqlx::query("INSERT INTO undo_events (log_id, card_id, undone_at) VALUES (?, ?, ?)")
+        .bind(&log.id)
+        .bind(&log.card_id)
+        .bind(undone_at)
+        .execute(&mut **tx)
+        .await?;
     Ok(UndoResult::Ok(log))
 }
 
 async fn undo_pg<F>(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    undone_at: i64,
     compute: F,
 ) -> Result<UndoResult>
 where
@@ -447,6 +460,14 @@ where
     apply_undo_pg(tx, &log.card_id, &plan).await?;
     sqlx::query("DELETE FROM review_log WHERE id = $1")
         .bind(&log.id)
+        .execute(&mut **tx)
+        .await?;
+
+    // R17 tombstone (see undo_sqlite): undone_at is server time at undo.
+    sqlx::query("INSERT INTO undo_events (log_id, card_id, undone_at) VALUES ($1, $2, $3)")
+        .bind(&log.id)
+        .bind(&log.card_id)
+        .bind(undone_at)
         .execute(&mut **tx)
         .await?;
     Ok(UndoResult::Ok(log))

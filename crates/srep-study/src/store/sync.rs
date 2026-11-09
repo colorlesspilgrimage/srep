@@ -92,6 +92,40 @@ pub async fn sync_apply_item(
     }
 }
 
+/// R17: log ids undone at or after `since_ms`, in undo order.
+/// Used by the client to reconcile its durable acked-review ledger
+/// against authoritative server state on its next pull.
+pub async fn undo_events_since(pool: &DbPool, since: i64) -> Result<Vec<String>> {
+    match pool {
+        DbPool::Sqlite(p) => {
+            let rows = sqlx::query(
+                "SELECT log_id FROM undo_events WHERE undone_at >= ? ORDER BY undone_at ASC",
+            )
+            .bind(since)
+            .fetch_all(p)
+            .await?;
+            let mut log_ids = Vec::with_capacity(rows.len());
+            for row in rows {
+                log_ids.push(row.try_get::<String, _>("log_id")?);
+            }
+            Ok(log_ids)
+        }
+        DbPool::Postgres(p) => {
+            let rows = sqlx::query(
+                "SELECT log_id FROM undo_events WHERE undone_at >= $1 ORDER BY undone_at ASC",
+            )
+            .bind(since)
+            .fetch_all(p)
+            .await?;
+            let mut log_ids = Vec::with_capacity(rows.len());
+            for row in rows {
+                log_ids.push(row.try_get::<String, _>("log_id")?);
+            }
+            Ok(log_ids)
+        }
+    }
+}
+
 pub async fn review_log_head(pool: &DbPool) -> Result<Option<i64>> {
     match pool {
         DbPool::Sqlite(p) => {

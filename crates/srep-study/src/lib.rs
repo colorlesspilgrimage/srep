@@ -41,6 +41,7 @@ pub mod validation;
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/study/next", get(study_next))
+        .route("/api/study/undo-events", get(study_undo_events))
         .route("/api/study/offline-pack", get(study_offline_pack))
         .route("/api/study/answer", post(study_answer))
         .route("/api/study/sync", post(study_sync))
@@ -51,6 +52,30 @@ pub fn router() -> Router<AppState> {
             "/api/settings/study",
             get(settings_study_get).put(settings_study_put),
         )
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UndoEventsQuery {
+    since: Option<i64>,
+}
+
+async fn study_undo_events(
+    State(state): State<AppState>,
+    req_auth: Option<axum::Extension<RequestAuth>>,
+    Query(query): Query<UndoEventsQuery>,
+) -> impl IntoResponse {
+    if let Some(resp) = require_auth(req_auth).await {
+        return resp;
+    }
+    match service::study_undo_events(&state, query.since.unwrap_or(0)).await {
+        Ok(reply) => Json(reply).into_response(),
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error":"bad_request"})),
+        )
+            .into_response(),
+    }
 }
 
 #[derive(Deserialize)]

@@ -141,6 +141,52 @@ impl OutboxRecord {
     }
 }
 
+/// R17: one entry per review the server has committed, kept durably so
+/// an online undo of a synced review can later be reconciled against it.
+/// Keyed by `review_id` in the `acked_reviews` store. `superseded` is
+/// terminal: once an undo supersedes the review it never comes back.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AckedReviewRecord {
+    pub review_id: String,
+    pub log_id: String,
+    pub card_id: String,
+    pub pack_id: String,
+    pub superseded: bool,
+}
+
+/// R17: the undo-reconciliation cursor (single row, key `"undo"`, in the
+/// `sync_cursors` store). `undo_high_water_ms` advances to the server time
+/// of each successful reconcile; `last_seen_log_head_ms` is the newest
+/// authoritative log head the client has observed (diagnostic).
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UndoCursorRecord {
+    pub key: String,
+    pub last_seen_log_head_ms: Option<i64>,
+    pub undo_high_water_ms: i64,
+}
+
+/// R17: the result of one undo reconciliation, returned by
+/// `ClientRepository::reconcile_undos` and by the `__srepR17` test handle.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct UndoReconcileReport {
+    pub returned_events: usize,
+    pub superseded_reviews: Vec<String>,
+    pub card_ids: Vec<String>,
+    pub cursor_ms: i64,
+}
+
+/// R17: the wire shape of `GET /api/study/undo-events`.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct UndoEventsResponse {
+    pub undone_log_ids: Vec<String>,
+    pub log_head: i64,
+    pub server_time: i64,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct NewConflict {
@@ -236,6 +282,16 @@ pub struct DiagnosticExport {
     pub quarantine: Vec<serde_json::Value>,
     pub outbox: Vec<OutboxRecord>,
     pub pack_ids: Vec<String>,
+    /// R17: whether the browser granted persistent storage for this origin.
+    pub persistence: PersistenceStatus,
+    /// R17: per-queued-review pack server-time offsets (clock-skew audit).
+    pub outbox_server_time_offsets_ms: Vec<i64>,
+    /// R17: durable acked-review ledger size.
+    pub acked_review_count: usize,
+    /// R17: ledger entries an online undo has superseded.
+    pub superseded_review_count: usize,
+    /// R17: the undo-reconciliation cursor (server ms).
+    pub undo_cursor_ms: i64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]

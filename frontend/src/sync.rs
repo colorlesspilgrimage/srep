@@ -18,10 +18,15 @@ use wasm_bindgen_futures::{spawn_local, JsFuture};
 
 use crate::api;
 use crate::repository::idb::ClientRepository;
-use crate::repository::model::{ConflictRecord, OutboxRecord, SyncOutcome, SyncOutcomeKind};
+use crate::repository::model::{
+    ConflictRecord, OutboxRecord, SyncOutcome, SyncOutcomeKind, UndoEventsResponse,
+    UndoReconcileReport,
+};
 use crate::sanitize;
 
 pub const SREP_DRAINED_EVENT: &str = "srep:r16-drained";
+/// R17: dispatched after a successful undo reconciliation.
+pub const SREP_UNDO_RECONCILED_EVENT: &str = "srep:r17-undo-reconciled";
 
 const MAX_BATCH_SIZE: usize = 50;
 const MAX_ATTEMPTS: u32 = 5;
@@ -144,6 +149,36 @@ fn remember_report(report: &SyncReport) {
             history.drain(..excess);
         }
     });
+}
+
+/// R17: pull the server's undo tombstones and reconcile the durable
+/// acked-review ledger against them. Safe to call on any online load:
+/// a fresh client queries `since=0` (all tombstones) and advances its
+/// cursor to the response's server time, so each tombstone is seen at
+/// most once. Returns the reconcile report; the caller decides whether a
+/// failure matters (the study screen treats it as log-only).
+pub async fn reconcile_undo_events() -> Result<UndoReconcileReport, String> {
+    let (repo, _) = ClientRepository::open()
+        .await
+        .map_err(|error| format!("could not open repository: {error}"))?;
+    let since = repo
+        .undo_since_ms()
+        .await
+        .map_err(|error| format!("could not read undo cursor: {error}"))?;
+    let response: UndoEventsResponse = api::get_undo_events(since)
+        .await
+        .map_err(|error| format!("could not fetch undo events: {}", error.body))?;
+    let report = repo
+        .reconcile_undos(&response)
+        .await
+        .map_err(|error| format!("could not reconcile undo events: {error}"))?;
+    repo.close();
+    if let Some(window) = web_sys::window() {
+        if let Ok(event) = web_sys::Event::new(SREP_UNDO_RECONCILED_EVENT) {
+            let _ = window.dispatch_event(&event);
+        }
+    }
+    Ok(report)
 }
 
 fn announce_report() {
@@ -374,6 +409,30 @@ async fn drain_pass(max_attempts: u32) -> SyncReport {
     };
 
     let prefix = resolved_prefix(&batch_ids, &response.results);
+
+    // R17: record the acked outcomes in the durable ledger BEFORE the
+    // outbox records are deleted, so an online undo can later reconcile
+    // them. A failure here leaves the outbox untouched (same as an apply
+    // failure): the next drain replays the batch as duplicates.
+    if !prefix.outcomes.is_empty() {
+        if let Err(error) = repo.record_acked_results(&response.results, &batch).await {
+            let _ = repo.mark_sending(&batch_ids, false).await;
+            repo.close();
+            return SyncReport::failed(
+                batch.len(),
+                pending.len(),
+                format!("could not record acked reviews; outbox unchanged: {error}"),
+            );
+        }
+    }
+
+    // R17: observe the authoritative log head (diagnostic; the reconcile
+    // cursor itself advances to server time). Warn-only.
+    if let Err(error) = repo.observe_sync_log_head(&response.log_head).await {
+        web_sys::console::warn_1(&JsValue::from_str(&format!(
+            "could not observe sync log head: {error}"
+        )));
+    }
 
     if !prefix.outcomes.is_empty() {
         if let Err(error) = repo.apply_sync_outcome(&prefix.outcomes).await {

@@ -1,4 +1,6 @@
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+
+use crate::repository::model::UndoEventsResponse;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Request, RequestInit, Response};
@@ -7,6 +9,11 @@ use web_sys::{Request, RequestInit, Response};
 pub struct ApiError {
     pub status: u16,
     pub body: String,
+}
+
+/// R17: fetch the undo tombstones at or after `since_ms` (server time).
+pub async fn get_undo_events(since_ms: i64) -> Result<UndoEventsResponse, ApiError> {
+    get_json(&format!("/api/study/undo-events?since={since_ms}")).await
 }
 
 pub async fn get_json<T: DeserializeOwned>(path: &str) -> Result<T, ApiError> {

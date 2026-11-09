@@ -222,6 +222,7 @@ pub fn install_test_handle() {
     let handle: JsValue = R12TestHandle::default().into();
     let _ = js_sys::Reflect::set(window.as_ref(), &JsValue::from_str("__srepR12"), &handle);
     install_r16_test_hook();
+    install_r17_test_hook();
 }
 
 /// R16 sync-engine handle: drain + report history only. It exposes no raw
@@ -270,4 +271,75 @@ fn install_r16_test_hook() {
     reports.forget();
 
     let _ = js_sys::Reflect::set(window.as_ref(), &JsValue::from_str("__srepR16"), &handle);
+}
+
+/// R17 undo-reconciliation handle: reconcile + read-only ledger/cursor
+/// views. It exposes no raw IDB mutation beyond what `__srepR12` already
+/// exposes.
+fn install_r17_test_hook() {
+    let Some(window) = web_sys::window() else {
+        return;
+    };
+    let handle = js_sys::Object::new();
+
+    let reconcile = Closure::<dyn Fn() -> js_sys::Promise>::new(|| {
+        future_to_promise(async {
+            match crate::sync::reconcile_undo_events().await {
+                Ok(report) => to_js(&report),
+                Err(error) => Err(JsValue::from_str(&error)),
+            }
+        })
+    });
+    let _ = js_sys::Reflect::set(
+        &handle,
+        &JsValue::from_str("reconcile"),
+        reconcile.as_ref().unchecked_ref(),
+    );
+    reconcile.forget();
+
+    let acked_reviews = Closure::<dyn Fn() -> js_sys::Promise>::new(|| {
+        future_to_promise(async {
+            match crate::repository::idb::ClientRepository::open().await {
+                Ok((repo, _)) => {
+                    let result = repo.list_acked_reviews().await;
+                    repo.close();
+                    match result {
+                        Ok(records) => to_js(&records),
+                        Err(error) => Err(JsValue::from_str(&format!("{error}"))),
+                    }
+                }
+                Err(error) => Err(JsValue::from_str(&format!("{error}"))),
+            }
+        })
+    });
+    let _ = js_sys::Reflect::set(
+        &handle,
+        &JsValue::from_str("acked_reviews"),
+        acked_reviews.as_ref().unchecked_ref(),
+    );
+    acked_reviews.forget();
+
+    let undo_cursor = Closure::<dyn Fn() -> js_sys::Promise>::new(|| {
+        future_to_promise(async {
+            match crate::repository::idb::ClientRepository::open().await {
+                Ok((repo, _)) => {
+                    let result = repo.undo_cursor().await;
+                    repo.close();
+                    match result {
+                        Ok(cursor) => to_js(&cursor),
+                        Err(error) => Err(JsValue::from_str(&format!("{error}"))),
+                    }
+                }
+                Err(error) => Err(JsValue::from_str(&format!("{error}"))),
+            }
+        })
+    });
+    let _ = js_sys::Reflect::set(
+        &handle,
+        &JsValue::from_str("undo_cursor"),
+        undo_cursor.as_ref().unchecked_ref(),
+    );
+    undo_cursor.forget();
+
+    let _ = js_sys::Reflect::set(window.as_ref(), &JsValue::from_str("__srepR17"), &handle);
 }

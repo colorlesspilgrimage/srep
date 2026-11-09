@@ -434,12 +434,13 @@ pub async fn study_sync(
 
 pub async fn study_undo(state: &AppState) -> Result<serde_json::Value, StudyError> {
     let study = StudyStore::new(&state.db);
+    let now = now_ms();
     study
-        .unbury_expired(now_ms())
+        .unbury_expired(now)
         .await
         .map_err(|_| StudyError::Internal)?;
     let result = study
-        .undo_last_review(|ctx| plan_undo(&ctx.log, &ctx.card, &ctx.buried))
+        .undo_last_review(now, |ctx| plan_undo(&ctx.log, &ctx.card, &ctx.buried))
         .await
         .map_err(|_| StudyError::Internal)?;
     match result {
@@ -449,6 +450,32 @@ pub async fn study_undo(state: &AppState) -> Result<serde_json::Value, StudyErro
             "undone": { "reviewId": log.id, "cardId": log.card_id }
         })),
     }
+}
+
+/// R17: undo tombstones at or after `since_ms` (server time), for the
+/// client's acked-review reconciliation. `since` is clamped to >= 0;
+/// `serverTime` is the cursor the client advances to on a successful
+/// reconcile, so tombstones are never missed by a clock-skewed client.
+pub async fn study_undo_events(
+    state: &AppState,
+    since_ms: i64,
+) -> Result<serde_json::Value, StudyError> {
+    let study = StudyStore::new(&state.db);
+    let since = since_ms.max(0);
+    let undone_log_ids = study
+        .undo_events_since(since)
+        .await
+        .map_err(|_| StudyError::Internal)?;
+    let log_head = study
+        .review_log_head()
+        .await
+        .map_err(|_| StudyError::Internal)?
+        .unwrap_or(0);
+    Ok(serde_json::json!({
+        "undoneLogIds": undone_log_ids,
+        "logHead": log_head,
+        "serverTime": now_ms(),
+    }))
 }
 
 #[derive(Debug, Serialize)]
