@@ -6,17 +6,18 @@ import {
   type Page,
   type Request,
 } from '@playwright/test';
-import { resetAuthViaCli } from './support/cli';
+import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
+import { signInViaApi } from './support/api-signin';
 import { studyClockHeader } from './support/study-clock';
 import {
   addNote,
   createDeck,
+  csrf,
   drainUndo,
   openStudy,
   removeRootDecks,
   untilText,
 } from './support/study-screen';
-import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
 const CLIENT_IP = '198.51.100.41';
 
@@ -42,13 +43,7 @@ async function signIn(browser: Browser): Promise<void> {
     viewport: { width: 1440, height: 900 },
   });
   page = await context.newPage();
-  const cdp = await enableWebAuthn(page);
-  await addAuthenticator(cdp, 'platform');
-  await page.goto('/setup');
-  await page.getByLabel('Setup token').fill(setupToken);
-  await page.getByLabel('Nickname').fill('Study');
-  await page.getByRole('button', { name: 'Create' }).click();
-  await expect(page.getByText('Save these codes now. They are shown once.')).toBeVisible();
+  await signInViaApi(page, setupToken, 'Study');
   await removeRootDecks(page);
   await drainUndo(page);
 }
@@ -261,6 +256,37 @@ test.describe.serial('study screen', () => {
     await expect(card()).not.toContainText('gato');
     await page.keyboard.press('s');
     await expect(page.getByText('No cards left.')).toBeVisible();
+  });
+
+  test('a stale answer refreshes instead of erroring', async () => {
+    const deckId = await createDeck(page, 'Study Stale');
+    await addNote(page, deckId, 'gato', 'cat');
+    await openStudy(page, deckId);
+    await expect(card()).toContainText('gato');
+    // Answer the same card through the API so the screen's copy is stale.
+    const next = await page.request.get(
+      `/api/study/next?deckId=${encodeURIComponent(deckId)}`,
+    );
+    const body: { card: { id: string; reps: number } } = await next.json();
+    const answered = await page.request.post('/api/study/answer', {
+      headers: {
+        origin: E2E_ORIGIN,
+        'x-srep-csrf': await csrf(page),
+        'content-type': 'application/json',
+      },
+      data: {
+        cardId: body.card.id,
+        rating: 3,
+        reps: body.card.reps,
+        elapsedMs: 1000,
+      },
+    });
+    expect(answered.ok()).toBeTruthy();
+    await page.keyboard.press('Space');
+    await expect(card()).toContainText('cat');
+    await page.keyboard.press('3');
+    await expect(page.getByText('Available at')).toBeVisible();
+    await expect(page.getByRole('alert')).toHaveCount(0);
   });
 
   test('edit saves a field and a script is not an element', async () => {

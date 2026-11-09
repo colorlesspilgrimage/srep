@@ -113,9 +113,11 @@ pub fn DecksHome() -> impl IntoView {
                                     .into_iter()
                                     .map(|row| {
                                         let pad = format!("padding-left: {}rem", row.depth * 5 / 4);
+                                        let study_href = format!("/study?deck={}", row.id);
                                         view! {
                                             <li role="treeitem" class="deck-tree-item" style=pad>
                                                 <span class="deck-name">{row.name}</span>
+                                                <a href=study_href>"Study"</a>
                                             </li>
                                         }
                                     })

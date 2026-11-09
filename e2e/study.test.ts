@@ -1,7 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
+import { signInViaApi } from './support/api-signin';
 import { studyClockHeader, studyClockMs } from './support/study-clock';
-import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
 let counter = 0;
 const unique = (name: string) => `${name}-${process.pid}-${(counter += 1)}`;
@@ -22,13 +22,7 @@ test.describe.serial('study engine', () => {
     const setupToken = resetAuthViaCli();
     context = await browser.newContext();
     page = await context.newPage();
-    const cdp = await enableWebAuthn(page);
-    await addAuthenticator(cdp, 'platform');
-    await page.goto('/setup');
-    await page.getByLabel('Setup token').fill(setupToken);
-    await page.getByLabel('Nickname').fill('Study');
-    await page.getByRole('button', { name: 'Create' }).click();
-    await expect(page.getByText('Save these codes now. They are shown once.')).toBeVisible();
+    await signInViaApi(page, setupToken, 'Study');
   });
 
   test.afterAll(async () => {
@@ -136,9 +130,10 @@ test.describe.serial('study engine', () => {
 
   test('7. verify finds no mismatch', async () => {
     await post('/api/study/answer', { cardId, rating: 3, reps: 0, elapsedMs: 2000 });
-    const response = await page.request.get('/api/study/verify');
-    expect(response.status()).toBe(200);
-    const report: { mismatches: unknown[]; chainMismatches: unknown[] } = await response.json();
+    // /api/study/verify is POST-only and wraps the report: { report: {...} }.
+    const { report } = await post<{
+      report: { mismatches: unknown[]; chainMismatches: unknown[] };
+    }>('/api/study/verify', {});
     expect(report.mismatches).toEqual([]);
     expect(report.chainMismatches).toEqual([]);
   });

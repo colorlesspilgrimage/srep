@@ -43,6 +43,51 @@ where
     decode_json(response).await
 }
 
+async fn method_json_csrf<T, B>(method: &str, path: &str, body: &B) -> Result<T, ApiError>
+where
+    T: DeserializeOwned,
+    B: Serialize + ?Sized,
+{
+    #[derive(Deserialize)]
+    struct AuthStatus {
+        #[serde(rename = "csrfToken")]
+        csrf_token: String,
+    }
+
+    let status: AuthStatus = get_json("/api/auth/status").await?;
+    let payload = serde_json::to_string(body).map_err(|e| ApiError {
+        status: 0,
+        body: format!("Could not encode request: {e}"),
+    })?;
+    let response = fetch(
+        method,
+        path,
+        &[
+            ("Content-Type", "application/json"),
+            ("x-srep-csrf", status.csrf_token.as_str()),
+        ],
+        Some(payload),
+    )
+    .await?;
+    decode_json(response).await
+}
+
+pub async fn put_json_csrf<T, B>(path: &str, body: &B) -> Result<T, ApiError>
+where
+    T: DeserializeOwned,
+    B: Serialize + ?Sized,
+{
+    method_json_csrf("PUT", path, body).await
+}
+
+pub async fn patch_json_csrf<T, B>(path: &str, body: &B) -> Result<T, ApiError>
+where
+    T: DeserializeOwned,
+    B: Serialize + ?Sized,
+{
+    method_json_csrf("PATCH", path, body).await
+}
+
 async fn fetch(
     method: &str,
     path: &str,

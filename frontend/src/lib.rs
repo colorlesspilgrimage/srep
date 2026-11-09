@@ -5,8 +5,10 @@ use wasm_bindgen::prelude::*;
 
 mod api;
 mod repository;
+mod sanitize;
 mod screens;
 mod shell;
+mod study_controller;
 mod themes;
 
 pub use themes::ThemeHandle;
