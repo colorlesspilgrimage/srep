@@ -1,7 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
+import { signInViaApi } from './support/api-signin';
 import { studyClockHeader, studyClockMs } from './support/study-clock';
-import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
 let counter = 0;
 const unique = (name: string) => `${name}-${process.pid}-${(counter += 1)}`;
@@ -9,7 +9,12 @@ let clockHeaders: Record<string, string> = {};
 
 const BASIC_ID = '00000000-0000-4000-8000-000000000011';
 
-type StudyCard = { id: string; reps: number; previews: Record<string, { due: number }> };
+type StudyCard = {
+  id: string;
+  noteId: string;
+  reps: number;
+  previews: Record<string, [number, number]>;
+};
 type NextReply = { status: string; card?: StudyCard; until?: number };
 
 test.describe.serial('study engine', () => {
@@ -22,13 +27,7 @@ test.describe.serial('study engine', () => {
     const setupToken = resetAuthViaCli();
     context = await browser.newContext();
     page = await context.newPage();
-    const cdp = await enableWebAuthn(page);
-    await addAuthenticator(cdp, 'platform');
-    await page.goto('/setup');
-    await page.getByLabel('Setup token').fill(setupToken);
-    await page.getByLabel('Nickname').fill('Study');
-    await page.getByRole('button', { name: 'Create' }).click();
-    await expect(page.getByText('Save these codes now. They are shown once.')).toBeVisible();
+    await signInViaApi(page, setupToken, 'Study');
   });
 
   test.afterAll(async () => {
@@ -76,15 +75,18 @@ test.describe.serial('study engine', () => {
       201,
     );
     deckId = deck.id;
-    const { note } = await post<{ note: { cards: { id: string }[] } }>(
+    // v2's create-note response is the bare NoteRow — it carries no
+    // `cards` (v1 did). The card id comes from /api/study/next instead.
+    const { note } = await post<{ note: { id: string } }>(
       '/api/notes',
       { noteTypeId: BASIC_ID, deckId, fields: ['猫', 'cat'], tags: ['study'] },
       201,
     );
-    cardId = note.cards[0]?.id ?? '';
     const reply = await next();
     expect(reply.status).toBe('card');
-    expect(reply.card?.id).toBe(cardId);
+    expect(reply.card?.noteId).toBe(note.id);
+    cardId = reply.card?.id ?? '';
+    expect(cardId).not.toBe('');
     expect(Object.keys(reply.card?.previews ?? {})).toEqual(['1', '2', '3', '4']);
   });
 
@@ -136,9 +138,10 @@ test.describe.serial('study engine', () => {
 
   test('7. verify finds no mismatch', async () => {
     await post('/api/study/answer', { cardId, rating: 3, reps: 0, elapsedMs: 2000 });
-    const response = await page.request.get('/api/study/verify');
-    expect(response.status()).toBe(200);
-    const report: { mismatches: unknown[]; chainMismatches: unknown[] } = await response.json();
+    // /api/study/verify is POST-only and wraps the report: { report: {...} }.
+    const { report } = await post<{
+      report: { mismatches: unknown[]; chainMismatches: unknown[] };
+    }>('/api/study/verify', {});
     expect(report.mismatches).toEqual([]);
     expect(report.chainMismatches).toEqual([]);
   });

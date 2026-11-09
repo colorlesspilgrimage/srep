@@ -6,17 +6,18 @@ import {
   type Page,
   type Request,
 } from '@playwright/test';
-import { resetAuthViaCli } from './support/cli';
+import { E2E_ORIGIN, resetAuthViaCli } from './support/cli';
+import { signInViaApi } from './support/api-signin';
 import { studyClockHeader } from './support/study-clock';
 import {
   addNote,
   createDeck,
+  csrf,
   drainUndo,
   openStudy,
   removeRootDecks,
   untilText,
 } from './support/study-screen';
-import { addAuthenticator, enableWebAuthn } from './support/virtual-authenticator';
 
 const CLIENT_IP = '198.51.100.41';
 
@@ -42,13 +43,7 @@ async function signIn(browser: Browser): Promise<void> {
     viewport: { width: 1440, height: 900 },
   });
   page = await context.newPage();
-  const cdp = await enableWebAuthn(page);
-  await addAuthenticator(cdp, 'platform');
-  await page.goto('/setup');
-  await page.getByLabel('Setup token').fill(setupToken);
-  await page.getByLabel('Nickname').fill('Study');
-  await page.getByRole('button', { name: 'Create' }).click();
-  await expect(page.getByText('Save these codes now. They are shown once.')).toBeVisible();
+  await signInViaApi(page, setupToken, 'Study');
   await removeRootDecks(page);
   await drainUndo(page);
 }
@@ -66,13 +61,22 @@ async function answerBody(): Promise<{ rating: number; reps: number; elapsedMs: 
   return body;
 }
 
-test('guest GET /study returns 303 to setup or login', async ({ request }) => {
-  const response = await request.get('/study', {
-    maxRedirects: 0,
+test('guest cannot study without a session', async ({ browser }) => {
+  // v2 serves the SPA shell (200) for every page route — there is no
+  // server-side redirect to /setup or /login anymore. The session is
+  // enforced by the API instead.
+  const guest = await browser.newPage();
+  const api = await guest.request.get('/api/study/next', {
     headers: { 'x-forwarded-for': CLIENT_IP },
   });
-  expect(response.status()).toBe(303);
-  expect(response.headers().location).toMatch(/\/(setup|login)$/);
+  expect(api.status()).toBe(401);
+  const shell = await guest.request.get('/study', {
+    headers: { 'x-forwarded-for': CLIENT_IP },
+  });
+  expect(shell.status()).toBe(200);
+  await guest.goto('/study');
+  await expect(guest.getByText('Could not load study cards.')).toBeVisible();
+  await guest.close();
 });
 
 test.describe.serial('study screen', () => {
@@ -263,6 +267,37 @@ test.describe.serial('study screen', () => {
     await expect(page.getByText('No cards left.')).toBeVisible();
   });
 
+  test('a stale answer refreshes instead of erroring', async () => {
+    const deckId = await createDeck(page, 'Study Stale');
+    await addNote(page, deckId, 'gato', 'cat');
+    await openStudy(page, deckId);
+    await expect(card()).toContainText('gato');
+    // Answer the same card through the API so the screen's copy is stale.
+    const next = await page.request.get(
+      `/api/study/next?deckId=${encodeURIComponent(deckId)}`,
+    );
+    const body: { card: { id: string; reps: number } } = await next.json();
+    const answered = await page.request.post('/api/study/answer', {
+      headers: {
+        origin: E2E_ORIGIN,
+        'x-srep-csrf': await csrf(page),
+        'content-type': 'application/json',
+      },
+      data: {
+        cardId: body.card.id,
+        rating: 3,
+        reps: body.card.reps,
+        elapsedMs: 1000,
+      },
+    });
+    expect(answered.ok()).toBeTruthy();
+    await page.keyboard.press('Space');
+    await expect(card()).toContainText('cat');
+    await page.keyboard.press('3');
+    await expect(page.getByText('Available at')).toBeVisible();
+    await expect(page.getByRole('alert')).toHaveCount(0);
+  });
+
   test('edit saves a field and a script is not an element', async () => {
     const deckId = await createDeck(page, 'Study Edit');
     await addNote(page, deckId, 'gato', 'cat');
@@ -383,8 +418,11 @@ test.describe.serial('study screen', () => {
 
   test('the deck list Study link opens that deck', async () => {
     await page.goto('/');
-    await page.getByRole('treeitem', { name: /Study Queue/ }).click();
-    const link = page.getByRole('link', { name: 'Study' });
+    // Scope to this deck's row: the nav bar and every other deck row also
+    // have a link named "Study".
+    const row = page.getByRole('treeitem', { name: /Study Queue/ });
+    await row.click();
+    const link = row.getByRole('link', { name: 'Study' });
     const href = await link.getAttribute('href');
     expect(href).toContain('/study?deck=');
     await link.click();

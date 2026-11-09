@@ -749,6 +749,93 @@ impl<'a> DomainStore<'a> {
         Ok("deleted")
     }
 
+    pub async fn get_note(&self, id: &str) -> Result<Option<NoteRow>> {
+        // Row types differ per backend (SqliteRow vs PgRow), so the
+        // conversion lives inside each arm like get_note_type does.
+        match self.pool {
+            DbPool::Sqlite(p) => {
+                let row = sqlx::query("SELECT * FROM note WHERE id = ? AND deleted_at IS NULL")
+                    .bind(id)
+                    .fetch_optional(p)
+                    .await?;
+                let Some(row) = row else {
+                    return Ok(None);
+                };
+                let fields: String = row.try_get("fields")?;
+                Ok(Some(NoteRow {
+                    id: row.try_get("id")?,
+                    note_type_id: row.try_get("note_type_id")?,
+                    guid: row.try_get("guid")?,
+                    fields: serde_json::from_str(&fields)?,
+                    created_at: row.try_get("created_at")?,
+                    updated_at: row.try_get("updated_at")?,
+                    checksum: row.try_get("checksum")?,
+                    deleted_at: row.try_get("deleted_at")?,
+                }))
+            }
+            DbPool::Postgres(p) => {
+                let row = sqlx::query("SELECT * FROM note WHERE id = $1 AND deleted_at IS NULL")
+                    .bind(id)
+                    .fetch_optional(p)
+                    .await?;
+                let Some(row) = row else {
+                    return Ok(None);
+                };
+                let fields: String = row.try_get("fields")?;
+                Ok(Some(NoteRow {
+                    id: row.try_get("id")?,
+                    note_type_id: row.try_get("note_type_id")?,
+                    guid: row.try_get("guid")?,
+                    fields: serde_json::from_str(&fields)?,
+                    created_at: row.try_get("created_at")?,
+                    updated_at: row.try_get("updated_at")?,
+                    checksum: row.try_get("checksum")?,
+                    deleted_at: row.try_get("deleted_at")?,
+                }))
+            }
+        }
+    }
+
+    pub async fn update_note_fields(
+        &self,
+        id: &str,
+        fields: &[String],
+        checksum: &str,
+        now: i64,
+    ) -> Result<Option<NoteRow>> {
+        let fields = serde_json::to_string(fields)?;
+        let changed = match self.pool {
+            DbPool::Sqlite(p) => sqlx::query(
+                "UPDATE note SET fields = ?, checksum = ?, updated_at = ? \
+                     WHERE id = ? AND deleted_at IS NULL",
+            )
+            .bind(&fields)
+            .bind(checksum)
+            .bind(now)
+            .bind(id)
+            .execute(p)
+            .await?
+            .rows_affected(),
+            DbPool::Postgres(p) => sqlx::query(
+                "UPDATE note SET fields = $1, checksum = $2, updated_at = $3 \
+                     WHERE id = $4 AND deleted_at IS NULL",
+            )
+            .bind(&fields)
+            .bind(checksum)
+            .bind(now)
+            .bind(id)
+            .execute(p)
+            .await?
+            .rows_affected(),
+        };
+
+        if changed == 0 {
+            Ok(None)
+        } else {
+            self.get_note(id).await
+        }
+    }
+
     pub async fn insert_note(
         &self,
         note: &NoteRow,

@@ -8,6 +8,7 @@ license.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+ammonia = "4"
 leptos = { version = "0.7", features = ["csr"] }
 leptos_router = { version = "0.7" }
 serde = { workspace = true, features = ["derive"] }
@@ -22,6 +23,8 @@ web-sys = { version = "0.3", features = [
   "Document",
   "Element",
   "HtmlElement",
+  "KeyboardEvent",
+  "NodeList",
   "Location",
   "Storage",
   "Request",

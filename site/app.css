@@ -281,3 +281,44 @@ a:hover {
   min-height: 44px;
   padding: 0.5rem 0.75rem;
 }
+
+.study-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  color: var(--tui-dim);
+  font-size: 0.875rem;
+}
+
+.study-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.study-dialog {
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius-sm);
+  padding: 1.5rem;
+  background: var(--tui-surface-2);
+  color: var(--tui-fg);
+}
+
+.study-dialog input {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  margin: 0.25rem 0 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--tui-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--tui-radius-sm);
+  background: var(--tui-surface-2);
+  color: var(--tui-fg);
+}
+
+.study-status {
+  color: var(--tui-dim);
+}
