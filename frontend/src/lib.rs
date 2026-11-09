@@ -4,6 +4,7 @@ use leptos_router::path;
 use wasm_bindgen::prelude::*;
 
 mod api;
+mod repository;
 mod screens;
 mod shell;
 mod themes;
@@ -111,6 +112,7 @@ fn SetupPage() -> impl IntoView {
 #[wasm_bindgen]
 pub fn hydrate() {
     console_error_panic_hook::set_once();
+    repository::test_hook::install_test_handle();
     let initial = themes::theme_from_storage();
     themes::apply_body_theme(&initial);
     mount_to_body(|| view! { <App /> });
