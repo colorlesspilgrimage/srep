@@ -6,9 +6,10 @@ use web_sys::{HtmlElement, KeyboardEvent};
 
 use crate::{
     api, offline_pack,
-    repository::StoredPack,
+    repository::{model::ConflictRecord, StoredPack},
     sanitize,
     study_controller::{NextReply, OnlineStudyController, StudyCard, StudyController},
+    sync::{self, SyncStatus},
 };
 
 #[derive(Clone, Debug)]
@@ -29,6 +30,7 @@ struct StudySignals {
     offline_pending: RwSignal<usize>,
     offline_can_cancel: RwSignal<bool>,
     refresh: RwSignal<u32>,
+    conflicts: RwSignal<Vec<ConflictRecord>>,
     status_message: RwSignal<Option<String>>,
     last_next: RwSignal<Option<String>>,
     edit_open: RwSignal<bool>,
@@ -103,6 +105,7 @@ pub fn StudyScreen() -> impl IntoView {
         offline_pending: RwSignal::new(0),
         offline_can_cancel: RwSignal::new(false),
         refresh: RwSignal::new(0u32),
+        conflicts: RwSignal::new(Vec::new()),
         status_message: RwSignal::new(None),
         last_next: RwSignal::new(None),
         edit_open: RwSignal::new(false),
@@ -144,7 +147,29 @@ pub fn StudyScreen() -> impl IntoView {
             .unwrap_or(true);
 
         spawn_local(async move {
+            sync::refresh_conflicts(signals.conflicts).await;
+
             if online {
+                // Design §5: upload existing offline work before issuing a new
+                // online answer or replacing the stored pack.
+                let report = sync::drain_outbox().await;
+                sync::refresh_conflicts(signals.conflicts).await;
+                match &report.status {
+                    SyncStatus::Failed { reason } => {
+                        // Do not return here: next() retains its existing error
+                        // path into load_offline_fallback.
+                        signals.status_message.set(Some(format!(
+                            "Offline reviews have not synced yet: {reason}"
+                        )));
+                    }
+                    SyncStatus::AuthFailed => {
+                        signals
+                            .status_message
+                            .set(Some("Sign in again to sync offline reviews".to_owned()));
+                    }
+                    SyncStatus::Drained | SyncStatus::Empty => {}
+                }
+
                 match controller.next(deck.clone()).await {
                     Ok(reply) => {
                         signals.shown_at.set(js_sys::Date::now());
@@ -158,6 +183,41 @@ pub fn StudyScreen() -> impl IntoView {
             } else {
                 load_offline_fallback(signals).await;
             }
+        });
+    });
+
+    Effect::new(move |_| {
+        let conflicts = signals.conflicts;
+        let refresh = signals.refresh;
+
+        let online_handle = window_event_listener_untyped("online", move |_| {
+            spawn_local(async move {
+                let report = sync::drain_outbox().await;
+                sync::refresh_conflicts(conflicts).await;
+
+                let emptied = report.left_pending == 0
+                    && matches!(report.status, SyncStatus::Drained | SyncStatus::Empty);
+
+                if emptied {
+                    // Re-run the normal load so next(), counts, and the fresh
+                    // pack all reflect the server after the upload.
+                    refresh.update(|value| *value = value.wrapping_add(1));
+                }
+            });
+        });
+
+        // __srepR16.drain() does not pass through the online listener. This
+        // event keeps the visible conflict list correct after test-handle
+        // drains too.
+        let drained_handle = window_event_listener_untyped(sync::SREP_DRAINED_EVENT, move |_| {
+            spawn_local(async move {
+                sync::refresh_conflicts(conflicts).await;
+            });
+        });
+
+        on_cleanup(move || {
+            online_handle.remove();
+            drained_handle.remove();
         });
     });
 
@@ -177,6 +237,14 @@ pub fn StudyScreen() -> impl IntoView {
     view! {
         <section class="screen-study">
             <h1>"Study"</h1>
+            <sync::ConflictSection
+                conflicts=signals.conflicts
+                on_resolved=Callback::new(move |_| {
+                    signals
+                        .refresh
+                        .update(|value| *value = value.wrapping_add(1));
+                })
+            />
             {move || match signals.state.get() {
                 StudyLoad::Loading => view! { <p>"Loading..."</p> }.into_any(),
                 StudyLoad::Error(message) => {

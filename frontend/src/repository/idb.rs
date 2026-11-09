@@ -596,6 +596,106 @@ impl ClientRepository {
         finish_transaction_result(tx, completion, OPERATION, result).await
     }
 
+    /// Queue OQ4's explicit "append anyway" operation for a conflicted review.
+    ///
+    /// Unlike queue_review, this never touches the pack or its cards: the
+    /// original conflicted review already marked its pack card answered, and
+    /// the pack may since have been replaced by a fresh one. The new review
+    /// reuses the original's rating, elapsed time, client timestamp, and pack
+    /// server-time fields, but carries a fresh review_id and the caller
+    /// supplied expected reps (the server snapshot's current reps). Sequence
+    /// allocation, payload hashing, and the atomic outbox/meta write are the
+    /// same as the normal queue path.
+    pub async fn queue_append_anyway(
+        &self,
+        local: &ReviewPayload,
+        expected_reps: u32,
+    ) -> Result<OutboxRecord, RepositoryError> {
+        const OPERATION: &str = "queue_append_anyway";
+
+        let review = NewReview {
+            pack_id: local.pack_id.clone(),
+            card_id: local.card_id.clone(),
+            rating: local.rating,
+            expected_reps,
+            elapsed_ms: local.elapsed_ms,
+            client_occurred_at_ms: local.client_occurred_at_ms,
+        };
+        validate::validate_new_review(&review)?;
+        if !self.recovery.usable {
+            return Err(RepositoryError::RecoveryRequired);
+        }
+
+        let (tx, completion) = start_transaction(
+            &self.db,
+            &[META_STORE, OUTBOX_STORE],
+            IdbTransactionMode::Readwrite,
+            OPERATION,
+        )?;
+
+        let device_id = self.device_id.clone();
+        let result: Result<OutboxRecord, RepositoryError> = async {
+            let meta_store = object_store(&tx, META_STORE, OPERATION)?;
+            let outbox = object_store(&tx, OUTBOX_STORE, OPERATION)?;
+
+            let request = meta_store
+                .get(&JsValue::from_str(META_KEY))
+                .map_err(|error| transaction_error(OPERATION, error))?;
+            let raw_meta = request_value(request, OPERATION).await?;
+            if raw_meta.is_undefined() {
+                return Err(RepositoryError::MetaCorrupt(
+                    "The repository meta record is missing".to_string(),
+                ));
+            }
+            let meta_value = convert::js_to_value(&raw_meta)
+                .map_err(|error| RepositoryError::MetaCorrupt(error.to_string()))?;
+            let meta = parse_meta(&meta_value)?;
+
+            let seq = meta.next_seq;
+            if seq > MAX_SAFE_INTEGER || seq.saturating_add(1) > MAX_SAFE_INTEGER {
+                return Err(RepositoryError::SequenceExhausted);
+            }
+
+            let payload = ReviewPayload {
+                review_id: new_uuid()?,
+                device_id,
+                seq,
+                pack_id: local.pack_id.clone(),
+                card_id: local.card_id.clone(),
+                rating: local.rating,
+                expected_reps,
+                elapsed_ms: local.elapsed_ms,
+                client_occurred_at_ms: local.client_occurred_at_ms,
+                pack_server_time_ms: local.pack_server_time_ms,
+                pack_server_time_offset_ms: local.pack_server_time_offset_ms,
+                payload_schema_version: OUTBOX_PAYLOAD_SCHEMA_VERSION,
+            };
+            let payload_hash = hash::review_payload_hash(&payload);
+            let record = payload.into_outbox(false, payload_hash);
+            let record_js = record_to_js(&record, OUTBOX_STORE, OPERATION)?;
+
+            let updated_meta = MetaRecord {
+                next_seq: seq + 1,
+                ..meta
+            };
+            let meta_js = record_to_js(&updated_meta, META_STORE, OPERATION)?;
+
+            let request = outbox
+                .add(&record_js)
+                .map_err(|error| transaction_error(OPERATION, error))?;
+            request_value(request, OPERATION).await?;
+            let request = meta_store
+                .put(&meta_js)
+                .map_err(|error| transaction_error(OPERATION, error))?;
+            request_value(request, OPERATION).await?;
+
+            Ok(record)
+        }
+        .await;
+
+        finish_transaction_result(tx, completion, OPERATION, result).await
+    }
+
     pub async fn cancel_latest_unsent(
         &self,
         pack_id: &str,
@@ -865,6 +965,116 @@ impl ClientRepository {
                 .map_err(|error| transaction_error(OPERATION, error))?;
             request_value(request, OPERATION).await?;
             Ok(count)
+        }
+        .await;
+
+        finish_transaction_result(tx, completion, OPERATION, result).await
+    }
+
+    /// Atomically apply a contiguous resolved prefix returned by
+    /// /api/study/sync.
+    ///
+    /// Accepted and duplicate-accepted records are deleted from the outbox.
+    /// Conflict records are deleted from the outbox and inserted into the
+    /// conflicts store in the SAME transaction. The watermark advances
+    /// through the entire resolved prefix, including conflicts, because
+    /// those reviews now have durable conflict records. Never implement
+    /// this by calling record_conflict followed by remove_acked — that
+    /// would be two transactions with a crash window between them.
+    pub async fn apply_sync_outcome(
+        &self,
+        outcomes: &[SyncOutcome],
+    ) -> Result<(), RepositoryError> {
+        const OPERATION: &str = "apply_sync_outcome";
+
+        if outcomes.is_empty() {
+            return Ok(());
+        }
+
+        let pending = self.pending_outbox().await?;
+        if outcomes.len() > pending.len()
+            || outcomes
+                .iter()
+                .zip(pending.iter())
+                .any(|(outcome, record)| outcome.review_id != record.review_id)
+        {
+            return Err(RepositoryError::AckNotContiguous(
+                "sync outcomes are not a contiguous prefix of the pending outbox".to_string(),
+            ));
+        }
+
+        let resolved = &pending[..outcomes.len()];
+        let last_seq = resolved.last().map(|record| record.seq).ok_or_else(|| {
+            RepositoryError::AckNotContiguous("resolved prefix is empty".to_string())
+        })?;
+        let detected_at_ms = js_sys::Date::now() as i64;
+
+        let (tx, completion) = start_transaction(
+            &self.db,
+            &[OUTBOX_STORE, CONFLICTS_STORE, META_STORE],
+            IdbTransactionMode::Readwrite,
+            OPERATION,
+        )?;
+
+        let result: Result<(), RepositoryError> = async {
+            let outbox = object_store(&tx, OUTBOX_STORE, OPERATION)?;
+            let conflicts = object_store(&tx, CONFLICTS_STORE, OPERATION)?;
+            let meta_store = object_store(&tx, META_STORE, OPERATION)?;
+
+            let request = meta_store
+                .get(&JsValue::from_str(META_KEY))
+                .map_err(|error| transaction_error(OPERATION, error))?;
+            let raw_meta = request_value(request, OPERATION).await?;
+            if raw_meta.is_undefined() {
+                return Err(RepositoryError::MetaCorrupt(
+                    "The repository meta record is missing".to_string(),
+                ));
+            }
+            let meta_value = convert::js_to_value(&raw_meta)
+                .map_err(|error| RepositoryError::MetaCorrupt(error.to_string()))?;
+            let meta = parse_meta(&meta_value)?;
+
+            for (record, outcome) in resolved.iter().zip(outcomes.iter()) {
+                let request = outbox
+                    .delete(&JsValue::from_str(&record.review_id))
+                    .map_err(|error| transaction_error(OPERATION, error))?;
+                request_value(request, OPERATION).await?;
+
+                if let SyncOutcomeKind::Conflict {
+                    reason,
+                    server_response,
+                } = &outcome.kind
+                {
+                    let conflict = ConflictRecord {
+                        conflict_id: new_uuid()?,
+                        review_id: record.review_id.clone(),
+                        device_id: record.device_id.clone(),
+                        seq: record.seq,
+                        pack_id: record.pack_id.clone(),
+                        card_id: record.card_id.clone(),
+                        reason: reason.clone(),
+                        local_review: record.payload(),
+                        server_response: server_response.clone(),
+                        detected_at_ms,
+                    };
+                    let conflict_js = record_to_js(&conflict, CONFLICTS_STORE, OPERATION)?;
+                    let request = conflicts
+                        .add(&conflict_js)
+                        .map_err(|error| transaction_error(OPERATION, error))?;
+                    request_value(request, OPERATION).await?;
+                }
+            }
+
+            let updated_meta = MetaRecord {
+                acked_through_seq: last_seq,
+                ..meta
+            };
+            let meta_js = record_to_js(&updated_meta, META_STORE, OPERATION)?;
+            let request = meta_store
+                .put(&meta_js)
+                .map_err(|error| transaction_error(OPERATION, error))?;
+            request_value(request, OPERATION).await?;
+            Ok(())
         }
         .await;
 

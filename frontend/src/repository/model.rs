@@ -165,6 +165,25 @@ pub struct ConflictRecord {
     pub detected_at_ms: i64,
 }
 
+/// One item of a resolved sync prefix: either acknowledged by the server
+/// (accepted or duplicate-of-accepted) or parked as a durable conflict.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncOutcome {
+    pub review_id: String,
+    pub kind: SyncOutcomeKind,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SyncOutcomeKind {
+    Ack,
+    Conflict {
+        reason: String,
+        server_response: Option<serde_json::Value>,
+    },
+}
+
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum PersistenceStatus {
