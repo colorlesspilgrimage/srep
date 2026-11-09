@@ -10,6 +10,7 @@ data/
 !.env.example
 playwright-report/
 site/pkg/
+site/version.json
 test-results/
 coverage/
 .DS_Store
