@@ -279,6 +279,8 @@ test.describe.serial('R17 offline reconciliation', () => {
     // The card is due again: online, and in the offline pack view.
     await page.goto(studyUrl);
     await expect(page.locator('.study-front')).toContainText('R17 Q1');
+    await waitForHandle(page);
+    await openRepo(page);
     await expect
       .poll(
         async () => {
@@ -333,6 +335,8 @@ test.describe.serial('R17 offline reconciliation', () => {
     await page.goto(studyUrl);
     await expect(page.locator('[data-offline-pack="true"]')).toBeVisible();
     await expect(page.locator('.offline-pack-stale')).toBeVisible();
+    await waitForHandle(page);
+    await openRepo(page);
     await expect(page.locator('.study-front')).toContainText('R17 Old Q1');
     await revealAndRate(page, 3);
     await expect(
@@ -354,7 +358,13 @@ test.describe.serial('R17 offline reconciliation', () => {
     await context.setOffline(true);
     await page.goto(studyUrl);
     await expect(page.locator('[data-offline-pack="true"]')).toBeVisible();
+    await waitForHandle(page);
+    await openRepo(page);
     await revealAndRate(page, 3);
+    // The view advances only after the queue commits (R14).
+    await expect(
+      page.getByText('End of offline pack.', { exact: true }),
+    ).toBeVisible();
     await context.setOffline(false);
     const report = await drain(page);
     expect(report.acked).toBe(1);
@@ -389,7 +399,13 @@ test.describe.serial('R17 offline reconciliation', () => {
     await context.setOffline(true);
     await page.goto(studyUrl);
     await expect(page.locator('[data-offline-pack="true"]')).toBeVisible();
+    await waitForHandle(page);
+    await openRepo(page);
     await revealAndRate(page, 3);
+    // The view advances only after the queue commits (R14).
+    await expect(
+      page.getByText('End of offline pack.', { exact: true }),
+    ).toBeVisible();
     const queued = await pendingOutbox(page);
     expect(queued).toHaveLength(1);
     const reviewId = queued[0]!.reviewId;
@@ -417,7 +433,11 @@ test.describe.serial('R17 offline reconciliation', () => {
       'service-worker upgrade to settle on one shell cache',
     );
 
-    await page.reload();
+    // Reload a non-study page under the new worker: the study screen's
+    // own online load drains in the background, which would race an
+    // explicit drain, so preservation and the drain are checked from the
+    // decks page instead.
+    await page.goto('/');
     await waitForHandle(page);
     await waitForR17(page);
     await openRepo(page);
@@ -425,6 +445,14 @@ test.describe.serial('R17 offline reconciliation', () => {
     expect(after).toHaveLength(1);
     expect(after[0]!.reviewId).toBe(reviewId);
     expect(after[0]!.cardId).toBe(firstCardId);
+
+    await page.reload();
+    await waitForHandle(page);
+    await waitForR17(page);
+    await openRepo(page);
+    const afterReload = await pendingOutbox(page);
+    expect(afterReload).toHaveLength(1);
+    expect(afterReload[0]!.reviewId).toBe(reviewId);
 
     const report = await drain(page);
     expect(report.acked).toBe(1);
