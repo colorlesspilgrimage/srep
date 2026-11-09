@@ -235,7 +235,6 @@ fn offline_pack_view(pack: StoredPack, index: usize, signals: StudySignals) -> A
                 <button
                     type="button"
                     aria-label="Previous card"
-                    disabled=index == 0
                     on:click=move |_| {
                         show_offline_card(signals, previous_pack.clone(), index.saturating_sub(1));
                     }
@@ -245,7 +244,6 @@ fn offline_pack_view(pack: StoredPack, index: usize, signals: StudySignals) -> A
                 <button
                     type="button"
                     aria-label="Next card"
-                    disabled=index >= card_count
                     on:click=move |_| {
                         let next = index.saturating_add(1).min(card_count);
                         show_offline_card(signals, next_pack.clone(), next);
@@ -296,6 +294,14 @@ fn offline_card_view(card: StudyCard, signals: StudySignals) -> AnyView {
 }
 
 fn show_offline_card(signals: StudySignals, pack: StoredPack, index: usize) {
+    // A no-op advance must not re-set state: setting the same value still
+    // notifies subscribers and re-renders, which would sustain a loop if a
+    // handler ever fired again for the already-current index.
+    if let StudyLoad::OfflinePack(_, current) = signals.state.get_untracked() {
+        if current == index {
+            return;
+        }
+    }
     signals.revealed.set(false);
     signals.state.set(StudyLoad::OfflinePack(pack, index));
 }
