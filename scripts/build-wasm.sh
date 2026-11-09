@@ -24,4 +24,11 @@ fi
 mkdir -p site/pkg
 wasm-bindgen "$WASM" --out-dir site/pkg --target web --no-typescript
 
+VERSION="dev"
+if command -v git >/dev/null 2>&1; then
+  VERSION="$(git rev-parse HEAD 2>/dev/null || printf 'dev')"
+fi
+BUILT_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+printf '{"version": "%s", "builtAt": "%s"}\n' "$VERSION" "$BUILT_AT" > site/version.json
+
 echo "WASM bundle written to site/pkg/"

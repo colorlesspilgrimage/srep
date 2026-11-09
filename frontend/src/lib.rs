@@ -7,6 +7,7 @@ mod api;
 mod repository;
 mod sanitize;
 mod screens;
+mod service_worker;
 mod shell;
 mod study_controller;
 mod themes;
@@ -113,6 +114,7 @@ fn SetupPage() -> impl IntoView {
 
 #[wasm_bindgen]
 pub fn hydrate() {
+    service_worker::register();
     console_error_panic_hook::set_once();
     repository::test_hook::install_test_handle();
     let initial = themes::theme_from_storage();
