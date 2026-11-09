@@ -249,7 +249,8 @@ pub async fn card_reps(pool: &DbPool, card_id: &str) -> i64 {
     let sql = dialect_sql(
         pool,
         "SELECT reps FROM card WHERE id = ?",
-        "SELECT reps FROM card WHERE id = $1",
+        // reps is integer (INT4) on Postgres; fetch_i64 decodes i64 (INT8).
+        "SELECT reps::bigint FROM card WHERE id = $1",
     );
     fetch_i64(pool, sql, vec![Arg::Text(card_id.to_string())]).await
 }
