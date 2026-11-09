@@ -38,19 +38,21 @@ pub fn row_to_preset(row: &SqliteRow) -> Result<PresetRow> {
 }
 
 pub fn row_to_preset_pg(row: &PgRow) -> Result<PresetRow> {
-    let learning: String = row.try_get("learning_steps")?;
-    let relearning: String = row.try_get("relearning_steps")?;
-    let fsrs: String = row.try_get("fsrs_params")?;
+    // learning_steps / relearning_steps / fsrs_params are jsonb on Postgres:
+    // sqlx cannot decode jsonb into String, so read them as Value first.
+    let learning: serde_json::Value = row.try_get("learning_steps")?;
+    let relearning: serde_json::Value = row.try_get("relearning_steps")?;
+    let fsrs: serde_json::Value = row.try_get("fsrs_params")?;
     Ok(PresetRow {
         id: row.try_get("id")?,
         name: row.try_get("name")?,
         new_per_day: row.try_get("new_per_day")?,
         reviews_per_day: row.try_get("reviews_per_day")?,
         desired_retention: row.try_get("desired_retention")?,
-        learning_steps: serde_json::from_str(&learning)?,
-        relearning_steps: serde_json::from_str(&relearning)?,
+        learning_steps: serde_json::from_value(learning)?,
+        relearning_steps: serde_json::from_value(relearning)?,
         max_interval: row.try_get("max_interval")?,
-        fsrs_params: serde_json::from_str(&fsrs).unwrap_or(None),
+        fsrs_params: serde_json::from_value(fsrs).unwrap_or(None),
         bury_siblings: row.try_get("bury_siblings")?,
         new_order: row.try_get("new_order")?,
     })
@@ -92,11 +94,12 @@ pub fn row_to_note_type_sqlite(row: &SqliteRow) -> Result<NoteTypeRow> {
 }
 
 pub fn row_to_note_type_pg(row: &PgRow) -> Result<NoteTypeRow> {
-    let fields: String = row.try_get("fields")?;
+    // fields is jsonb on Postgres: read as Value, not String (same as above).
+    let fields: serde_json::Value = row.try_get("fields")?;
     Ok(NoteTypeRow {
         id: row.try_get("id")?,
         name: row.try_get("name")?,
-        fields: serde_json::from_str(&fields)?,
+        fields: serde_json::from_value(fields)?,
         css_class: row.try_get("css_class")?,
         sort_field_idx: row.try_get("sort_field_idx")?,
     })
