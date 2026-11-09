@@ -260,13 +260,13 @@ fn card_view(
                     }
                     .into_any()
                 } else {
-                    view! {}.into_any()
+                    ().into_any()
                 }
             }}
             <div class="study-actions">
                 {move || {
                     if signals.revealed.get() {
-                        view! {}.into_any()
+                        ().into_any()
                     } else {
                         view! {
                             <button type="button" on:click=move |_| signals.revealed.set(true)>
@@ -314,7 +314,7 @@ fn card_view(
 
 fn commands_view(controller: OnlineStudyController, signals: StudySignals) -> AnyView {
     if !signals.commands_open.get() {
-        return view! {}.into_any();
+        return ().into_any();
     }
 
     let buttons = COMMANDS
@@ -398,7 +398,7 @@ fn edit_view(
     edit_button: NodeRef<leptos::html::Button>,
 ) -> AnyView {
     if !signals.edit_open.get() {
-        return view! {}.into_any();
+        return ().into_any();
     }
 
     view! {
@@ -478,11 +478,11 @@ fn handle_study_key(
             _ => {
                 // Ctrl+K / ':' opens the commands overlay above the dialog,
                 // unless the user is typing in a field.
-                if (event.ctrl_key() && key.eq_ignore_ascii_case("k")) || key == ":" {
-                    if !event_target_is_text_input(&event) {
-                        event.prevent_default();
-                        signals.commands_open.set(true);
-                    }
+                if ((event.ctrl_key() && key.eq_ignore_ascii_case("k")) || key == ":")
+                    && !event_target_is_text_input(&event)
+                {
+                    event.prevent_default();
+                    signals.commands_open.set(true);
                 }
             }
         }
@@ -749,12 +749,12 @@ fn trap_focus(event: &KeyboardEvent, dialog: NodeRef<leptos::html::Div>) {
         .and_then(|window| window.document())
         .and_then(|document| document.active_element());
 
-    let at_first = active.as_ref().map_or(false, |active| {
-        JsValue::from(active.clone()) == JsValue::from(first.clone())
-    });
-    let at_last = active.as_ref().map_or(false, |active| {
-        JsValue::from(active.clone()) == JsValue::from(last.clone())
-    });
+    let at_first = active
+        .as_ref()
+        .is_some_and(|active| JsValue::from(active.clone()) == JsValue::from(first.clone()));
+    let at_last = active
+        .as_ref()
+        .is_some_and(|active| JsValue::from(active.clone()) == JsValue::from(last.clone()));
 
     if event.shift_key() && at_first {
         event.prevent_default();
@@ -769,7 +769,7 @@ fn event_target_is_text_input(event: &KeyboardEvent) -> bool {
     event
         .target()
         .and_then(|target| target.dyn_into::<HtmlElement>().ok())
-        .map_or(false, |element| {
+        .is_some_and(|element| {
             matches!(element.tag_name().as_str(), "INPUT" | "TEXTAREA" | "SELECT")
                 || element.is_content_editable()
         })

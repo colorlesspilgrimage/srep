@@ -32,7 +32,6 @@ pub enum NextReply {
 pub struct StudyCard {
     pub id: String,
     pub note_id: String,
-    pub deck_id: Option<String>,
     pub reps: u32,
     pub front: String,
     pub back: String,
