@@ -418,8 +418,11 @@ test.describe.serial('study screen', () => {
 
   test('the deck list Study link opens that deck', async () => {
     await page.goto('/');
-    await page.getByRole('treeitem', { name: /Study Queue/ }).click();
-    const link = page.getByRole('link', { name: 'Study' });
+    // Scope to this deck's row: the nav bar and every other deck row also
+    // have a link named "Study".
+    const row = page.getByRole('treeitem', { name: /Study Queue/ });
+    await row.click();
+    const link = row.getByRole('link', { name: 'Study' });
     const href = await link.getAttribute('href');
     expect(href).toContain('/study?deck=');
     await link.click();
