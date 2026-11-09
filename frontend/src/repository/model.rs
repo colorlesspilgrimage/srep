@@ -174,6 +174,7 @@ pub enum PersistenceStatus {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct SequenceGap {
     pub device_id: String,
     pub expected_seq: u64,
@@ -182,6 +183,7 @@ pub struct SequenceGap {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct RecoveryReport {
     pub valid_outbox: u32,
     pub quarantined_outbox: u32,
@@ -195,6 +197,7 @@ pub struct RecoveryReport {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct OpenReport {
     pub device_id: String,
     pub persistence: PersistenceStatus,
