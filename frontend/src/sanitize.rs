@@ -19,6 +19,7 @@ pub fn card_html(html: &str) -> String {
         "em",
         "hr",
         "i",
+        "img",
         "li",
         "ol",
         "p",
@@ -35,6 +36,9 @@ pub fn card_html(html: &str) -> String {
     .collect::<HashSet<_>>();
     let mut tag_attributes = HashMap::new();
     tag_attributes.insert("a", ["href"].into_iter().collect::<HashSet<_>>());
+    // Images allowed per Sam's Nov 8, 2026 decision: http/https src only (see
+    // url_schemes below), alt text, no event handlers or style attributes.
+    tag_attributes.insert("img", ["src", "alt"].into_iter().collect::<HashSet<_>>());
     let url_schemes = ["http", "https", "mailto"]
         .into_iter()
         .collect::<HashSet<_>>();
@@ -117,10 +121,29 @@ mod tests {
         assert!(cleaned.contains("<hr>"));
         assert!(cleaned.contains("alert(1)"));
         assert!(!cleaned.contains("<script"));
-        assert!(!cleaned.contains("<img"));
+        // The img tag itself is allowed (Sam, Nov 8, 2026); only the event
+        // handler is stripped.
+        assert!(cleaned.contains("<img"));
+        assert!(!cleaned.contains("onerror"));
         assert!(!cleaned.contains("onclick"));
         assert!(!cleaned.contains("javascript:"));
         assert!(cleaned.contains("link"));
+    }
+
+    #[test]
+    fn keeps_safe_images_and_strips_unsafe_src() {
+        let cleaned = card_html(
+            "<img src=\"https://example.com/card.png\" alt=\"diagram\" onerror=alert(1)>",
+        );
+        assert!(cleaned.contains("src=\"https://example.com/card.png\""));
+        assert!(cleaned.contains("alt=\"diagram\""));
+        assert!(!cleaned.contains("onerror"));
+
+        let cleaned = card_html("<img src=\"javascript:alert(1)\">");
+        assert!(!cleaned.contains("javascript:"));
+
+        let cleaned = card_html("<img src=\"data:image/png;base64,AAAA\">");
+        assert!(!cleaned.contains("data:image"));
     }
 
     #[test]
@@ -131,7 +154,8 @@ mod tests {
         assert!(cleaned.contains("alert(1)"));
         assert!(!cleaned.contains("<svg"));
         assert!(!cleaned.contains("<script"));
-        assert!(!cleaned.contains("<img"));
+        // The img tag is allowed (Sam, Nov 8, 2026); the handler is stripped.
+        assert!(cleaned.contains("<img"));
         assert!(!cleaned.contains("onerror"));
     }
 }

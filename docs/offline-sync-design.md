@@ -80,9 +80,10 @@ round except the milestone plan. Branch: `kimi/offline-sync-design`.
 - Pack age alone does not invalidate a review. Display `generated_at`;
   scheduling staleness is detected by `reps` at upload. Refill only from a
   fresh server response, excluding locally answered cards.
-- Open question **OQ3**: shipped pack size, whether new/learning cards are
-  eligible, whether learning cards may requeue offline, and whether old packs
-  need warnings or expiry.
+- Decided Nov 8, 2026 (see Decisions): pack size 50; new cards eligible;
+  learning cards eligible but do not requeue offline (they advance one step
+  and wait for sync to requeue them); show a warning when a pack is more
+  than a day old, no hard expiry.
 
 ## 3. Sync protocol and server application
 
@@ -103,12 +104,11 @@ round except the milestone plan. Branch: `kimi/offline-sync-design`.
   applied; retain `client_occurred_at` as audit metadata. Offline intervals
   are therefore rebased to upload time, and existing verify/rebuild semantics
   stay valid.
-- Open question **OQ1**: is upload-time scheduling acceptable? If reviews must
-  schedule from actual offline time, first add a separate effective timestamp
-  and consistently change apply, per-card ordering, replay/rebuild, undo, and
-  statistics; do not overload `reviewed_at`. Recommended default for v1:
-  upload-time scheduling (deterministic, authoritative, independent of device
-  clocks).
+- Decided Nov 8, 2026 (see Decisions): upload-time scheduling for v1
+  (deterministic, authoritative, independent of device clocks). Scheduling
+  from actual offline time would first need a separate effective timestamp
+  and consistent changes to apply, per-card ordering, replay/rebuild, undo,
+  and statistics; do not overload `reviewed_at`.
 - Durable `sync_receipts` table, keyed by `(device_id, review_id)`, holding
   request hash and terminal outcome/log id. Write the receipt in the same
   transaction as the review or rejection.
@@ -119,10 +119,10 @@ round except the milestone plan. Branch: `kimi/offline-sync-design`.
   state for affected cards.
 - Uploads are **not** rejected because a quota is now exhausted: the review
   already happened. Quotas govern subsequent `/next` selection.
-- Open question **OQ2**: do late reviews count on their original study day or
-  arrival day, and can they reduce today's remaining quota? Original-day
-  accounting also needs a clock-skew policy and an explicit choice of current
-  vs pack-time timezone/rollover configuration.
+- Decided Nov 8, 2026 (see Decisions): late reviews count on their arrival
+  day and reduce today's remaining quota. Original-day accounting would also
+  need a clock-skew policy and an explicit choice of current vs pack-time
+  timezone/rollover configuration.
 
 ## 4. Conflicts and undo
 
@@ -135,9 +135,9 @@ round except the milestone plan. Branch: `kimi/offline-sync-design`.
   returned server snapshot. Later items for that card are `blocked`;
   independent cards may proceed. Nothing is silently discarded or marked
   synced.
-- Open question **OQ4**: conflict UX — manual "append anyway" using a new
-  operation id and current reps, explicit discard with confirmation, or
-  export-only. Automatic last-write-wins is not safe.
+- Decided Nov 8, 2026 (see Decisions): per-conflict choice — manual "append
+  anyway" using a new operation id and current reps, or explicit discard with
+  confirmation. Automatic last-write-wins is not safe.
 - Do not queue calls to the existing global `/undo`. Online undo continues to
   remove whichever review is globally latest, including a synced review.
 - **Receipt ≠ still applied.** Sequence: device A syncs review R (receipt
@@ -148,9 +148,9 @@ round except the milestone plan. Branch: `kimi/offline-sync-design`.
   must treat server card/log state as authoritative (including undo/tombstone
   or history-cursor information), mark R superseded/undone, clear its done
   presentation, and never retry it as a new review.
-- Open question **OQ5**: whether offline users may cancel the latest unsent
-  review, and whether any additional cross-device/targeted undo UX is
-  required. Undo of unseen pending reviews is impossible.
+- Decided Nov 8, 2026 (see Decisions): offline users may cancel the latest
+  unsent review. No additional cross-device/targeted undo UX for v1. Undo of
+  unseen pending reviews is impossible.
 
 ## 5. Reconnect and partial failure
 
@@ -180,8 +180,8 @@ round except the milestone plan. Branch: `kimi/offline-sync-design`.
   automatically.
 - **Clock skew:** sequence numbers order reviews. Under upload-time
   scheduling, client clocks cannot alter FSRS or log ordering; record server
-  offset for diagnostics. OQ2 needs additional validation before timestamps
-  affect quotas/history.
+  offset for diagnostics. OQ2 decided Nov 8, 2026 (see Decisions): late
+  reviews count on arrival day.
 - **Duplicates:** handled end-to-end by durable receipts, including response
   loss, browser restart, server retry, and undo.
 - **Pack corruption:** discard only the unusable pack; valid outbox reviews
@@ -246,24 +246,32 @@ yields no silent loss or duplicate; two-device same-card and
 independent-card cases pass.
 
 **R17 — Product semantics and release hardening.**
-Resolve OQ1–OQ5, implement approved timestamp/quota/undo behavior, and test
+OQ1–OQ5 decided Nov 8, 2026 (see Decisions); implement the approved
+timestamp/quota/undo behavior, and test
 skew, storage eviction, SW upgrades, and long-lived packs.
 *Gate:* product acceptance plus end-to-end offline → restart → partial sync
 → undo → rebuild, with documented day-window and quota results.
 
-## Open questions for Sam (do not decide without him)
+## Decisions (Sam, Nov 8, 2026)
 
-- **OQ1** — Upload-time scheduling as the v1 default (recommended), or
-  schedule from actual offline time? The latter is a much bigger change
-  (replay, undo, stats, quotas).
-- **OQ2** — Do late reviews count on their original study day or arrival
-  day, and can they reduce today's remaining quota?
-- **OQ3** — Shipped pack size (50 proposed), new/learning-card eligibility,
-  learning-card requeue offline, old-pack warnings/expiry.
-- **OQ4** — Conflict UX: manual "append anyway", explicit discard with
-  confirmation, or export-only? (No automatic last-write-wins.)
-- **OQ5** — May offline users cancel the latest unsent review? Any
-  cross-device/targeted undo UX?
+- **OQ1 — Upload-time scheduling.** Reviews schedule from when they reach
+  the server. Scheduling from actual offline time was rejected for v1 (would
+  need a separate effective timestamp across apply, replay, undo, and stats).
+- **OQ2 — Arrival day.** Late reviews count on their arrival day and reduce
+  today's remaining quota.
+- **OQ3 — Pack: 50 cards; new cards eligible; learning cards eligible but do
+  not requeue offline** (they advance one step and wait for sync to requeue
+  them). Warn when a pack is more than a day old; no hard expiry — pack age
+  alone does not invalidate a review.
+- **OQ4 — Per-conflict choice.** On conflict the user picks "append anyway"
+  (new operation id, current reps) or explicit discard with confirmation.
+  Nothing is silently dropped; no automatic last-write-wins.
+- **OQ5 — Cancel the latest unsent review: yes.** No additional
+  cross-device/targeted undo UX for v1.
+- **Sanitization — allow images.** The card sanitizer's minimal allowlist
+  gains `<img>` (`src`, `alt`; http/https only, no event handlers, no
+  `javascript:`/`data:` URLs). Server-side sanitization is deferred
+  hardening, not v1 scope. See `frontend/src/sanitize.rs`.
 
 ## Riskiest unknowns
 
