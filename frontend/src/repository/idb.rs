@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use js_sys::{Array, Function, Promise};
+use js_sys::{Array, Promise};
 use serde::Serialize;
 use serde_json::Value;
 use wasm_bindgen::{closure::Closure, JsCast, JsValue};
@@ -893,7 +893,7 @@ impl ClientRepository {
                 database_name: DB_NAME.to_string(),
                 database_version: DB_VERSION,
                 meta,
-                recovery: self.recovery.clone(),
+                recovery: self.recovery_report().clone(),
                 quarantine,
                 outbox,
                 pack_ids,

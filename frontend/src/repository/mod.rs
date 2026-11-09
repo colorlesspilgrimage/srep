@@ -3,17 +3,11 @@ pub mod hash;
 pub mod idb;
 pub mod model;
 pub mod sequence;
+pub mod test_hook;
 pub mod validate;
 
-pub use hash::{canonical_json, pack_card_hash, pack_hash, review_payload_hash, sha256_hex};
 pub use idb::ClientRepository;
 pub use model::*;
-pub use sequence::{split_outbox_prefix, validate_ack_prefix, SequenceSplit};
-pub use validate::{
-    as_i64_safe, as_u64_safe, check_no_unknown_fields, is_canonical_uuid, is_valid_id,
-    validate_conflict_record, validate_meta, validate_new_review, validate_outbox_record,
-    validate_pack_card_record, validate_pack_record, ValidationFailure,
-};
 
 pub const DB_NAME: &str = "srep-client";
 pub const DB_VERSION: u32 = 1;
