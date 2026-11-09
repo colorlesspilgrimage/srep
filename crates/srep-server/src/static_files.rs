@@ -21,6 +21,11 @@ pub async fn serve_static_or_spa(State(_state): State<AppState>, uri: Uri) -> im
         return Response::builder()
             .status(StatusCode::OK)
             .header(header::CONTENT_TYPE, mime.as_ref())
+            // R13a: the app shell must be servable from the browser HTTP cache
+            // for a cold offline launch (no service worker yet — R13b owns it).
+            // One hour is short enough that a redeployed shell is picked up
+            // promptly; the service worker will take over shell caching.
+            .header(header::CACHE_CONTROL, "public, max-age=3600")
             .body(Body::from(content.data.into_owned()))
             .unwrap();
     }
@@ -29,6 +34,7 @@ pub async fn serve_static_or_spa(State(_state): State<AppState>, uri: Uri) -> im
         return Response::builder()
             .status(StatusCode::OK)
             .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
+            .header(header::CACHE_CONTROL, "public, max-age=3600")
             .body(Body::from(index.data.into_owned()))
             .unwrap();
     }

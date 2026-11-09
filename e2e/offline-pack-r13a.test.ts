@@ -1,7 +1,7 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import { signInViaApi } from './support/api-signin';
 import { resetAuthViaCli } from './support/cli';
-import { addNote, createDeck, openStudy } from './support/study-screen';
+import { addNote, createDeck, openStudy, removeRootDecks } from './support/study-screen';
 
 type PackSummary = { packId: string };
 type StoredPack = {
@@ -59,31 +59,45 @@ test.describe.serial('R13a offline study pack', () => {
   });
 
   test.afterAll(async () => {
-    await context.close();
+    if (context) {
+      await context.close();
+    }
   });
 
   test('online load stores a pack; a cold offline launch shows the exact pack with zero server mutations', async () => {
+    // The server DB persists across runs of this file; clear any deck left
+    // by an earlier run so the fixed deck name does not 409.
+    await removeRootDecks(page);
     const deckId = await createDeck(page, 'R13a offline pack');
-    const fronts = ['Pack Q1', 'Pack Q2', 'Pack Q3'];
-    const backs = ['Pack A1', 'Pack A2', 'Pack A3'];
+    const cards = [
+      { front: 'Pack Q1', back: 'Pack A1' },
+      { front: 'Pack Q2', back: 'Pack A2' },
+      { front: 'Pack Q3', back: 'Pack A3' },
+    ];
 
-    for (let index = 0; index < fronts.length; index += 1) {
-      await addNote(page, deckId, fronts[index], backs[index]);
+    for (const card of cards) {
+      await addNote(page, deckId, card.front, card.back);
     }
 
     await openStudy(page, deckId);
     await expect(page.locator('.study-card')).toBeVisible();
+
+    // openStudy navigates, which reinstalls the test handle with a fresh
+    // (not yet open) repository state — reopen it before polling.
+    await waitForHandle(page);
+    await openRepo(page);
 
     await expect
       .poll(async () => (await listPacks(page)).length, { timeout: 15_000 })
       .toBe(1);
 
     const packs = await listPacks(page);
-    const stored = await getPack(page, packs[0].packId);
+    expect(packs).toHaveLength(1);
+    const stored = await getPack(page, packs[0]!.packId);
     expect(stored.cards).toHaveLength(3);
     expect(stored.cards.map((card) => card.ordinal)).toEqual([0, 1, 2]);
-    for (const [index, front] of fronts.entries()) {
-      expect(stored.cards[index].payload.front).toContain(front);
+    for (const [index, card] of cards.entries()) {
+      expect(stored.cards[index]!.payload.front).toContain(card.front);
     }
 
     const apiRequests: string[] = [];
