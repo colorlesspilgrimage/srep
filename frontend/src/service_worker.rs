@@ -15,7 +15,7 @@ pub fn register() {
     }
 
     wasm_bindgen_futures::spawn_local(async move {
-        let mut options = web_sys::RegistrationOptions::new();
+        let options = web_sys::RegistrationOptions::new();
         options.set_update_via_cache(web_sys::ServiceWorkerUpdateViaCache::None);
 
         let registration = navigator
