@@ -11,6 +11,7 @@ mod screens;
 mod service_worker;
 mod shell;
 mod study_controller;
+mod sync;
 mod themes;
 
 pub use themes::ThemeHandle;

@@ -221,4 +221,53 @@ pub fn install_test_handle() {
 
     let handle: JsValue = R12TestHandle::default().into();
     let _ = js_sys::Reflect::set(window.as_ref(), &JsValue::from_str("__srepR12"), &handle);
+    install_r16_test_hook();
+}
+
+/// R16 sync-engine handle: drain + report history only. It exposes no raw
+/// IDB mutation beyond what `__srepR12` already exposes.
+fn install_r16_test_hook() {
+    let Some(window) = web_sys::window() else {
+        return;
+    };
+    let handle = js_sys::Object::new();
+
+    let drain = Closure::<dyn Fn() -> js_sys::Promise>::new(|| {
+        future_to_promise(async {
+            let report = crate::sync::drain_outbox().await;
+            to_js(&report)
+        })
+    });
+    let _ = js_sys::Reflect::set(
+        &handle,
+        &JsValue::from_str("drain"),
+        drain.as_ref().unchecked_ref(),
+    );
+    drain.forget();
+
+    let last_report = Closure::<dyn Fn() -> JsValue>::new(|| match crate::sync::last_report() {
+        Some(report) => {
+            to_js(&report).unwrap_or_else(|error| JsValue::from_str(&format!("{error:?}")))
+        }
+        None => JsValue::NULL,
+    });
+    let _ = js_sys::Reflect::set(
+        &handle,
+        &JsValue::from_str("last_report"),
+        last_report.as_ref().unchecked_ref(),
+    );
+    last_report.forget();
+
+    let reports = Closure::<dyn Fn() -> JsValue>::new(|| {
+        to_js(&crate::sync::reports())
+            .unwrap_or_else(|error| JsValue::from_str(&format!("{error:?}")))
+    });
+    let _ = js_sys::Reflect::set(
+        &handle,
+        &JsValue::from_str("reports"),
+        reports.as_ref().unchecked_ref(),
+    );
+    reports.forget();
+
+    let _ = js_sys::Reflect::set(window.as_ref(), &JsValue::from_str("__srepR16"), &handle);
 }
