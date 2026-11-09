@@ -61,13 +61,22 @@ async function answerBody(): Promise<{ rating: number; reps: number; elapsedMs: 
   return body;
 }
 
-test('guest GET /study returns 303 to setup or login', async ({ request }) => {
-  const response = await request.get('/study', {
-    maxRedirects: 0,
+test('guest cannot study without a session', async ({ browser }) => {
+  // v2 serves the SPA shell (200) for every page route — there is no
+  // server-side redirect to /setup or /login anymore. The session is
+  // enforced by the API instead.
+  const guest = await browser.newPage();
+  const api = await guest.request.get('/api/study/next', {
     headers: { 'x-forwarded-for': CLIENT_IP },
   });
-  expect(response.status()).toBe(303);
-  expect(response.headers().location).toMatch(/\/(setup|login)$/);
+  expect(api.status()).toBe(401);
+  const shell = await guest.request.get('/study', {
+    headers: { 'x-forwarded-for': CLIENT_IP },
+  });
+  expect(shell.status()).toBe(200);
+  await guest.goto('/study');
+  await expect(guest.getByText('Could not load study cards.')).toBeVisible();
+  await guest.close();
 });
 
 test.describe.serial('study screen', () => {
