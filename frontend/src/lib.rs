@@ -4,6 +4,7 @@ use leptos_router::path;
 use wasm_bindgen::prelude::*;
 
 mod api;
+mod repository;
 mod screens;
 mod shell;
 mod themes;
