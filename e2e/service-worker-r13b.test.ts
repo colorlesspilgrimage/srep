@@ -41,28 +41,49 @@ async function waitForHandle(page: Page): Promise<void> {
   await page.waitForFunction(() => Boolean((window as any).__srepR12));
 }
 
+// Playwright 1.64.0's waitForFunction does not re-poll a promise-returning
+// predicate: it resolves as soon as the returned promise object is truthy,
+// even when the promise resolves to false. Async conditions therefore need
+// a manual poll loop.
+async function pollUntil<T>(
+  check: () => Promise<T | null | false>,
+  label: string,
+  timeoutMs = 30_000,
+): Promise<T> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const result = await check();
+    if (result) {
+      return result;
+    }
+    if (Date.now() > deadline) {
+      throw new Error(`timed out waiting for ${label}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+}
+
 // Wait until a service worker controls the page and the shell cache holds
 // every precached asset. Returns the shell cache name.
 async function waitForShellCache(page: Page): Promise<string> {
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
-  const name = await page.waitForFunction(
-    (expected) => {
-      return (async () => {
-        const names = await caches.keys();
-        const shell = names.find((n) => n.startsWith('srep-shell-'));
-        if (!shell) {
-          return null;
-        }
-        const cache = await caches.open(shell);
-        const keys = await cache.keys();
-        const paths = keys.map((r) => new URL(r.url).pathname);
-        return expected.every((p) => paths.includes(p)) ? shell : null;
-      })();
-    },
-    SHELL_PATHS,
-    { timeout: 30_000 },
+  return pollUntil(
+    () =>
+      page.evaluate((expected) => {
+        return (async () => {
+          const names = await caches.keys();
+          const shell = names.find((n) => n.startsWith('srep-shell-'));
+          if (!shell) {
+            return null;
+          }
+          const cache = await caches.open(shell);
+          const keys = await cache.keys();
+          const paths = keys.map((r) => new URL(r.url).pathname);
+          return expected.every((p) => paths.includes(p)) ? shell : null;
+        })();
+      }, SHELL_PATHS),
+    'shell cache to hold every precached asset',
   );
-  return name as unknown as string;
 }
 
 async function openRepo(page: Page): Promise<any> {
@@ -192,14 +213,13 @@ test('service-worker upgrade preserves the IDB contents exactly', async () => {
 
   // Activation (and its old-cache cleanup) can land after the new worker
   // takes control, so wait for the cleanup instead of asserting immediately.
-  await page.waitForFunction(
-    () =>
-      caches.keys().then((names) => {
-        const shell = names.filter((n) => n.startsWith('srep-shell-'));
-        return shell.length === 1 && !names.includes('srep-shell-stale-test');
-      }),
-    undefined,
-    { timeout: 30_000 },
+  await pollUntil(
+    async () => {
+      const names = await page.evaluate(() => caches.keys());
+      const shell = names.filter((n) => n.startsWith('srep-shell-'));
+      return shell.length === 1 && !names.includes('srep-shell-stale-test');
+    },
+    'service-worker upgrade to delete the stale shell cache',
   );
 
   const cacheNames = await page.evaluate(() => caches.keys());
