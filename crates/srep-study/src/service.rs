@@ -68,7 +68,7 @@ pub enum StudyError {
     Internal,
 }
 
-async fn load_settings(store: &StudyStore<'_>) -> Result<StudySettings, StudyError> {
+pub(crate) async fn load_settings(store: &StudyStore<'_>) -> Result<StudySettings, StudyError> {
     let raw = store
         .get_study_settings()
         .await
@@ -163,7 +163,7 @@ pub async fn study_next(state: &AppState, deck_id: Option<&str>) -> Result<NextR
     }
 }
 
-async fn build_study_card(
+pub(crate) async fn build_study_card(
     state: &AppState,
     study: &StudyStore<'_>,
     card_id: &str,

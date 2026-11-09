@@ -1,5 +1,6 @@
 mod card_state;
 pub mod convert;
+mod pack;
 mod replay;
 pub mod review;
 mod settings;
@@ -107,6 +108,14 @@ impl<'a> StudyStore<'a> {
 
     pub async fn review_log_head(&self) -> Result<Option<i64>> {
         sync::review_log_head(self.pool).await
+    }
+
+    pub async fn read_pack_queues(
+        &self,
+        input: &StudySnapshotInput,
+        limit: usize,
+    ) -> Result<Vec<crate::queue_choice::DeckPackQueue>> {
+        pack::read_queues(self.pool, input, limit).await
     }
 
     pub async fn undo_last_review<F>(&self, compute: F) -> Result<review::UndoResult>

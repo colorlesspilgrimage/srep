@@ -184,6 +184,83 @@ fn pick_new(decks: &[DeckState<'_>]) -> Option<String> {
     pick_min(&candidates)
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct DeckPackQueue {
+    pub deck_id: String,
+    pub learning: Vec<HeadCard>,
+    pub review: Vec<HeadCard>,
+    pub new: Vec<HeadCard>,
+}
+
+pub fn choose_pack(
+    snapshots: &[DeckSnapshot],
+    quotas: &[DeckQuota],
+    queues: &[DeckPackQueue],
+    limit: usize,
+    now_ms: i64,
+) -> Vec<(String, QueueSource)> {
+    if limit == 0 {
+        return vec![];
+    }
+    let mut simulated = snapshots.to_vec();
+    let mut indices = vec![[0_usize; 3]; simulated.len()];
+    for snapshot in &mut simulated {
+        if let Some(queue) = queues.iter().find(|q| q.deck_id == snapshot.deck_id) {
+            snapshot.learning_head = queue.learning.first().cloned();
+            snapshot.review_head = queue.review.first().cloned();
+            snapshot.new_head = queue.new.first().cloned();
+        }
+    }
+    let mut picked = Vec::with_capacity(limit);
+    while picked.len() < limit {
+        let choice = choose_next(&simulated, quotas, now_ms);
+        let (card_id, source) = match choice {
+            QueueChoice::Card { card_id, source } => (card_id, source),
+            _ => break,
+        };
+        let Some(deck_index) = simulated.iter().position(|snapshot| {
+            let head = match source {
+                QueueSource::Learning => &snapshot.learning_head,
+                QueueSource::Review => &snapshot.review_head,
+                QueueSource::New => &snapshot.new_head,
+            };
+            head.as_ref().is_some_and(|head| head.card_id == card_id)
+        }) else {
+            break;
+        };
+        let deck_id = simulated[deck_index].deck_id.clone();
+        let Some(queue) = queues.iter().find(|q| q.deck_id == deck_id) else {
+            break;
+        };
+        let source_index = match source {
+            QueueSource::Learning => 0,
+            QueueSource::Review => 1,
+            QueueSource::New => 2,
+        };
+        let next_index = indices[deck_index][source_index] + 1;
+        indices[deck_index][source_index] = next_index;
+        let next_head = match source {
+            QueueSource::Learning => queue.learning.get(next_index).cloned(),
+            QueueSource::Review => queue.review.get(next_index).cloned(),
+            QueueSource::New => queue.new.get(next_index).cloned(),
+        };
+        let snapshot = &mut simulated[deck_index];
+        match source {
+            QueueSource::Learning => snapshot.learning_head = next_head,
+            QueueSource::Review => {
+                snapshot.review_head = next_head;
+                snapshot.review_done = snapshot.review_done.saturating_add(1);
+            }
+            QueueSource::New => {
+                snapshot.new_head = next_head;
+                snapshot.new_done = snapshot.new_done.saturating_add(1);
+            }
+        }
+        picked.push((card_id, source));
+    }
+    picked
+}
+
 pub fn choose_next(snapshots: &[DeckSnapshot], quotas: &[DeckQuota], now_ms: i64) -> QueueChoice {
     if let Some(card_id) = pick_learning(snapshots) {
         return QueueChoice::Card {
