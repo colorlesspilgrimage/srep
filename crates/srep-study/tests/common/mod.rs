@@ -284,7 +284,7 @@ pub async fn seed_deck(
     let sql = dialect_sql(
         pool,
         "INSERT INTO deck_preset (id, name, new_per_day, reviews_per_day, desired_retention, learning_steps, relearning_steps, max_interval, fsrs_params, bury_siblings, new_order) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-        "INSERT INTO deck_preset (id, name, new_per_day, reviews_per_day, desired_retention, learning_steps, relearning_steps, max_interval, fsrs_params, bury_siblings, new_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
+        "INSERT INTO deck_preset (id, name, new_per_day, reviews_per_day, desired_retention, learning_steps, relearning_steps, max_interval, fsrs_params, bury_siblings, new_order) VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8,$9::jsonb,$10,$11)",
     );
     execute(
         pool,
@@ -326,7 +326,7 @@ pub async fn seed_deck(
     let sql = dialect_sql(
         pool,
         "INSERT INTO note_type (id, name, fields, css_class, sort_field_idx) VALUES (?,?,?,?,?)",
-        "INSERT INTO note_type (id, name, fields, css_class, sort_field_idx) VALUES ($1,$2,$3,$4,$5)",
+        "INSERT INTO note_type (id, name, fields, css_class, sort_field_idx) VALUES ($1,$2,$3::jsonb,$4,$5)",
     );
     execute(
         pool,
@@ -364,7 +364,7 @@ pub async fn seed_deck(
     let sql = dialect_sql(
         pool,
         "INSERT INTO note (id, note_type_id, guid, fields, created_at, updated_at, checksum, deleted_at) VALUES (?,?,?,?,?,?,?,NULL)",
-        "INSERT INTO note (id, note_type_id, guid, fields, created_at, updated_at, checksum, deleted_at) VALUES ($1,$2,$3,$4,$5,$6,$7,NULL)",
+        "INSERT INTO note (id, note_type_id, guid, fields, created_at, updated_at, checksum, deleted_at) VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,NULL)",
     );
     execute(
         pool,
