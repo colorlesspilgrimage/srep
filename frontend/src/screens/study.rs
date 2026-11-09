@@ -696,10 +696,23 @@ fn close_edit(signals: StudySignals, edit_button: NodeRef<leptos::html::Button>)
     signals.edit_saving.set(false);
     signals.edit_error.set(None);
 
-    if let Some(button) = edit_button.get() {
-        if let Ok(button) = button.dyn_into::<HtmlElement>() {
-            let _ = button.focus();
+    // The Edit button is disabled while the dialog is open, and Leptos only
+    // clears the `disabled` attribute on its next render pass. Focusing
+    // synchronously here would target a still-disabled button, which the
+    // browser refuses to focus — so wait a tick for the render to land.
+    let closure = wasm_bindgen::closure::Closure::once(move || {
+        if let Some(button) = edit_button.get() {
+            if let Ok(button) = button.dyn_into::<HtmlElement>() {
+                let _ = button.focus();
+            }
         }
+    });
+    if let Some(window) = web_sys::window() {
+        let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+            closure.as_ref().unchecked_ref(),
+            0,
+        );
+        closure.forget();
     }
 }
 
