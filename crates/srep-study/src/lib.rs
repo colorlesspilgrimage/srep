@@ -27,6 +27,7 @@ pub mod answer_plan;
 pub mod card_state_plan;
 pub mod day_clock;
 pub mod fsrs_adapter;
+pub mod pack;
 pub mod parked;
 pub mod queue_choice;
 pub mod replay;
@@ -40,6 +41,7 @@ pub mod validation;
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/study/next", get(study_next))
+        .route("/api/study/offline-pack", get(study_offline_pack))
         .route("/api/study/answer", post(study_answer))
         .route("/api/study/sync", post(study_sync))
         .route("/api/study/undo", post(study_undo))
@@ -66,6 +68,50 @@ async fn study_next(
         return resp;
     }
     match service::study_next(&state, query.deck_id.as_deref()).await {
+        Ok(reply) => Json(reply).into_response(),
+        Err(service::StudyError::NotFound) => {
+            (StatusCode::NOT_FOUND, Json(json!({"error":"not_found"}))).into_response()
+        }
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error":"bad_request"})),
+        )
+            .into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PackQuery {
+    deck_id: Option<String>,
+    limit: Option<String>,
+}
+
+async fn study_offline_pack(
+    State(state): State<AppState>,
+    req_auth: Option<axum::Extension<RequestAuth>>,
+    Query(query): Query<PackQuery>,
+) -> impl IntoResponse {
+    if let Some(resp) = require_auth(req_auth).await {
+        return resp;
+    }
+    let Some(limit) = validation::parse_pack_limit(query.limit.as_deref()) else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error":"bad_request"})),
+        )
+            .into_response();
+    };
+    if let Some(deck_id) = query.deck_id.as_deref() {
+        if validation::parse_uuid(deck_id).is_none() {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error":"bad_request"})),
+            )
+                .into_response();
+        }
+    }
+    match pack::study_pack(&state, query.deck_id.as_deref(), limit).await {
         Ok(reply) => Json(reply).into_response(),
         Err(service::StudyError::NotFound) => {
             (StatusCode::NOT_FOUND, Json(json!({"error":"not_found"}))).into_response()

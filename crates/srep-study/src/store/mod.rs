@@ -1,5 +1,6 @@
 mod card_state;
 pub mod convert;
+mod pack;
 mod replay;
 pub mod review;
 mod settings;
@@ -18,6 +19,13 @@ use crate::types::{ReviewLogRow, StudySettings};
 use crate::validation::SyncItem;
 use anyhow::Result;
 use srep_db::DbPool;
+
+/// Serializes SQLite sync writes within this process. See
+/// `StudyStore::sync_apply_item`: deferred transactions collide with
+/// SQLITE_BUSY_SNAPSHOT under concurrent writers, and the bounded retry
+/// there can be exhausted under real parallelism. Postgres does not use
+/// this lock — it serializes writers with pg_advisory_xact_lock instead.
+static SQLITE_SYNC_WRITE_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 pub struct StudyStore<'a> {
     pool: &'a DbPool,
@@ -92,6 +100,19 @@ impl<'a> StudyStore<'a> {
         // Retrying the whole item is safe: the receipt lookup inside the
         // transaction makes a re-run after a committed first attempt return
         // the stored duplicate outcome instead of applying twice.
+        //
+        // The retry below is NOT enough on its own: under real parallelism
+        // (8 concurrent devices) CI failed sync_gate scenario 9 twice with
+        // `not_attempted` after exhausting all 5 retries. So SQLite writers
+        // in this process are serialized with a mutex held for the whole
+        // item (all attempts) — that is the in-process equivalent of the
+        // Postgres advisory lock, which already serializes writers there.
+        // The retry remains as the backstop for writers in other processes.
+        let _sqlite_write_guard = if self.pool.dialect() == "sqlite" {
+            Some(SQLITE_SYNC_WRITE_LOCK.lock().await)
+        } else {
+            None
+        };
         let mut attempt = 0;
         loop {
             match sync::sync_apply_item(self.pool, device_id, item, now_ms, window).await {
@@ -107,6 +128,14 @@ impl<'a> StudyStore<'a> {
 
     pub async fn review_log_head(&self) -> Result<Option<i64>> {
         sync::review_log_head(self.pool).await
+    }
+
+    pub async fn read_pack_queues(
+        &self,
+        input: &StudySnapshotInput,
+        limit: usize,
+    ) -> Result<Vec<crate::queue_choice::DeckPackQueue>> {
+        pack::read_queues(self.pool, input, limit).await
     }
 
     pub async fn undo_last_review<F>(&self, compute: F) -> Result<review::UndoResult>

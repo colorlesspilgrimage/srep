@@ -21,7 +21,7 @@ use srep_domain::core::deck_paths::subtree_ids;
 use srep_domain::store::DomainStore;
 use std::collections::HashSet;
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StudyCard {
     pub id: String,
@@ -68,7 +68,7 @@ pub enum StudyError {
     Internal,
 }
 
-async fn load_settings(store: &StudyStore<'_>) -> Result<StudySettings, StudyError> {
+pub(crate) async fn load_settings(store: &StudyStore<'_>) -> Result<StudySettings, StudyError> {
     let raw = store
         .get_study_settings()
         .await
@@ -163,7 +163,7 @@ pub async fn study_next(state: &AppState, deck_id: Option<&str>) -> Result<NextR
     }
 }
 
-async fn build_study_card(
+pub(crate) async fn build_study_card(
     state: &AppState,
     study: &StudyStore<'_>,
     card_id: &str,
@@ -211,7 +211,13 @@ async fn build_study_card(
             let note_type_id: String = note
                 .try_get("note_type_id")
                 .map_err(|_| StudyError::Internal)?;
-            let fields_json: String = note.try_get("fields").map_err(|_| StudyError::Internal)?;
+            // note.fields is jsonb on Postgres (text on SQLite): decoding
+            // it as String fails, so read it as Value and re-serialize.
+            // This is the same pattern as row_to_note_type_pg.
+            let fields_value: serde_json::Value =
+                note.try_get("fields").map_err(|_| StudyError::Internal)?;
+            let fields_json =
+                serde_json::to_string(&fields_value).map_err(|_| StudyError::Internal)?;
             (note_type_id, fields_json)
         }
     };

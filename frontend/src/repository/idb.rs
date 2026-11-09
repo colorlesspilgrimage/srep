@@ -329,6 +329,62 @@ impl ClientRepository {
         finish_transaction_result(tx, completion, OPERATION, result).await
     }
 
+    pub async fn list_packs(&self) -> Result<Vec<PackRecord>, RepositoryError> {
+        const OPERATION: &str = "list_packs";
+
+        let (tx, _completion) = start_transaction(
+            &self.db,
+            &[PACKS_STORE],
+            IdbTransactionMode::Readonly,
+            OPERATION,
+        )?;
+        let store = tx
+            .object_store(PACKS_STORE)
+            .map_err(|error| RepositoryError::Open(format!("{OPERATION}: {error:?}")))?;
+        let request = store
+            .get_all()
+            .map_err(|error| RepositoryError::Open(format!("{OPERATION}: {error:?}")))?;
+
+        let promise = Promise::new(&mut |resolve, reject| {
+            let success_request = request.clone();
+            let on_success = Closure::once(move || {
+                let value = success_request.result().unwrap_or(JsValue::UNDEFINED);
+                let _ = resolve.call1(&JsValue::UNDEFINED, &value);
+            });
+            let on_error = Closure::once(move || {
+                let _ = reject.call1(
+                    &JsValue::UNDEFINED,
+                    &JsValue::from_str("list_packs request failed"),
+                );
+            });
+            request.set_onsuccess(Some(on_success.as_ref().unchecked_ref()));
+            request.set_onerror(Some(on_error.as_ref().unchecked_ref()));
+            on_success.forget();
+            on_error.forget();
+        });
+        let value = JsFuture::from(promise).await.map_err(|error| {
+            RepositoryError::Open(format!("{OPERATION}: {}", js_value_message(&error)))
+        })?;
+        let values = value
+            .dyn_into::<Array>()
+            .map_err(|error| RepositoryError::Open(format!("{OPERATION}: {error:?}")))?;
+
+        let mut packs = Vec::with_capacity(values.length() as usize);
+        for value in values.iter() {
+            let text = js_sys::JSON::stringify(&value)
+                .map_err(|error| RepositoryError::Open(format!("{OPERATION}: {error:?}")))?
+                .as_string()
+                .ok_or_else(|| {
+                    RepositoryError::Open(format!("{OPERATION}: record was not JSON"))
+                })?;
+            let pack = serde_json::from_str::<PackRecord>(&text)
+                .map_err(|error| RepositoryError::Open(format!("{OPERATION}: {error}")))?;
+            packs.push(pack);
+        }
+        packs.sort_by(|left, right| right.server_time_ms.cmp(&left.server_time_ms));
+        Ok(packs)
+    }
+
     pub async fn get_pack(&self, pack_id: &str) -> Result<Option<StoredPack>, RepositoryError> {
         const OPERATION: &str = "get_pack";
 

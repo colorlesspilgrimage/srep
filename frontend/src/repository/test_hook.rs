@@ -97,6 +97,15 @@ impl R12TestHandle {
         })
     }
 
+    pub fn list_packs(&self) -> js_sys::Promise {
+        let inner = Rc::clone(&self.inner);
+        future_to_promise(async move {
+            let repo = repository(&inner)?;
+            let packs = repo.list_packs().await.map_err(display_error)?;
+            to_js(&packs)
+        })
+    }
+
     pub fn get_pack(&self, pack_id: String) -> js_sys::Promise {
         let inner = Rc::clone(&self.inner);
         future_to_promise(async move {

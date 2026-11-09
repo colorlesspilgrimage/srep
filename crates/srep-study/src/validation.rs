@@ -14,6 +14,20 @@ pub fn parse_uuid(raw: &str) -> Option<Uuid> {
     Uuid::parse_str(raw).ok()
 }
 
+pub const DEFAULT_PACK_LIMIT: usize = 50;
+pub const MAX_PACK_LIMIT: usize = 50;
+
+pub fn parse_pack_limit(raw: Option<&str>) -> Option<usize> {
+    let Some(raw) = raw else {
+        return Some(DEFAULT_PACK_LIMIT);
+    };
+    if raw.is_empty() || !raw.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    let limit = raw.parse::<usize>().ok()?;
+    (1..=MAX_PACK_LIMIT).contains(&limit).then_some(limit)
+}
+
 pub fn is_valid_timezone(name: &str) -> bool {
     static PATTERN: OnceLock<Regex> = OnceLock::new();
     let pattern = PATTERN.get_or_init(|| Regex::new(r"^[A-Za-z0-9_/+-]{1,64}$").unwrap());
