@@ -317,10 +317,13 @@ test.describe.serial('study screen', () => {
     await expect(card().locator('script')).toHaveCount(0);
     await expect(card()).toContainText('alert(1)');
     await page.keyboard.press('e');
-    await field.fill('<svg><script>alert(1)</script></svg><img src=x onerror=alert(1)>');
+    await field.fill('<svg><script>alert(1)</script></svg><img src="https://example.com/cat.png" alt="cat" onerror=alert(1)>');
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(editDialog()).toBeHidden();
-    await expect(card().locator('script, svg, img, iframe, object, embed')).toHaveCount(0);
+    await expect(card().locator('script, svg, iframe, object, embed')).toHaveCount(0);
+    await expect(card().locator('img')).toHaveCount(1);
+    await expect(card().locator('img[onerror]')).toHaveCount(0);
+    await expect(card().locator('img')).toHaveAttribute('src', 'https://example.com/cat.png');
     await page.keyboard.press('e');
     await field.fill('nope');
     await page.keyboard.press('Escape');
