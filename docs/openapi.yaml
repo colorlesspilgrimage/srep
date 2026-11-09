@@ -231,6 +231,20 @@ paths:
         '200':
           description: Scheduling result
 
+  /api/study/sync:
+    post:
+      tags: [study]
+      summary: Sync offline reviews
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Sync results
+
   /api/study/undo:
     post:
       tags: [study]

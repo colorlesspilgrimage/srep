@@ -149,7 +149,7 @@ where
     }
 }
 
-async fn read_answer_ctx_sqlite(
+pub(crate) async fn read_answer_ctx_sqlite(
     tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
     card_id: &str,
 ) -> Result<Option<AnswerContext>> {
@@ -203,7 +203,7 @@ async fn read_answer_ctx_sqlite(
     }))
 }
 
-async fn read_answer_ctx_pg(
+pub(crate) async fn read_answer_ctx_pg(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     card_id: &str,
 ) -> Result<Option<AnswerContext>> {
@@ -266,7 +266,7 @@ fn sched_to_parked(s: crate::types::SchedState) -> crate::parked::CardState {
     }
 }
 
-async fn apply_answer_sqlite(
+pub(crate) async fn apply_answer_sqlite(
     tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
     card_id: &str,
     plan: &AnswerPlan,
@@ -325,7 +325,7 @@ async fn apply_answer_sqlite(
     Ok(())
 }
 
-async fn apply_answer_pg(
+pub(crate) async fn apply_answer_pg(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     card_id: &str,
     plan: &AnswerPlan,
@@ -492,7 +492,8 @@ pub(crate) fn row_to_review_log_pg(row: &sqlx::postgres::PgRow) -> Result<Review
         reps_before: row.try_get::<i32, _>("reps_before")? as u32,
         lapses_before: row.try_get::<i32, _>("lapses_before")? as u32,
         step_before: row.try_get::<i32, _>("step_before")? as u32,
-        elapsed_ms: row.try_get::<i64, _>("elapsed_ms")? as u64,
+        // elapsed_ms is integer (INT4) on Postgres, not bigint.
+        elapsed_ms: row.try_get::<i32, _>("elapsed_ms")? as u64,
         interval_after: row.try_get::<i32, _>("interval_after")? as u32,
         buried_sibling_ids,
     })

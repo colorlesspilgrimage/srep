@@ -4,6 +4,7 @@ mod replay;
 pub mod review;
 mod settings;
 mod snapshot;
+mod sync;
 
 pub use replay::REPLAY_PAGE_SIZE;
 pub use settings::STUDY_SETTINGS_KEY;
@@ -14,6 +15,7 @@ use crate::card_state_plan::CardStateUpdate;
 use crate::queue_choice::DeckSnapshot;
 use crate::types::StudyWindow;
 use crate::types::{ReviewLogRow, StudySettings};
+use crate::validation::SyncItem;
 use anyhow::Result;
 use srep_db::DbPool;
 
@@ -77,6 +79,36 @@ impl<'a> StudyStore<'a> {
         review::answer_card(self.pool, card_id, compute).await
     }
 
+    pub async fn sync_apply_item(
+        &self,
+        device_id: &str,
+        item: &SyncItem,
+        now_ms: i64,
+        window: &StudyWindow,
+    ) -> Result<serde_json::Value> {
+        // SQLite uses deferred transactions, so two concurrent writers can
+        // collide with SQLITE_BUSY / SQLITE_BUSY_SNAPSHOT even though a busy
+        // timeout is configured (the snapshot error is not retried by it).
+        // Retrying the whole item is safe: the receipt lookup inside the
+        // transaction makes a re-run after a committed first attempt return
+        // the stored duplicate outcome instead of applying twice.
+        let mut attempt = 0;
+        loop {
+            match sync::sync_apply_item(self.pool, device_id, item, now_ms, window).await {
+                Ok(value) => return Ok(value),
+                Err(e) if is_sqlite_lock_error(&e) && attempt < 5 => {
+                    attempt += 1;
+                    tokio::time::sleep(std::time::Duration::from_millis(10 * (1 << attempt))).await;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+    }
+
+    pub async fn review_log_head(&self) -> Result<Option<i64>> {
+        sync::review_log_head(self.pool).await
+    }
+
     pub async fn undo_last_review<F>(&self, compute: F) -> Result<review::UndoResult>
     where
         F: FnOnce(review::UndoContext) -> UndoPlan,
@@ -121,4 +153,16 @@ impl<'a> StudyStore<'a> {
     pub async fn put_study_settings(&self, value: &StudySettings) -> Result<()> {
         settings::put_settings(self.pool, value).await
     }
+}
+
+/// True when the error is a SQLite writer-lock collision (SQLITE_BUSY = 5,
+/// SQLITE_BUSY_SNAPSHOT = 517). Postgres uses the per-item advisory lock to
+/// serialize writers, so its errors are never lock collisions of this kind.
+fn is_sqlite_lock_error(e: &anyhow::Error) -> bool {
+    e.downcast_ref::<sqlx::Error>()
+        .and_then(|sql_err| match sql_err {
+            sqlx::Error::Database(db_err) => db_err.code().map(|code| code == "5" || code == "517"),
+            _ => None,
+        })
+        .unwrap_or(false)
 }
