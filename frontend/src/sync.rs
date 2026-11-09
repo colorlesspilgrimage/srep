@@ -178,6 +178,20 @@ async fn sleep_ms(ms: u32) {
 /// Every caller waits until the active drain, including its one coalesced
 /// rerun, has finished. The returned value is the most recent report.
 pub async fn drain_outbox() -> SyncReport {
+    drain_outbox_with(MAX_ATTEMPTS).await
+}
+
+/// The load-effect drain: one attempt, no retries. The load effect must
+/// never block the offline fallback on a retry loop — a single fast-failing
+/// request is enough to learn the server is unreachable, and the
+/// online-event drain (full retries) picks the batch up later. When the
+/// server is reachable the single attempt is the normal path and
+/// drain-before-next holds exactly.
+pub async fn drain_outbox_fail_fast() -> SyncReport {
+    drain_outbox_with(1).await
+}
+
+async fn drain_outbox_with(max_attempts: u32) -> SyncReport {
     if DRAIN_RUNNING.swap(true, Ordering::SeqCst) {
         DRAIN_AGAIN.store(true, Ordering::SeqCst);
 
@@ -190,13 +204,17 @@ pub async fn drain_outbox() -> SyncReport {
 
     DRAIN_AGAIN.store(false, Ordering::SeqCst);
 
+    let mut budget = max_attempts;
     let report = loop {
-        let report = drain_pass().await;
+        let report = drain_pass(budget).await;
         remember_report(&report);
 
         if !DRAIN_AGAIN.swap(false, Ordering::SeqCst) {
             break report;
         }
+        // A coalesced rerun does the full job, even if the drain that was
+        // already running was fail-fast.
+        budget = MAX_ATTEMPTS;
     };
 
     // There is no await between clearing DRAIN_AGAIN and clearing
@@ -207,7 +225,7 @@ pub async fn drain_outbox() -> SyncReport {
     report
 }
 
-async fn drain_pass() -> SyncReport {
+async fn drain_pass(max_attempts: u32) -> SyncReport {
     let (repo, _) = match ClientRepository::open().await {
         Ok(opened) => opened,
         Err(error) => {
@@ -319,7 +337,7 @@ async fn drain_pass() -> SyncReport {
                         || error.status == 429
                         || (500..=599).contains(&error.status);
 
-                    if retryable && attempt < MAX_ATTEMPTS {
+                    if retryable && attempt < max_attempts {
                         let delay = backoff_delay_ms(attempt - 1, js_sys::Math::random());
                         sleep_ms(delay).await;
 

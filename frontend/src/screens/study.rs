@@ -151,8 +151,11 @@ pub fn StudyScreen() -> impl IntoView {
 
             if online {
                 // Design §5: upload existing offline work before issuing a new
-                // online answer or replacing the stored pack.
-                let report = sync::drain_outbox().await;
+                // online answer or replacing the stored pack. Fail-fast: this
+                // drain must never block the offline fallback on a retry loop
+                // when the server is unreachable (navigator.onLine is only a
+                // hint — it can read true while the network is down).
+                let report = sync::drain_outbox_fail_fast().await;
                 sync::refresh_conflicts(signals.conflicts).await;
                 match &report.status {
                     SyncStatus::Failed { reason } => {

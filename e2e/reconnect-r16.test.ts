@@ -9,10 +9,10 @@ import {
 } from './support/study-screen';
 
 type SyncStatus =
-  | 'Drained'
-  | 'Empty'
-  | 'AuthFailed'
-  | { Failed: { reason: string } };
+  | 'drained'
+  | 'empty'
+  | 'authFailed'
+  | { failed: { reason: string } };
 type SyncReport = {
   attempted: number;
   acked: number;
@@ -139,11 +139,29 @@ async function reconnectAndWaitForDrain(
   predicate: (report: SyncReport) => boolean,
   timeoutMs = 20_000,
 ): Promise<SyncReport> {
+  // Playwright's offline emulation does not flip navigator.onLine in this
+  // environment, so the window online event may never fire on its own;
+  // dispatch it to exercise the study screen's listener deterministically.
+  // The load-effect drain in the goto fallback covers the navigation path.
+  await page.evaluate(() => window.dispatchEvent(new Event('online')));
   try {
     return await waitForReport(page, predicate, timeoutMs);
-  } catch {
+  } catch (error) {
+    // Surface what the drain actually reported before falling back.
+    console.log(
+      'reconnectAndWaitForDrain: first wait timed out; history:',
+      JSON.stringify(await reportHistory(page)),
+      'error:',
+      (error as Error).message,
+    );
     await page.goto(studyUrl);
-    await expect(page.locator('.study-card, [data-offline-pack="true"]')).toBeVisible();
+    await expect(
+      page
+        .locator('.study-card')
+        .or(page.locator('[data-offline-pack="true"]'))
+        .or(page.getByText('No cards left.', { exact: true }))
+        .or(page.getByText('Available at')),
+    ).toBeVisible();
     await waitForHandle(page);
     await openRepo(page);
     return await waitForReport(page, predicate, timeoutMs);
@@ -168,8 +186,19 @@ async function csrfToken(page: Page): Promise<string> {
 async function expectNoServerMismatches(page: Page): Promise<void> {
   const token = await csrfToken(page);
   const response = await page.request.post('/api/study/verify', {
-    headers: { 'x-srep-csrf': token },
+    headers: {
+      origin: 'http://localhost:4173',
+      'x-srep-csrf': token,
+      'content-type': 'application/json',
+    },
   });
+  if (!response.ok()) {
+    console.log(
+      'verify failed:',
+      response.status(),
+      await response.text(),
+    );
+  }
   expect(response.ok()).toBeTruthy();
   const body = await response.json();
   expect(body.report.mismatches).toEqual([]);
@@ -323,7 +352,7 @@ test.describe.serial('R16 reconnect + conflict recovery', () => {
         page,
         studyUrl,
         (candidate) =>
-          candidate.status === 'Drained' && candidate.acked === 3,
+          candidate.status === 'drained' && candidate.acked === 3,
       );
       expect(report.attempted).toBe(3);
       expect(report.duplicates).toBe(0);
@@ -334,13 +363,14 @@ test.describe.serial('R16 reconnect + conflict recovery', () => {
       expect((await reviewsToday(page)) - baselineReviews).toBe(3);
       await expectNoServerMismatches(page);
 
-      // The drained cards are no longer due.
+      // The drained cards are no longer due: Good/Hard leave new cards in
+      // learning, so next() reports Wait (not Done) until their step elapses.
       const next = await page.request.get(
         `/api/study/next?deckId=${encodeURIComponent(studyUrl.split('deck=')[1]!)}`,
       );
       expect(next.ok()).toBeTruthy();
       const body: { status: string } = await next.json();
-      expect(body.status).toBe('done');
+      expect(['wait', 'done']).toContain(body.status);
       expect(cardIds).toHaveLength(3);
     } finally {
       await context.setOffline(false);
@@ -372,7 +402,7 @@ test.describe.serial('R16 reconnect + conflict recovery', () => {
           ...request.headers(),
           host: new URL(request.url()).host,
         },
-        body: request.postDataBuffer() ?? undefined,
+        body: request.postData() ?? undefined,
       });
       await route.abort();
     });
@@ -382,7 +412,7 @@ test.describe.serial('R16 reconnect + conflict recovery', () => {
       const failed = await reconnectAndWaitForDrain(
         page,
         studyUrl,
-        (candidate) => typeof candidate.status === 'object' && 'Failed' in candidate.status,
+        (candidate) => typeof candidate.status === 'object' && 'failed' in candidate.status,
         90_000,
       );
       expect(failed.attempted).toBe(3);
@@ -401,7 +431,7 @@ test.describe.serial('R16 reconnect + conflict recovery', () => {
 
     // A second drain returns the stored receipts as duplicates.
     const redrain = await drain(page);
-    expect(redrain.status).toBe('Drained');
+    expect(redrain.status).toBe('drained');
     expect(redrain.attempted).toBe(3);
     expect(redrain.acked).toBe(0);
     expect(redrain.duplicates).toBe(3);
@@ -435,10 +465,11 @@ test.describe.serial('R16 reconnect + conflict recovery', () => {
         .poll(async () => (await listPacks(pageB)).length, { timeout: 15_000 })
         .toBe(1);
 
-      // Device A answers the same card online first.
+      // Device A answers the same card online first (Easy graduates the
+      // new card, so the view reaches "No cards left.").
       await openStudy(page, deckId);
       await expect(page.locator('.study-card')).toBeVisible();
-      await revealAndRate(page, 3);
+      await revealAndRate(page, 4);
       await expect(page.getByText('No cards left.', { exact: true })).toBeVisible();
       expect((await reviewsToday(page)) - baselineReviews).toBe(1);
 
@@ -449,6 +480,12 @@ test.describe.serial('R16 reconnect + conflict recovery', () => {
       await waitForHandle(pageB);
       await openRepo(pageB);
       await revealAndRate(pageB, 4);
+      await expect(
+        pageB.getByText('End of offline pack.', { exact: true }),
+      ).toBeVisible();
+      await expect(
+        pageB.getByText(pendingText(1), { exact: true }),
+      ).toBeVisible();
       const queued = await pendingOutbox(pageB);
       expect(queued).toHaveLength(1);
       expect(queued[0]!.expectedReps).toBe(0);
@@ -459,7 +496,7 @@ test.describe.serial('R16 reconnect + conflict recovery', () => {
         pageB,
         studyUrl,
         (candidate) =>
-          candidate.status === 'Drained' && candidate.conflictsParked === 1,
+          candidate.status === 'drained' && candidate.conflictsParked === 1,
       );
       expect(conflictReport.attempted).toBe(1);
       expect(conflictReport.acked).toBe(0);
@@ -527,7 +564,7 @@ test.describe.serial('R16 reconnect + conflict recovery', () => {
 
       await openStudy(page, deckId);
       await expect(page.locator('.study-card')).toBeVisible();
-      await revealAndRate(page, 2);
+      await revealAndRate(page, 4);
       await expect(page.getByText('No cards left.', { exact: true })).toBeVisible();
       expect((await reviewsToday(page)) - baselineReviews).toBe(1);
 
@@ -537,6 +574,12 @@ test.describe.serial('R16 reconnect + conflict recovery', () => {
       await waitForHandle(pageB);
       await openRepo(pageB);
       await revealAndRate(pageB, 3);
+      await expect(
+        pageB.getByText('End of offline pack.', { exact: true }),
+      ).toBeVisible();
+      await expect(
+        pageB.getByText(pendingText(1), { exact: true }),
+      ).toBeVisible();
       expect(await pendingOutbox(pageB)).toHaveLength(1);
 
       await contextB.setOffline(false);
@@ -544,7 +587,7 @@ test.describe.serial('R16 reconnect + conflict recovery', () => {
         pageB,
         studyUrl,
         (candidate) =>
-          candidate.status === 'Drained' && candidate.conflictsParked === 1,
+          candidate.status === 'drained' && candidate.conflictsParked === 1,
       );
       expect(await listConflicts(pageB)).toHaveLength(1);
       await expect(pageB.getByTestId('sync-conflicts')).toBeVisible();
@@ -627,6 +670,12 @@ test.describe.serial('R16 reconnect + conflict recovery', () => {
         'R16 mixed fresh Q',
       );
       await revealAndRate(pageB, 3);
+      await expect(
+        pageB.getByText('End of offline pack.', { exact: true }),
+      ).toBeVisible();
+      await expect(
+        pageB.getByText(pendingText(2), { exact: true }),
+      ).toBeVisible();
       expect((await pendingOutbox(pageB)).map((record) => record.seq)).toEqual([
         1, 2,
       ]);
@@ -636,7 +685,7 @@ test.describe.serial('R16 reconnect + conflict recovery', () => {
         pageB,
         studyUrl,
         (candidate) =>
-          candidate.status === 'Drained' &&
+          candidate.status === 'drained' &&
           candidate.acked === 1 &&
           candidate.conflictsParked === 1,
       );
@@ -691,7 +740,7 @@ test.describe.serial('R16 reconnect + conflict recovery', () => {
         page,
         studyUrl,
         (candidate) =>
-          candidate.status === 'Drained' && candidate.acked === 3,
+          candidate.status === 'drained' && candidate.acked === 3,
         60_000,
       );
       expect(report.leftPending).toBe(0);
