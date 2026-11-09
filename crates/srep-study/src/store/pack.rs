@@ -21,12 +21,7 @@ struct QueueRow {
     position: i32,
 }
 
-fn sqlite_query(
-    ids: &str,
-    filter: &str,
-    order: &str,
-    limit: usize,
-) -> String {
+fn sqlite_query(ids: &str, filter: &str, order: &str, limit: usize) -> String {
     format!(
         "SELECT deck_id, card_id, due, position FROM (
            SELECT card.deck_id AS deck_id, card.id AS card_id, card.due AS due, card.position AS position,
@@ -49,10 +44,7 @@ fn sqlite_new_order(shuffle_ids: &[String]) -> String {
     )
 }
 
-fn postgres_query(
-    filter: &str,
-    order: &str,
-) -> String {
+fn postgres_query(filter: &str, order: &str) -> String {
     format!(
         "SELECT deck_id, card_id, due, position FROM (
            SELECT card.deck_id AS deck_id, card.id AS card_id, card.due AS due, card.position AS position,
@@ -92,13 +84,19 @@ async fn read_sqlite(
     let limit = per_deck_limit.max(1);
     let learning = sqlite_query(
         &ids,
-        &format!("card.state IN ('learning', 'relearning') AND card.due <= {}", input.now_ms),
+        &format!(
+            "card.state IN ('learning', 'relearning') AND card.due <= {}",
+            input.now_ms
+        ),
         "card.due ASC, card.id ASC",
         limit,
     );
     let review = sqlite_query(
         &ids,
-        &format!("card.state = 'review' AND card.due < {}", input.window.end_ms),
+        &format!(
+            "card.state = 'review' AND card.due < {}",
+            input.window.end_ms
+        ),
         "card.due ASC, card.position ASC, card.id ASC",
         limit,
     );
@@ -115,11 +113,7 @@ async fn read_sqlite(
         (QueueSource::New, new),
     ] {
         let fetched = sqlx::query(&sql).fetch_all(p).await?;
-        rows.extend(
-            sqlite_rows(&fetched)?
-                .into_iter()
-                .map(|row| (source, row)),
-        );
+        rows.extend(sqlite_rows(&fetched)?.into_iter().map(|row| (source, row)));
     }
     Ok(assemble(&input.deck_ids, rows, per_deck_limit))
 }
@@ -131,8 +125,14 @@ async fn read_postgres(
 ) -> Result<Vec<DeckPackQueue>> {
     let ids = input.deck_ids.clone();
     let limit = per_deck_limit.max(1) as i64;
-    let learning_sql = postgres_query("card.state IN ('learning', 'relearning') AND card.due <= $2", "card.due ASC, card.id ASC");
-    let review_sql = postgres_query("card.state = 'review' AND card.due < $2", "card.due ASC, card.position ASC, card.id ASC");
+    let learning_sql = postgres_query(
+        "card.state IN ('learning', 'relearning') AND card.due <= $2",
+        "card.due ASC, card.id ASC",
+    );
+    let review_sql = postgres_query(
+        "card.state = 'review' AND card.due < $2",
+        "card.due ASC, card.position ASC, card.id ASC",
+    );
     let new_sql = postgres_query("card.state = 'new'", postgres_new_order());
     let learning = sqlx::query(&learning_sql)
         .bind(&ids)

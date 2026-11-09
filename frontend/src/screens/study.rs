@@ -5,8 +5,9 @@ use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{HtmlElement, KeyboardEvent};
 
 use crate::{
-    api, offline_pack, sanitize,
+    api, offline_pack,
     repository::StoredPack,
+    sanitize,
     study_controller::{NextReply, OnlineStudyController, StudyCard, StudyController},
 };
 
@@ -207,14 +208,9 @@ fn offline_pack_view(pack: StoredPack, index: usize, signals: StudySignals) -> A
         .get("generatedAt")
         .and_then(serde_json::Value::as_i64)
         .unwrap_or(pack.pack.server_time_ms);
-    let stale = offline_pack::is_stale(
-        pack.pack.server_time_ms,
-        js_sys::Date::now() as i64,
-    );
+    let stale = offline_pack::is_stale(pack.pack.server_time_ms, js_sys::Date::now() as i64);
     let body = match pack.cards.get(index) {
-        None => {
-            view! { <p class="offline-pack-end">"End of offline pack."</p> }.into_any()
-        }
+        None => view! { <p class="offline-pack-end">"End of offline pack."</p> }.into_any(),
         Some(record) => match offline_pack::study_card_from_payload(&record.payload) {
             Ok(card) => offline_card_view(card, signals),
             Err(_) => {
@@ -299,11 +295,7 @@ fn offline_card_view(card: StudyCard, signals: StudySignals) -> AnyView {
     .into_any()
 }
 
-fn show_offline_card(
-    signals: StudySignals,
-    pack: StoredPack,
-    index: usize,
-) {
+fn show_offline_card(signals: StudySignals, pack: StoredPack, index: usize) {
     signals.revealed.set(false);
     signals.state.set(StudyLoad::OfflinePack(pack, index));
 }

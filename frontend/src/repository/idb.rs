@@ -340,12 +340,10 @@ impl ClientRepository {
         )?;
         let store = tx
             .object_store(PACKS_STORE)
-            .map_err(|error| {
-                RepositoryError::Open(format!("{OPERATION}: {error:?}"))
-            })?;
-        let request = store.get_all().map_err(|error| {
-            RepositoryError::Open(format!("{OPERATION}: {error:?}"))
-        })?;
+            .map_err(|error| RepositoryError::Open(format!("{OPERATION}: {error:?}")))?;
+        let request = store
+            .get_all()
+            .map_err(|error| RepositoryError::Open(format!("{OPERATION}: {error:?}")))?;
 
         let promise = Promise::new(&mut |resolve, reject| {
             let success_request = request.clone();
@@ -364,14 +362,9 @@ impl ClientRepository {
             on_success.forget();
             on_error.forget();
         });
-        let value = JsFuture::from(promise)
-            .await
-            .map_err(|error| {
-                RepositoryError::Open(format!(
-                    "{OPERATION}: {}",
-                    js_value_message(&error)
-                ))
-            })?;
+        let value = JsFuture::from(promise).await.map_err(|error| {
+            RepositoryError::Open(format!("{OPERATION}: {}", js_value_message(&error)))
+        })?;
         let values = value
             .dyn_into::<Array>()
             .map_err(|error| RepositoryError::Open(format!("{OPERATION}: {error:?}")))?;

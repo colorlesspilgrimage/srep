@@ -103,7 +103,10 @@ async fn pack_gate() {
         .await
         .unwrap();
     assert_eq!(new_pack.cards.len(), 2);
-    assert!(new_pack.cards.iter().all(|card| card.payload.source == "new"));
+    assert!(new_pack
+        .cards
+        .iter()
+        .all(|card| card.payload.source == "new"));
     for card_id in &quota.card_ids {
         set_state(&pool, card_id, "review", now - 100).await;
     }
