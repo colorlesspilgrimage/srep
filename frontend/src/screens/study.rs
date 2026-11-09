@@ -476,11 +476,14 @@ fn handle_study_key(
                 save_edit(signals, edit_button);
             }
             _ => {
-                // Ctrl+K / ':' opens the commands overlay above the dialog,
-                // unless the user is typing in a field.
-                if ((event.ctrl_key() && key.eq_ignore_ascii_case("k")) || key == ":")
-                    && !event_target_is_text_input(&event)
-                {
+                // Ctrl+K is a control chord (it never types text), so it opens
+                // the commands overlay even from inside a field. ':' is a
+                // printable character: it opens commands only when the user is
+                // not typing in a field.
+                if event.ctrl_key() && key.eq_ignore_ascii_case("k") {
+                    event.prevent_default();
+                    signals.commands_open.set(true);
+                } else if key == ":" && !event_target_is_text_input(&event) {
                     event.prevent_default();
                     signals.commands_open.set(true);
                 }
