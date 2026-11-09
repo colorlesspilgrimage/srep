@@ -1,9 +1,12 @@
+pub mod convert;
 pub mod hash;
+pub mod idb;
 pub mod model;
 pub mod sequence;
 pub mod validate;
 
 pub use hash::{canonical_json, pack_card_hash, pack_hash, review_payload_hash, sha256_hex};
+pub use idb::ClientRepository;
 pub use model::*;
 pub use sequence::{split_outbox_prefix, validate_ack_prefix, SequenceSplit};
 pub use validate::{
