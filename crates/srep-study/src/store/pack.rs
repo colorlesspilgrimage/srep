@@ -135,19 +135,19 @@ async fn read_postgres(
     let review_sql = postgres_query("card.state = 'review' AND card.due < $2", "card.due ASC, card.position ASC, card.id ASC");
     let new_sql = postgres_query("card.state = 'new'", postgres_new_order());
     let learning = sqlx::query(&learning_sql)
-        .bind(ids)
+        .bind(&ids)
         .bind(input.now_ms)
         .bind(limit)
         .fetch_all(p)
         .await?;
     let review = sqlx::query(&review_sql)
-        .bind(ids)
+        .bind(&ids)
         .bind(input.window.end_ms)
         .bind(limit)
         .fetch_all(p)
         .await?;
     let new = sqlx::query(&new_sql)
-        .bind(ids)
+        .bind(&ids)
         .bind(&input.shuffle_deck_ids)
         .bind(limit)
         .fetch_all(p)

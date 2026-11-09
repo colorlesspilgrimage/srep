@@ -21,7 +21,7 @@ use srep_domain::core::deck_paths::subtree_ids;
 use srep_domain::store::DomainStore;
 use std::collections::HashSet;
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StudyCard {
     pub id: String,

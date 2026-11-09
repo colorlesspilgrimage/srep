@@ -9,7 +9,7 @@ use srep_domain::core::deck_paths::subtree_ids;
 use srep_domain::store::DomainStore;
 use std::collections::HashSet;
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PackCard {
     pub card_id: String,
@@ -18,7 +18,7 @@ pub struct PackCard {
     pub payload: StudyCard,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PackReply {
     pub pack_id: String,
