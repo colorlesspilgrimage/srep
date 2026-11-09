@@ -134,6 +134,18 @@ impl R12TestHandle {
         })
     }
 
+    pub fn cancel_latest_unsent(&self, pack_id: String) -> js_sys::Promise {
+        let inner = Rc::clone(&self.inner);
+        future_to_promise(async move {
+            let repo = repository(&inner)?;
+            let record = repo
+                .cancel_latest_unsent(&pack_id)
+                .await
+                .map_err(display_error)?;
+            to_js(&record)
+        })
+    }
+
     pub fn mark_sending(&self, review_ids: Vec<String>, sending: bool) -> js_sys::Promise {
         let inner = Rc::clone(&self.inner);
         future_to_promise(async move {

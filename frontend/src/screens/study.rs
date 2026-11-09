@@ -25,6 +25,9 @@ struct StudySignals {
     revealed: RwSignal<bool>,
     submitting: RwSignal<bool>,
     shown_at: RwSignal<f64>,
+    offline_enabled: RwSignal<bool>,
+    offline_pending: RwSignal<usize>,
+    offline_can_cancel: RwSignal<bool>,
     refresh: RwSignal<u32>,
     status_message: RwSignal<Option<String>>,
     last_next: RwSignal<Option<String>>,
@@ -96,6 +99,9 @@ pub fn StudyScreen() -> impl IntoView {
         revealed: RwSignal::new(false),
         submitting: RwSignal::new(false),
         shown_at: RwSignal::new(0.0),
+        offline_enabled: RwSignal::new(false),
+        offline_pending: RwSignal::new(0),
+        offline_can_cancel: RwSignal::new(false),
         refresh: RwSignal::new(0u32),
         status_message: RwSignal::new(None),
         last_next: RwSignal::new(None),
@@ -113,6 +119,8 @@ pub fn StudyScreen() -> impl IntoView {
     Effect::new(move |_| {
         signals.refresh.get();
         let deck = query.with(|query| query.get("deck"));
+        let offline_enabled = query.with(|query| query.get("offline").as_deref() == Some("1"));
+        signals.offline_enabled.set(offline_enabled);
 
         if let Some(deck) = deck.as_deref() {
             if !is_valid_uuid(deck) {
@@ -189,8 +197,25 @@ pub fn StudyScreen() -> impl IntoView {
 async fn load_offline_fallback(signals: StudySignals) {
     match offline_pack::load_latest_pack().await {
         Ok(Some(pack)) => {
+            let answering = signals.offline_enabled.get_untracked();
+            let index = if answering {
+                let (pending, can_cancel) = offline_pack::pending_answer_state(&pack.pack.pack_id)
+                    .await
+                    .unwrap_or((0, false));
+                signals.offline_pending.set(pending);
+                signals.offline_can_cancel.set(can_cancel);
+                pack.cards
+                    .iter()
+                    .position(|card| !card.answered)
+                    .unwrap_or(pack.cards.len())
+            } else {
+                signals.offline_pending.set(0);
+                signals.offline_can_cancel.set(false);
+                0
+            };
             signals.revealed.set(false);
-            signals.state.set(StudyLoad::OfflinePack(pack, 0));
+            signals.shown_at.set(js_sys::Date::now());
+            signals.state.set(StudyLoad::OfflinePack(pack, index));
         }
         Ok(None) | Err(_) => {
             signals
@@ -202,6 +227,7 @@ async fn load_offline_fallback(signals: StudySignals) {
 
 fn offline_pack_view(pack: StoredPack, index: usize, signals: StudySignals) -> AnyView {
     let card_count = pack.cards.len();
+    let answering = signals.offline_enabled.get();
     let generated_at = pack
         .pack
         .payload
@@ -212,7 +238,7 @@ fn offline_pack_view(pack: StoredPack, index: usize, signals: StudySignals) -> A
     let body = match pack.cards.get(index) {
         None => view! { <p class="offline-pack-end">"End of offline pack."</p> }.into_any(),
         Some(record) => match offline_pack::study_card_from_payload(&record.payload) {
-            Ok(card) => offline_card_view(card, signals),
+            Ok(card) => offline_card_view(card, pack.clone(), index, signals),
             Err(_) => {
                 view! { <p role="alert">"This offline card could not be read."</p> }.into_any()
             }
@@ -220,6 +246,7 @@ fn offline_pack_view(pack: StoredPack, index: usize, signals: StudySignals) -> A
     };
     let previous_pack = pack.clone();
     let next_pack = pack.clone();
+    let cancel_pack = pack.clone();
 
     view! {
         <div class="offline-pack" data-offline-pack="true">
@@ -231,6 +258,37 @@ fn offline_pack_view(pack: StoredPack, index: usize, signals: StudySignals) -> A
                 </p>
             })}
             {body}
+            {move || {
+                if answering {
+                    view! {
+                        <p class="offline-pack-pending">
+                            {format!(
+                                "{} answer(s) queued — will sync when you're back online",
+                                signals.offline_pending.get()
+                            )}
+                        </p>
+                    }
+                    .into_any()
+                } else {
+                    ().into_any()
+                }
+            }}
+            {move || {
+                if answering && signals.offline_can_cancel.get() {
+                    let pack = cancel_pack.clone();
+                    view! {
+                        <button
+                            type="button"
+                            on:click=move |_| cancel_offline_answer(pack.clone(), signals)
+                        >
+                            "Cancel last answer"
+                        </button>
+                    }
+                    .into_any()
+                } else {
+                    ().into_any()
+                }
+            }}
             <div class="offline-pack-nav">
                 <button
                     type="button"
@@ -257,17 +315,66 @@ fn offline_pack_view(pack: StoredPack, index: usize, signals: StudySignals) -> A
     .into_any()
 }
 
-fn offline_card_view(card: StudyCard, signals: StudySignals) -> AnyView {
+fn offline_card_view(
+    card: StudyCard,
+    pack: StoredPack,
+    index: usize,
+    signals: StudySignals,
+) -> AnyView {
     let front = sanitize::card_html(&card.front);
     let back = sanitize::card_html(&card.back);
+    let answering = signals.offline_enabled.get();
+    let answered = answering && pack.cards.get(index).is_some_and(|record| record.answered);
+
+    let rating_buttons = [1u8, 2, 3, 4]
+        .into_iter()
+        .map(|rating| {
+            let name = match rating {
+                1 => "Again",
+                2 => "Hard",
+                3 => "Good",
+                _ => "Easy",
+            };
+            let label = format!("{name} {}", preview_interval(&card, rating));
+            let answer_card = card.clone();
+            let answer_pack = pack.clone();
+            view! {
+                <button
+                    type="button"
+                    class="study-rate offline-study-rate"
+                    on:click=move |_| {
+                        submit_offline_answer(
+                            answer_card.clone(),
+                            rating,
+                            answer_pack.clone(),
+                            index,
+                            signals,
+                        );
+                    }
+                >
+                    {label}
+                </button>
+            }
+        })
+        .collect_view();
 
     view! {
         <div class="study-card">
             <div class="study-front" inner_html=front></div>
+            {answered.then(|| view! {
+                <p class="offline-card-queued">"Queued for sync"</p>
+            })}
             {move || {
                 if signals.revealed.get() {
+                    let ratings = if answering && !answered {
+                        view! { <div class="study-ratings">{rating_buttons.clone()}</div> }
+                            .into_any()
+                    } else {
+                        ().into_any()
+                    };
                     view! {
                         <div class="study-back" inner_html=back.clone()></div>
+                        {ratings}
                     }
                     .into_any()
                 } else {
@@ -303,7 +410,100 @@ fn show_offline_card(signals: StudySignals, pack: StoredPack, index: usize) {
         }
     }
     signals.revealed.set(false);
+    signals.shown_at.set(js_sys::Date::now());
     signals.state.set(StudyLoad::OfflinePack(pack, index));
+}
+
+fn submit_offline_answer(
+    card: StudyCard,
+    rating: u8,
+    pack: StoredPack,
+    index: usize,
+    signals: StudySignals,
+) {
+    if signals.submitting.get_untracked()
+        || !signals.offline_enabled.get_untracked()
+        || !signals.revealed.get_untracked()
+        || pack.cards.get(index).is_none_or(|record| record.answered)
+    {
+        return;
+    }
+    signals.submitting.set(true);
+    let elapsed_ms = (js_sys::Date::now() - signals.shown_at.get_untracked())
+        .max(0.0)
+        .round() as u64;
+
+    spawn_local(async move {
+        match offline_pack::queue_offline_answer(&pack.pack.pack_id, &card, rating, elapsed_ms)
+            .await
+        {
+            Ok(_) => {
+                let mut updated = pack.clone();
+                if let Some(record) = updated.cards.get_mut(index) {
+                    record.answered = true;
+                }
+                signals.submitting.set(false);
+                signals.status_message.set(None);
+                signals.offline_pending.update(|count| *count += 1);
+                signals.offline_can_cancel.set(true);
+                let next = updated
+                    .cards
+                    .iter()
+                    .position(|record| !record.answered)
+                    .unwrap_or(updated.cards.len());
+                show_offline_card(signals, updated, next);
+            }
+            Err(_) => {
+                signals.submitting.set(false);
+                signals
+                    .status_message
+                    .set(Some("Could not queue your answer.".to_string()));
+            }
+        }
+    });
+}
+
+fn cancel_offline_answer(pack: StoredPack, signals: StudySignals) {
+    if signals.submitting.get_untracked() || !signals.offline_can_cancel.get_untracked() {
+        return;
+    }
+    signals.submitting.set(true);
+    signals.status_message.set(None);
+    spawn_local(async move {
+        match offline_pack::cancel_latest_answer(&pack.pack.pack_id).await {
+            Ok(Some(record)) => {
+                let (pending, can_cancel) = offline_pack::pending_answer_state(&pack.pack.pack_id)
+                    .await
+                    .unwrap_or((0, false));
+                signals.offline_pending.set(pending);
+                signals.offline_can_cancel.set(can_cancel);
+                let mut updated = pack.clone();
+                if let Some(index) = updated
+                    .cards
+                    .iter()
+                    .position(|card| card.card_id.as_str() == record.card_id.as_str())
+                {
+                    updated.cards[index].answered = false;
+                    signals.revealed.set(false);
+                    signals.shown_at.set(js_sys::Date::now());
+                    signals.submitting.set(false);
+                    signals.state.set(StudyLoad::OfflinePack(updated, index));
+                } else {
+                    signals.submitting.set(false);
+                }
+            }
+            Ok(None) => {
+                signals.submitting.set(false);
+                signals.offline_can_cancel.set(false);
+            }
+            Err(_) => {
+                signals.submitting.set(false);
+                signals
+                    .status_message
+                    .set(Some("Could not cancel your last answer.".to_string()));
+            }
+        }
+    });
 }
 
 fn ready_view(
@@ -631,12 +831,30 @@ fn handle_study_key(
         }
 
         let card_count = pack.cards.len();
+        let offline_answering = signals.offline_enabled.get_untracked();
         match key.as_str() {
             " " | "Spacebar" | "Enter" => {
                 if index < card_count && !signals.revealed.get_untracked() {
                     event.prevent_default();
                     signals.revealed.set(true);
                 }
+            }
+            "1" | "2" | "3" | "4" if offline_answering => {
+                if signals.revealed.get_untracked() && !signals.submitting.get_untracked() {
+                    if let Some(record) = pack.cards.get(index) {
+                        if !record.answered {
+                            if let Ok(card) = offline_pack::study_card_from_payload(&record.payload)
+                            {
+                                let rating = key.parse::<u8>().unwrap_or(1);
+                                submit_offline_answer(card, rating, pack.clone(), index, signals);
+                            }
+                        }
+                    }
+                }
+            }
+            "u" if offline_answering => {
+                event.prevent_default();
+                cancel_offline_answer(pack, signals);
             }
             "ArrowLeft" => {
                 if index > 0 {

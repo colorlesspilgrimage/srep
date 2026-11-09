@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 
 use crate::{
     api,
-    repository::{ClientRepository, PackCardData, PackData, StoredPack},
+    repository::{ClientRepository, NewReview, OutboxRecord, PackCardData, PackData, StoredPack},
     study_controller::StudyCard,
 };
 
@@ -124,6 +124,56 @@ pub async fn fetch_and_store_pack(deck: Option<String>) -> Result<String, PackEr
     repository.close();
     stored.map_err(|error| PackError::RepositoryUnavailable(error.to_string()))?;
     Ok(pack_id)
+}
+
+pub async fn queue_offline_answer(
+    pack_id: &str,
+    card: &StudyCard,
+    rating: u8,
+    elapsed_ms: u64,
+) -> Result<OutboxRecord, PackError> {
+    let (repository, _) = ClientRepository::open()
+        .await
+        .map_err(|error| PackError::RepositoryUnavailable(error.to_string()))?;
+    let result = repository
+        .queue_review(NewReview {
+            pack_id: pack_id.to_string(),
+            card_id: card.id.clone(),
+            rating,
+            expected_reps: card.reps,
+            elapsed_ms,
+            client_occurred_at_ms: js_sys::Date::now() as i64,
+        })
+        .await;
+    repository.close();
+    result.map_err(|error| PackError::RepositoryUnavailable(error.to_string()))
+}
+
+pub async fn pending_answer_state(pack_id: &str) -> Result<(usize, bool), PackError> {
+    let (repository, _) = ClientRepository::open()
+        .await
+        .map_err(|error| PackError::RepositoryUnavailable(error.to_string()))?;
+    let result = repository.pending_outbox().await;
+    repository.close();
+    let records = result.map_err(|error| PackError::RepositoryUnavailable(error.to_string()))?;
+    let pending = records
+        .iter()
+        .filter(|record| record.pack_id == pack_id)
+        .count();
+    let can_cancel = records
+        .iter()
+        .max_by_key(|record| record.seq)
+        .is_some_and(|record| record.pack_id == pack_id);
+    Ok((pending, can_cancel))
+}
+
+pub async fn cancel_latest_answer(pack_id: &str) -> Result<Option<OutboxRecord>, PackError> {
+    let (repository, _) = ClientRepository::open()
+        .await
+        .map_err(|error| PackError::RepositoryUnavailable(error.to_string()))?;
+    let result = repository.cancel_latest_unsent(pack_id).await;
+    repository.close();
+    result.map_err(|error| PackError::RepositoryUnavailable(error.to_string()))
 }
 
 pub async fn load_latest_pack() -> Result<Option<StoredPack>, PackError> {
