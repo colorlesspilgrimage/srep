@@ -190,6 +190,18 @@ test('service-worker upgrade preserves the IDB contents exactly', async () => {
     { timeout: 30_000 },
   );
 
+  // Activation (and its old-cache cleanup) can land after the new worker
+  // takes control, so wait for the cleanup instead of asserting immediately.
+  await page.waitForFunction(
+    () =>
+      caches.keys().then((names) => {
+        const shell = names.filter((n) => n.startsWith('srep-shell-'));
+        return shell.length === 1 && !names.includes('srep-shell-stale-test');
+      }),
+    undefined,
+    { timeout: 30_000 },
+  );
+
   const cacheNames = await page.evaluate(() => caches.keys());
   expect(cacheNames.filter((n) => n.startsWith('srep-shell-'))).toHaveLength(1);
   expect(cacheNames).not.toContain('srep-shell-stale-test');
